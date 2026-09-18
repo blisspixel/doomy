@@ -114,6 +114,10 @@ impl GameSession {
             GameCommand::Action { player_id, action } => {
                 self.state.set_action(player_id, action);
             }
+
+            GameCommand::Speak { player_id, text } => {
+                let _ = self.state.try_speak(player_id, &text);
+            }
         }
     }
 
@@ -351,5 +355,90 @@ mod session_tests {
                 ..
             }
         )));
+    }
+
+    #[test]
+    fn speak_command_pushes_rate_limited_event() {
+        let mut session = GameSession::new();
+        let client_id = Uuid::new_v4();
+        let player_id = Uuid::new_v4();
+        session.apply_command(GameCommand::Connected {
+            id: client_id,
+            role: Role::Agent,
+            name: "ArenaFox".to_string(),
+            player_id: Some(player_id),
+        });
+        let _ = session.state.take_events();
+
+        session.apply_command(GameCommand::Speak {
+            player_id,
+            text: "  nice scrap  ".to_string(),
+        });
+        let events = session.state.take_events();
+        assert!(
+            events.iter().any(|e| matches!(
+                e,
+                protocol::GameEvent::Speak {
+                    player,
+                    text,
+                    ..
+                } if player == "ArenaFox" && text == "nice scrap"
+            )),
+            "expected Speak, got {:?}",
+            events
+        );
+
+        // Rate limit: immediate second speak is dropped.
+        session.apply_command(GameCommand::Speak {
+            player_id,
+            text: "again".to_string(),
+        });
+        assert!(
+            session.state.take_events().is_empty(),
+            "rate-limited speak must not emit"
+        );
+
+        // Advance ticks past cooldown.
+        for _ in 0..crate::sim::SPEAK_COOLDOWN_TICKS {
+            session.state.tick(0.05);
+            let _ = session.state.take_events();
+        }
+        session.apply_command(GameCommand::Speak {
+            player_id,
+            text: "again".to_string(),
+        });
+        assert!(
+            session.state.take_events().iter().any(|e| matches!(
+                e,
+                protocol::GameEvent::Speak { text, .. } if text == "again"
+            )),
+            "speak after cooldown must emit"
+        );
+    }
+
+    #[test]
+    fn speak_rejects_empty_and_overlong() {
+        let mut session = GameSession::new();
+        let player_id = Uuid::new_v4();
+        session.apply_command(GameCommand::Connected {
+            id: Uuid::new_v4(),
+            role: Role::Agent,
+            name: "Talker".to_string(),
+            player_id: Some(player_id),
+        });
+        let _ = session.state.take_events();
+
+        session.apply_command(GameCommand::Speak {
+            player_id,
+            text: "   ".to_string(),
+        });
+        assert!(session.state.take_events().is_empty());
+
+        let long = "x".repeat(crate::sim::SPEAK_MAX_CHARS + 1);
+        session.apply_command(GameCommand::Speak {
+            player_id,
+            text: long,
+        });
+        assert!(session.state.take_events().is_empty());
     }
 }

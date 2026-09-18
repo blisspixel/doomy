@@ -231,6 +231,27 @@ func show_compliance_ping(message: String, duration_sec: float = 6.0):
 		if is_instance_valid(round_message):
 			round_message.visible = false
 
+func show_speak(player: String, line: String):
+	# Killfeed-adjacent callout; keep string literals simple for Godot.
+	if frag_label:
+		var message = player + ": " + line
+		frag_label.text = message
+		frag_label.modulate = Color(0.85, 0.95, 1.0)
+		frag_label.visible = true
+		var tween = create_tween()
+		tween.tween_property(frag_label, "scale", Vector2(1.15, 1.15), 0.06)
+		tween.tween_property(frag_label, "scale", Vector2(1.0, 1.0), 0.1)
+		await get_tree().create_timer(2.5).timeout
+		if is_instance_valid(frag_label):
+			frag_label.visible = false
+			frag_label.modulate = Color.WHITE
+	if round_message and line != "":
+		round_message.text = "CALL: " + player + "\n" + line
+		round_message.visible = true
+		await get_tree().create_timer(2.0).timeout
+		if is_instance_valid(round_message):
+			round_message.visible = false
+
 func show_round_end(winner: String, reason: String):
 	scores = {}
 	behaviors = {}

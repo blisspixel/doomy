@@ -34,6 +34,10 @@ pub enum GameCommand {
         player_id: Uuid,
         action: crate::protocol::Action,
     },
+    Speak {
+        player_id: Uuid,
+        text: String,
+    },
 }
 
 impl NetServer {
@@ -158,13 +162,24 @@ async fn handle_connection(
         match msg {
             Ok(Message::Text(text)) => {
                 if role != Role::Spectator {
-                    if let Ok(ClientMessage::Action(action)) = serde_json::from_str(&text) {
-                        if let Some(pid) = player_id {
-                            let _ = game_tx.send(GameCommand::Action {
-                                player_id: pid,
-                                action,
-                            });
+                    match serde_json::from_str::<ClientMessage>(&text) {
+                        Ok(ClientMessage::Action(action)) => {
+                            if let Some(pid) = player_id {
+                                let _ = game_tx.send(GameCommand::Action {
+                                    player_id: pid,
+                                    action,
+                                });
+                            }
                         }
+                        Ok(ClientMessage::Speak(speak)) => {
+                            if let Some(pid) = player_id {
+                                let _ = game_tx.send(GameCommand::Speak {
+                                    player_id: pid,
+                                    text: speak.text,
+                                });
+                            }
+                        }
+                        _ => {}
                     }
                 }
             }

@@ -66,6 +66,7 @@ impl WeaponType {
 pub enum ClientMessage {
     Hello { role: Role, name: String },
     Action(Action),
+    Speak(Speak),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -101,6 +102,13 @@ pub struct LookAt {
     pub z: Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub player_id: Option<Uuid>,
+}
+
+/// Off-tick callout / taunt (control plane, not sticky Action).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct Speak {
+    pub text: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -244,6 +252,12 @@ pub enum GameEvent {
         message: String,
         duration_ticks: u32,
     },
+    /// Off-tick agent/human callout (rate-limited, length-capped).
+    Speak {
+        player: String,
+        player_id: Uuid,
+        text: String,
+    },
 }
 
 #[cfg(test)]
@@ -371,6 +385,41 @@ mod protocol_tests {
                 assert_eq!(target_hp_after, 75);
             }
             other => panic!("expected Hit, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn speak_deserializes_and_deny_unknown() {
+        let ok: ClientMessage =
+            serde_json::from_str(r#"{"type":"speak","text":"nice scrap"}"#).expect("speak");
+        match ok {
+            ClientMessage::Speak(s) => assert_eq!(s.text, "nice scrap"),
+            other => panic!("expected Speak, got {:?}", other),
+        }
+        let bad: Result<ClientMessage, _> =
+            serde_json::from_str(r#"{"type":"speak","text":"x","laser":true}"#);
+        assert!(bad.is_err(), "unknown Speak field must fail: {:?}", bad);
+    }
+
+    #[test]
+    fn speak_event_round_trip() {
+        let id = Uuid::new_v4();
+        let ev = GameEvent::Speak {
+            player: "ArenaFox".into(),
+            player_id: id,
+            text: "frequency contested".into(),
+        };
+        let v = serde_json::to_value(&ev).unwrap();
+        assert_eq!(v["event"], "speak");
+        assert_eq!(v["text"], "frequency contested");
+        assert_eq!(v["player"], "ArenaFox");
+        let back: GameEvent = serde_json::from_value(v).unwrap();
+        match back {
+            GameEvent::Speak { text, player, .. } => {
+                assert_eq!(text, "frequency contested");
+                assert_eq!(player, "ArenaFox");
+            }
+            other => panic!("expected Speak, got {:?}", other),
         }
     }
 }
