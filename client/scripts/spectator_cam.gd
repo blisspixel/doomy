@@ -139,9 +139,15 @@ func cycle_next_target():
 		camera_zoom_offset = -0.6
 
 func set_available_targets(targets: Array):
-	available_targets = targets
-	if follow_mode and len(targets) > 0:
-		follow_target_index = follow_target_index % len(targets)
+	# Drop freed pawns so follow cam / highlight never soft-prison on a dead instance.
+	available_targets = []
+	for t in targets:
+		if is_instance_valid(t):
+			available_targets.append(t)
+	if follow_mode and len(available_targets) > 0:
+		follow_target_index = follow_target_index % len(available_targets)
+	else:
+		follow_target_index = 0
 
 func camera_punch():
 	camera_shake_intensity = 0.3
@@ -152,7 +158,9 @@ func get_followed_target():
 		return fp_target
 	if follow_mode and len(available_targets) > 0:
 		var idx = follow_target_index % len(available_targets)
-		return available_targets[idx]
+		var target = available_targets[idx]
+		if is_instance_valid(target):
+			return target
 	return null
 
 func lock_on_frag(killer_id: String, duration: float = 1.5):

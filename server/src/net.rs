@@ -151,7 +151,10 @@ async fn handle_connection(
 
     let send_task = tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
-            let json = serde_json::to_string(&msg).unwrap();
+            let Ok(json) = serde_json::to_string(&msg) else {
+                tracing::warn!("Failed to serialize outbound server message; dropping client send");
+                break;
+            };
             if ws_sink.send(Message::Text(json)).await.is_err() {
                 break;
             }
