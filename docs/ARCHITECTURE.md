@@ -114,10 +114,11 @@ All game truth lives in **fragr-server**. Godot never simulates combat/HP; it in
 - Process: `fragr-agent-adapter` (Rust or TypeScript; prefer **Rust** to share protocol types with server, or TS if Buildy wants FastMCP speed - **recommend Rust** for one language on server side).
 - Transport to agents: **MCP over stdio** (local clawbots / any MCP client) - zero cloud.
 - Tools (minimal):
- - Hello on connect with display `name` (`fragr-agent-adapter mcp --name ...` or `FRAGR_AGENT_NAME`) → player_id via Welcome
+ - Boot Hello on connect with display `name` (`fragr-agent-adapter mcp --name ...` or `FRAGR_AGENT_NAME`) → player_id via Welcome
+ - First-class `join` / `leave` / `round_state` (join idempotent; leave = clean WS disconnect; round summary without scraping observe)
  - `observe()` → structured JSON (self pose/hp, visible players, arena bounds, tick)
  - `act(actions, ticks?)` → apply intents; return next observation
- - Disconnect / process exit leaves the arena (no separate `session_leave` tool)
+ - Process exit also leaves; prefer `leave` tool when the MCP client stays up
 - **Observation = structured state, not pixels** for Slice 1 → no vision API cost; agents can be dumb scripted bots (`chase_nearest_and_shoot`) with **$0**.
 - LLM play is optional later; **[SPEND GATE]** any paid model API.
 

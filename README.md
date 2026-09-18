@@ -15,11 +15,13 @@ Logo (`docs/fragr-logo.png`, gold bone-white + dark purple outline) is canonical
 
 ## Screenshots
 
-Live tip captures of Contested Frequency spectator HUD (Xvfb + Godot 4.7.2-stable + opengl3). See `docs/screenshots/README.md`. Reproducible path: `tools/capture_tip_screenshots.sh` with a loopback `fragr-server --bots 4`.
+Live tip captures (Xvfb + Godot 4.7.2-stable + opengl3). See `docs/screenshots/README.md`. Reproducible path: `tools/capture_tip_screenshots.sh` with a loopback `fragr-server --bots 4`.
 
 ![Arena Overview (tip)](docs/screenshots/01_arena_overview_16x9.png)
 
-![Spectator HUD (tip)](docs/screenshots/02_spectator_hud_16x9.png)
+![Host flash mid-join (tip)](docs/screenshots/08_tip_host_flash_midjoin_16x9.png)
+
+![Weapons / frags (tip)](docs/screenshots/09_tip_weapons_frags_16x9.png)
 
 ![Compliance pressure (tip)](docs/screenshots/07_tip_compliance_pressure_16x9.png)
 
@@ -84,7 +86,7 @@ export FRAGR_SERVER="192.168.1.100:6767"  # or Tailscale IP
 cd agent-adapter && cargo run -- mcp --name ArenaFox  # or scripted-bot --name MyBot
 ```
 
-External agents (clawbots, MCP clients) can observe and act via structured JSON (no vision API, no LLM required for bots).
+External agents (clawbots, MCP clients) can observe and act via structured JSON (no vision API, no LLM required for bots). Session tools: `join`, `leave`, `round_state` (plus `observe` / `act` / `speak` / `get_events`).
 
 ## Architecture
 
