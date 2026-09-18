@@ -374,6 +374,19 @@ func show_round_end(winner: String, reason: String):
 		if is_instance_valid(round_message):
 			round_message.visible = false
 
+func show_pickup_toast(player_name: String, weapon_name: String):
+	if not round_message:
+		return
+	var line = "SCRAP PAD: %s grabbed %s" % [player_name, weapon_name.to_upper()]
+	round_message.text = line
+	round_message.visible = true
+	round_message.modulate = Color(0.86, 0.82, 0.74)
+	var tree = get_tree()
+	if tree:
+		await tree.create_timer(1.6).timeout
+		if round_message:
+			round_message.visible = false
+
 func set_followed_weapon(weapon_name: String, player_name: String = "", behavior: String = ""):
 	if not weapon_label or not weapon_icon:
 		return

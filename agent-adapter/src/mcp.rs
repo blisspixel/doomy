@@ -461,7 +461,7 @@ fn tools_list_result() -> Value {
         "tools": [
             {
                 "name": "observe",
-                "description": "Get current game state observation including self_player_id, recent events, and shot_results (hit-confirm). Returns connecting state until first snapshot arrives.",
+                "description": "Get current game state observation including self_player_id, recent events, shot_results (hit-confirm), and pickups (mid-map weapon pads). Returns connecting state until first snapshot arrives.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {},

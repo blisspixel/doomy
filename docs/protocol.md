@@ -183,7 +183,12 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
   "mode_name": "Contested Frequency",
   "playlist": "Arena Duel",
   "pressure": "compliance",
-  "host_line": "HOST: CONTINUANCE COMPLIANCE PING. APPROVED LANES ONLY."
+  "host_line": "HOST: CONTINUANCE COMPLIANCE PING. APPROVED LANES ONLY.",
+  "pickups": [
+    {"id": "pad_rail", "weapon": "Rail", "x": 12.0, "y": 0.4, "z": 12.0, "available": true},
+    {"id": "pad_scatter", "weapon": "Scatter", "x": -12.0, "y": 0.4, "z": -12.0, "available": false, "respawn_in": 80},
+    {"id": "pad_flechette", "weapon": "Flechette", "x": -12.0, "y": 0.4, "z": 12.0, "available": true}
+  ]
 }
 ```
 
@@ -207,6 +212,7 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
 - `playlist`: Arena Duel under the league lie
 - `pressure`: (optional) Live pressure beat id. `"compliance_drone"` while the Compliance Drone is alive; `"compliance"` during Continuance compliance ping slow.
 - `host_line`: Sticky Contested Frequency Host chrome for mid-join / mid-round observe. League Host line by default; switches to the compliance Host line while pressure is live. Clients show this on join without waiting for the next `round_start`.
+- `pickups`: (optional, omitted when empty) Mid-map weapon pads. Each entry: `id`, `weapon` ("Flechette" / "Rail" / "Scatter"), `x`/`y`/`z`, `available`, optional `respawn_in` (ticks until the pad returns). Touch claim is authoritative on the server; clients only render.
 
 **Notes:**
 - Dead players (HP ≤ 0) are omitted from the snapshot
@@ -311,6 +317,18 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
   "boss_id": "550e8400-e29b-41d4-a716-446655440000",
   "killer": "Rusher",
   "message": "HOST: DRONE DOWN. CONTINUANCE DENIES THE INCIDENT. SCRAP ON."
+}
+```
+
+**Pickup Event:** (player touched an available mid-map weapon pad; loadout changes)
+```json
+{
+  "type": "event",
+  "event": "pickup",
+  "player": "Rusher",
+  "player_id": "550e8400-e29b-41d4-a716-446655440000",
+  "weapon": "Rail",
+  "pickup_id": "pad_rail"
 }
 ```
 

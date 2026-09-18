@@ -5,7 +5,10 @@ use crate::protocol::{
     PlayerState, Role, ServerMessage, Snapshot, WeaponType, BOSS_NAME,
 };
 #[cfg(test)]
-use crate::sim::{BotBehavior, BotController, GameState, MatchConfig, RoundState, BOSS_MAX_HP};
+use crate::sim::{
+    BotBehavior, BotController, GameState, MatchConfig, RoundState, BOSS_MAX_HP,
+    PICKUP_RESPAWN_TICKS,
+};
 #[cfg(test)]
 use uuid::Uuid;
 
@@ -252,6 +255,7 @@ fn test_protocol_snapshot_serialization() {
         playlist: default_playlist(),
         pressure: None,
         host_line: default_host_line(),
+        pickups: vec![],
     };
     let json = serde_json::to_value(&snapshot).unwrap();
     assert_eq!(json["tick"], 123);
@@ -271,6 +275,7 @@ fn test_protocol_snapshot_empty_players() {
         playlist: default_playlist(),
         pressure: None,
         host_line: default_host_line(),
+        pickups: vec![],
     };
     let json = serde_json::to_string(&snapshot).unwrap();
     assert!(json.contains(r#""tick":0"#));
@@ -2135,6 +2140,7 @@ async fn test_net_ws_action_forwarded_for_agent() {
             playlist: default_playlist(),
             pressure: None,
             host_line: default_host_line(),
+            pickups: vec![],
         });
         broadcast_to_clients(&clients, &[snap]).await;
         let msg = tokio::time::timeout(std::time::Duration::from_secs(2), stream.next())
@@ -2872,4 +2878,105 @@ fn test_boss_down_wire_json_and_compliance_ai_acts() {
     let v = serde_json::to_value(&down).unwrap();
     assert_eq!(v["event"], "boss_down");
     assert!(v.get("killer").is_none());
+}
+
+#[test]
+fn test_sim_pickups_present_in_snapshot() {
+    let state = GameState::new();
+    let snap = state.snapshot();
+    assert_eq!(snap.pickups.len(), 3);
+    let ids: Vec<_> = snap.pickups.iter().map(|p| p.id.as_str()).collect();
+    assert!(ids.contains(&"pad_rail"));
+    assert!(ids.contains(&"pad_scatter"));
+    assert!(ids.contains(&"pad_flechette"));
+    assert!(snap.pickups.iter().all(|p| p.available));
+}
+
+#[test]
+fn test_sim_pickup_claim_changes_weapon_and_emits_event() {
+    let mut state = GameState::new();
+    state.start_round();
+    let id = Uuid::new_v4();
+    state.add_player(id, "Rusher".into(), Role::Human);
+    // Place player on rail pad.
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == id) {
+        p.x = 12.0;
+        p.z = 12.0;
+        p.weapon = WeaponType::Flechette;
+    }
+    state.tick(0.05);
+    let player = state.players.iter().find(|p| p.id == id).unwrap();
+    assert_eq!(player.weapon, WeaponType::Rail);
+    let events = state.take_events();
+    assert!(
+        events.iter().any(|e| matches!(
+            e,
+            GameEvent::Pickup {
+                weapon,
+                pickup_id,
+                ..
+            } if weapon == "Rail" && pickup_id == "pad_rail"
+        )),
+        "expected pickup event, got {:?}",
+        events
+    );
+    let rail = state.pickups.iter().find(|p| p.id == "pad_rail").unwrap();
+    assert!(!rail.available);
+    assert_eq!(rail.respawn_timer, Some(PICKUP_RESPAWN_TICKS));
+}
+
+#[test]
+fn test_sim_pickup_respawns_after_timer() {
+    let mut state = GameState::new();
+    state.start_round();
+    let id = Uuid::new_v4();
+    state.add_player(id, "Rusher".into(), Role::Human);
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == id) {
+        p.x = 12.0;
+        p.z = 12.0;
+    }
+    state.tick(0.05);
+    assert!(
+        !state
+            .pickups
+            .iter()
+            .find(|p| p.id == "pad_rail")
+            .unwrap()
+            .available
+    );
+    // Move off pad so we do not re-claim instantly.
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == id) {
+        p.x = 0.0;
+        p.z = 0.0;
+    }
+    for _ in 0..PICKUP_RESPAWN_TICKS {
+        state.tick(0.05);
+    }
+    let rail = state.pickups.iter().find(|p| p.id == "pad_rail").unwrap();
+    assert!(rail.available, "rail pad should respawn");
+    assert!(rail.respawn_timer.is_none());
+}
+
+#[test]
+fn test_sim_pickup_reset_on_round_start() {
+    let mut state = GameState::new();
+    state.start_round();
+    let id = Uuid::new_v4();
+    state.add_player(id, "Rusher".into(), Role::Human);
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == id) {
+        p.x = 12.0;
+        p.z = 12.0;
+    }
+    state.tick(0.05);
+    assert!(
+        !state
+            .pickups
+            .iter()
+            .find(|p| p.id == "pad_rail")
+            .unwrap()
+            .available
+    );
+    state.end_round("test".into());
+    state.start_round();
+    assert!(state.pickups.iter().all(|p| p.available));
 }

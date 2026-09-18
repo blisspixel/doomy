@@ -9,6 +9,8 @@ extends Node
 @onready var round_end_sound = $AudioPlayers/RoundEndSound
 
 var players = {}
+var pickups = {}
+var pickup_scene = preload("res://scenes/weapon_pickup.tscn")
 var player_scene = preload("res://scenes/player.tscn")
 
 var is_human_player = false
@@ -176,6 +178,7 @@ func _on_snapshot_received(data):
 				pawn.set_highlighted(pawn == followed)
 	
 	_update_followed_weapon()
+	_sync_pickups(data.get("pickups", []))
 
 func _on_event_received(data):
 	var event_type = data.get("event", "")
@@ -231,6 +234,10 @@ func _on_event_received(data):
 	elif event_type == "boss_down":
 		hud.set_pressure("")
 		hud.show_boss_down(str(data.get("message", "")), str(data.get("killer", "")))
+	elif event_type == "pickup":
+		var who = str(data.get("player", "?"))
+		var weapon = str(data.get("weapon", "?"))
+		hud.show_pickup_toast(who, weapon)
 	elif event_type == "speak":
 		var speaker = str(data.get("player", "?"))
 		var line = str(data.get("text", ""))
@@ -239,6 +246,34 @@ func _on_event_received(data):
 		hud.show_round_end(data.get("winner", ""), data.get("reason", ""))
 		if round_end_sound and round_end_sound.stream:
 			round_end_sound.play()
+
+
+func _sync_pickups(pickup_list):
+	var seen = {}
+	for pad in pickup_list:
+		var pid = str(pad.get("id", ""))
+		if pid == "":
+			continue
+		seen[pid] = true
+		var weapon = str(pad.get("weapon", ""))
+		var pos = Vector3(float(pad.get("x", 0.0)), float(pad.get("y", 0.4)), float(pad.get("z", 0.0)))
+		var is_up = bool(pad.get("available", true))
+		if not pickups.has(pid):
+			var node = pickup_scene.instantiate()
+			arena.add_child(node)
+			node.setup(pid, weapon, pos)
+			pickups[pid] = node
+		if pickups.has(pid):
+			pickups[pid].position = pos
+			if pickups[pid].weapon_name != weapon:
+				pickups[pid].weapon_name = weapon
+				pickups[pid]._apply_look()
+			pickups[pid].set_available(is_up)
+	for pid in pickups.keys():
+		if not seen.has(pid):
+			if is_instance_valid(pickups[pid]):
+				pickups[pid].queue_free()
+			pickups.erase(pid)
 
 func _update_followed_weapon():
 	if not camera or not hud:
