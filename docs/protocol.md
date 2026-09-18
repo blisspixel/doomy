@@ -52,7 +52,7 @@ Sent by `human` or `agent` roles to control their player. All fields are optiona
   "turn_left": false,
   "turn_right": false,
   "fire": false,
-  "weapon_swap": "cannon"
+  "weapon_swap": "rail"
 }
 ```
 
@@ -61,7 +61,7 @@ Sent by `human` or `agent` roles to control their player. All fields are optiona
 - `left` / `right`: Strafe left/right
 - `turn_left` / `turn_right`: Rotate view left/right
 - `fire`: Fire weapon
-- `weapon_swap` (optional): Change to specified weapon (`"blaster"`, `"cannon"`, or `"scattergun"`)
+- `weapon_swap` (optional): Change to specified weapon (`"flechette"`, `"rail"`, or `"scatter"`)
 
 **Notes:**
 - Actions are discrete intents applied on the next server tick
@@ -106,7 +106,7 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
       "yaw": 1.57,
       "hp": 75,
       "just_fired": false,
-      "weapon": "blaster"
+      "weapon": "flechette"
     }
   ]
 }
@@ -121,7 +121,7 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
   - `yaw`: Rotation in radians (0 = +X axis, counter-clockwise)
   - `hp`: Health points (0-100)
   - `just_fired`: True on the tick a weapon was fired (for muzzle flash)
-  - `weapon`: Current weapon (`"blaster"`, `"cannon"`, or `"scattergun"`)
+  - `weapon`: Current weapon (`"flechette"`, `"rail"`, or `"scatter"`)
 
 **Notes:**
 - Dead players (HP ≤ 0) are omitted from the snapshot
@@ -168,19 +168,19 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
 
 Three distinct weapon roles with different TTK profiles:
 
-**Blaster** (default, all-rounder):
+**Flechette** (default, all-rounder):
 - **Damage**: 15 HP per hit
 - **Fire rate**: 6 tick cooldown (~300ms, 3.3 shots/sec)
 - **Range**: 100 units
 - **TTK**: 7 hits to kill (2.1s optimal)
 
-**Cannon** (hard hitter):
+**Rail** (precision hard hitter):
 - **Damage**: 50 HP per hit
 - **Fire rate**: 25 tick cooldown (~1250ms, 0.8 shots/sec)
 - **Range**: 120 units
 - **TTK**: 2 hits to kill (1.25s optimal)
 
-**Scattergun** (close range):
+**Scatter** (close range):
 - **Damage**: 8 HP per pellet × 5 pellets = 40 HP max at point-blank
 - **Fire rate**: 15 tick cooldown (~750ms, 1.3 shots/sec)
 - **Range**: 30 units

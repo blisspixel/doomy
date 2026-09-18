@@ -11,27 +11,30 @@ Add combat depth through distinct weapon roles with different TTK profiles, maki
 
 ## Weapon Roles (3 distinct hitscan variants)
 
-### 1. Blaster (default peashooter)
+### 1. Flechette (default all-rounder)
 - Damage: 15 HP/hit
 - Fire rate: 6 tick cooldown (300ms, ~3.3 shots/sec)
 - Range: 100 units
 - TTK: 7 hits = 100 HP (2.1s optimal)
 - Role: High-uptime harassment, forgiving aim
+- Art Name: Flechette / SMG
 
-### 2. Cannon (hard hitter)
+### 2. Rail (precision hard hitter)
 - Damage: 50 HP/hit
 - Fire rate: 25 tick cooldown (1250ms, 0.8 shots/sec)
 - Range: 120 units
 - TTK: 2 hits = 100 HP (1.25s optimal)
 - Role: Punish positioning mistakes, precision rewarded
+- Art Name: Rail
 
-### 3. Scattergun (close range)
+### 3. Scatter (close range)
 - Damage: 8 HP per pellet × 5 pellets = 40 HP max at point-blank
 - Fire rate: 15 tick cooldown (750ms, ~1.3 shots/sec)
 - Range: 30 units (falloff curve)
 - Spread: 0.3 radian cone (5 raycasts)
 - TTK: 3 hits point-blank = 120 HP (1.5s optimal), 5+ hits at range
 - Role: Close-quarters area denial, flanker weapon
+- Art Name: Scatter
 
 ## Protocol Extension
 
@@ -40,24 +43,36 @@ Backward-compatible additions to existing messages:
 ```json
 // PlayerState gains weapon field
 {
-  "weapon": "blaster" | "cannon" | "scattergun"
+  "weapon": "flechette" | "rail" | "scatter"
 }
 
 // Action gains optional weapon_swap
 {
-  "weapon_swap": "blaster" | "cannon" | "scattergun"  // optional
+  "weapon_swap": "flechette" | "rail" | "scatter"  // optional
 }
 ```
 
 ## Bot Weapon Selection Strategy
 
 Bots choose weapons based on behavior personality:
-- **Aggressive**: Scattergun (rush in, high close DPS)
-- **Defensive**: Cannon (range advantage, punish approach)
-- **Flanker**: Scattergun (circle-strafe synergy)
-- **Balanced**: Blaster (reliable, works at all ranges)
+- **Aggressive**: Scatter (rush in, high close DPS)
+- **Defensive**: Rail (range advantage, punish approach)
+- **Flanker**: Scatter (circle-strafe synergy)
+- **Balanced**: Flechette (reliable, works at all ranges)
 
 Bots swap weapons during respawn to match their intended role. No mid-combat swaps in initial implementation.
+
+## Art Asset References
+
+Weapon icon sprites: `docs/screenshots/05_weapon_icons_1x1.png`
+Map callout overlay: `docs/screenshots/06_map_callouts_16x9.png`
+
+Art names align with code:
+- Flechette → "Flechette" or "Flechette SMG"
+- Rail → "Rail"
+- Scatter → "Scatter"
+
+Additional art weapons for future expansion: Rocket, Shock, Gravity Baton.
 
 ## Implementation Plan
 

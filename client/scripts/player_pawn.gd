@@ -74,7 +74,7 @@ func update_state(state: Dictionary):
 		show_hit_feedback()
 	
 	if label:
-		var weapon_name = state.get("weapon", "blaster").capitalize()
+		var weapon_name = state.get("weapon", "flechette").to_upper()
 		var behavior_chip = ""
 		if state.has("behavior") and state.behavior != null:
 			behavior_chip = " [" + str(state.behavior) + "]"

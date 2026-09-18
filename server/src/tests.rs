@@ -74,8 +74,8 @@ fn test_frag_and_respawn() {
     let shooter_id = Uuid::new_v4();
     let target_id = Uuid::new_v4();
 
-    state.add_player_with_weapon(shooter_id, "Shooter".to_string(), WeaponType::Cannon);
-    state.add_player_with_weapon(target_id, "Target".to_string(), WeaponType::Blaster);
+    state.add_player_with_weapon(shooter_id, "Shooter".to_string(), WeaponType::Rail);
+    state.add_player_with_weapon(target_id, "Target".to_string(), WeaponType::Flechette);
 
     let shooter_idx = state
         .players
@@ -162,8 +162,8 @@ fn test_player_removal() {
 }
 
 #[test]
-fn test_weapon_stats_blaster() {
-    let stats = WeaponStats::for_weapon(WeaponType::Blaster);
+fn test_weapon_stats_flechette() {
+    let stats = WeaponStats::for_weapon(WeaponType::Flechette);
     assert_eq!(stats.damage, 15);
     assert_eq!(stats.cooldown_ticks, 6);
     assert_eq!(stats.range, 100.0);
@@ -172,8 +172,8 @@ fn test_weapon_stats_blaster() {
 }
 
 #[test]
-fn test_weapon_stats_cannon() {
-    let stats = WeaponStats::for_weapon(WeaponType::Cannon);
+fn test_weapon_stats_rail() {
+    let stats = WeaponStats::for_weapon(WeaponType::Rail);
     assert_eq!(stats.damage, 50);
     assert_eq!(stats.cooldown_ticks, 25);
     assert_eq!(stats.range, 120.0);
@@ -182,8 +182,8 @@ fn test_weapon_stats_cannon() {
 }
 
 #[test]
-fn test_weapon_stats_scattergun() {
-    let stats = WeaponStats::for_weapon(WeaponType::Scattergun);
+fn test_weapon_stats_scatter() {
+    let stats = WeaponStats::for_weapon(WeaponType::Scatter);
     assert_eq!(stats.damage, 8);
     assert_eq!(stats.cooldown_ticks, 15);
     assert_eq!(stats.range, 30.0);
@@ -198,8 +198,8 @@ fn test_blaster_damage_and_cooldown() {
     let shooter_id = Uuid::new_v4();
     let target_id = Uuid::new_v4();
 
-    state.add_player_with_weapon(shooter_id, "Shooter".to_string(), WeaponType::Blaster);
-    state.add_player_with_weapon(target_id, "Target".to_string(), WeaponType::Blaster);
+    state.add_player_with_weapon(shooter_id, "Shooter".to_string(), WeaponType::Flechette);
+    state.add_player_with_weapon(target_id, "Target".to_string(), WeaponType::Flechette);
 
     let shooter_idx = state
         .players
@@ -230,10 +230,10 @@ fn test_blaster_damage_and_cooldown() {
     state.tick(0.05);
 
     let final_hp = state.players[target_idx].hp;
-    assert_eq!(initial_hp - final_hp, 15, "Blaster should deal 15 damage");
+    assert_eq!(initial_hp - final_hp, 15, "Flechette should deal 15 damage");
 
     let cooldown = state.players[shooter_idx].fire_cooldown;
-    assert_eq!(cooldown, 6, "Blaster cooldown should be 6 ticks");
+    assert_eq!(cooldown, 6, "Flechette cooldown should be 6 ticks");
 }
 
 #[test]
@@ -243,8 +243,8 @@ fn test_cannon_damage_and_cooldown() {
     let shooter_id = Uuid::new_v4();
     let target_id = Uuid::new_v4();
 
-    state.add_player_with_weapon(shooter_id, "Shooter".to_string(), WeaponType::Cannon);
-    state.add_player_with_weapon(target_id, "Target".to_string(), WeaponType::Blaster);
+    state.add_player_with_weapon(shooter_id, "Shooter".to_string(), WeaponType::Rail);
+    state.add_player_with_weapon(target_id, "Target".to_string(), WeaponType::Flechette);
 
     let shooter_idx = state
         .players
@@ -275,21 +275,21 @@ fn test_cannon_damage_and_cooldown() {
     state.tick(0.05);
 
     let final_hp = state.players[target_idx].hp;
-    assert_eq!(initial_hp - final_hp, 50, "Cannon should deal 50 damage");
+    assert_eq!(initial_hp - final_hp, 50, "Rail should deal 50 damage");
 
     let cooldown = state.players[shooter_idx].fire_cooldown;
-    assert_eq!(cooldown, 25, "Cannon cooldown should be 25 ticks");
+    assert_eq!(cooldown, 25, "Rail cooldown should be 25 ticks");
 }
 
 #[test]
-fn test_scattergun_close_range_damage() {
+fn test_scatter_close_range_damage() {
     let mut state = GameState::new();
 
     let shooter_id = Uuid::new_v4();
     let target_id = Uuid::new_v4();
 
-    state.add_player_with_weapon(shooter_id, "Shooter".to_string(), WeaponType::Scattergun);
-    state.add_player_with_weapon(target_id, "Target".to_string(), WeaponType::Blaster);
+    state.add_player_with_weapon(shooter_id, "Shooter".to_string(), WeaponType::Scatter);
+    state.add_player_with_weapon(target_id, "Target".to_string(), WeaponType::Flechette);
 
     let shooter_idx = state
         .players
@@ -324,27 +324,27 @@ fn test_scattergun_close_range_damage() {
 
     assert!(
         damage >= 32,
-        "Scattergun at close range should hit with 4+ pellets (32+ damage), got {}",
+        "Scatter at close range should hit with 4+ pellets (32+ damage), got {}",
         damage
     );
     assert!(
         damage <= 40,
-        "Scattergun max damage is 40 (5 pellets × 8), got {}",
+        "Scatter max damage is 40 (5 pellets × 8), got {}",
         damage
     );
 
     let cooldown = state.players[shooter_idx].fire_cooldown;
-    assert_eq!(cooldown, 15, "Scattergun cooldown should be 15 ticks");
+    assert_eq!(cooldown, 15, "Scatter cooldown should be 15 ticks");
 }
 
 #[test]
-fn test_scattergun_out_of_range() {
+fn test_scatter_out_of_range() {
     let mut state = GameState::new();
 
     let shooter_id = Uuid::new_v4();
     let target_id = Uuid::new_v4();
 
-    state.add_player_with_weapon(shooter_id, "Shooter".to_string(), WeaponType::Scattergun);
+    state.add_player_with_weapon(shooter_id, "Shooter".to_string(), WeaponType::Scatter);
     state.add_player(target_id, "Target".to_string(), Role::Human);
 
     let shooter_idx = 0;
@@ -373,7 +373,7 @@ fn test_scattergun_out_of_range() {
     let final_hp = state.players[target_idx].hp;
     assert_eq!(
         final_hp, initial_hp,
-        "Scattergun behind shooter should not hit"
+        "Scatter behind shooter should not hit"
     );
 }
 
@@ -382,25 +382,25 @@ fn test_weapon_swap() {
     let mut state = GameState::new();
     let player_id = Uuid::new_v4();
 
-    state.add_player_with_weapon(player_id, "Swapper".to_string(), WeaponType::Blaster);
+    state.add_player_with_weapon(player_id, "Swapper".to_string(), WeaponType::Flechette);
 
     let idx = state
         .players
         .iter()
         .position(|p| p.id == player_id)
         .unwrap();
-    assert_eq!(state.players[idx].weapon, WeaponType::Blaster);
+    assert_eq!(state.players[idx].weapon, WeaponType::Flechette);
 
     state.set_action(
         player_id,
         Action {
-            weapon_swap: Some(WeaponType::Cannon),
+            weapon_swap: Some(WeaponType::Rail),
             ..Default::default()
         },
     );
     state.tick(0.05);
 
-    assert_eq!(state.players[idx].weapon, WeaponType::Cannon);
+    assert_eq!(state.players[idx].weapon, WeaponType::Rail);
 }
 
 #[test]
@@ -410,8 +410,8 @@ fn test_cannon_two_shot_frag() {
     let shooter_id = Uuid::new_v4();
     let target_id = Uuid::new_v4();
 
-    state.add_player_with_weapon(shooter_id, "Shooter".to_string(), WeaponType::Cannon);
-    state.add_player_with_weapon(target_id, "Target".to_string(), WeaponType::Blaster);
+    state.add_player_with_weapon(shooter_id, "Shooter".to_string(), WeaponType::Rail);
+    state.add_player_with_weapon(target_id, "Target".to_string(), WeaponType::Flechette);
 
     let shooter_idx = state
         .players

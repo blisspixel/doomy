@@ -21,21 +21,21 @@ pub struct WeaponStats {
 impl WeaponStats {
     pub fn for_weapon(weapon: WeaponType) -> Self {
         match weapon {
-            WeaponType::Blaster => WeaponStats {
+            WeaponType::Flechette => WeaponStats {
                 damage: 15,
                 cooldown_ticks: 6,
                 range: 100.0,
                 pellets: 1,
                 spread: 0.0,
             },
-            WeaponType::Cannon => WeaponStats {
+            WeaponType::Rail => WeaponStats {
                 damage: 50,
                 cooldown_ticks: 25,
                 range: 120.0,
                 pellets: 1,
                 spread: 0.0,
             },
-            WeaponType::Scattergun => WeaponStats {
+            WeaponType::Scatter => WeaponStats {
                 damage: 8,
                 cooldown_ticks: 15,
                 range: 30.0,
@@ -437,10 +437,10 @@ pub enum BotBehavior {
 impl BotBehavior {
     pub fn preferred_weapon(self) -> WeaponType {
         match self {
-            BotBehavior::Aggressive => WeaponType::Scattergun,
-            BotBehavior::Defensive => WeaponType::Cannon,
-            BotBehavior::Flanker => WeaponType::Scattergun,
-            BotBehavior::Balanced => WeaponType::Blaster,
+            BotBehavior::Aggressive => WeaponType::Scatter,
+            BotBehavior::Defensive => WeaponType::Rail,
+            BotBehavior::Flanker => WeaponType::Scatter,
+            BotBehavior::Balanced => WeaponType::Flechette,
         }
     }
 }
@@ -512,7 +512,7 @@ impl BotController {
 
         match self.behavior {
             BotBehavior::Aggressive => {
-                // Scattergun: Rush in close
+                // Scatter: Rush in close
                 if angle_diff.abs() > 0.2 {
                     if angle_diff > 0.0 {
                         action.turn_right = true;
@@ -527,7 +527,7 @@ impl BotController {
             }
 
             BotBehavior::Defensive => {
-                // Cannon: Keep distance, precise shots
+                // Rail: Keep distance, precise shots
                 if angle_diff.abs() > 0.15 {
                     if angle_diff > 0.0 {
                         action.turn_right = true;
@@ -552,7 +552,7 @@ impl BotController {
             }
 
             BotBehavior::Flanker => {
-                // Scattergun: Circle close and blast
+                // Scatter: Circle close and blast
                 if angle_diff.abs() > 0.25 {
                     if angle_diff > 0.0 {
                         action.turn_right = true;
@@ -580,7 +580,7 @@ impl BotController {
             }
 
             BotBehavior::Balanced => {
-                // Blaster: Standard all-rounder
+                // Flechette: Standard all-rounder
                 if angle_diff.abs() > 0.3 {
                     if angle_diff > 0.0 {
                         action.turn_right = true;

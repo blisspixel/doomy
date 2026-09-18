@@ -5,9 +5,9 @@ use uuid::Uuid;
 #[serde(rename_all = "snake_case")]
 pub enum WeaponType {
     #[default]
-    Blaster,
-    Cannon,
-    Scattergun,
+    Flechette,
+    Rail,
+    Scatter,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
