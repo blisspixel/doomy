@@ -18,6 +18,17 @@ pub fn default_host_line() -> String {
     "HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE. ARENA DUEL IS LIVE.".to_string()
 }
 
+pub const MAP_ID_ARENA_DUEL: u32 = 1;
+pub const MAP_NAME_ARENA_DUEL: &str = "Arena Duel";
+
+pub fn default_map_id() -> u32 {
+    MAP_ID_ARENA_DUEL
+}
+
+pub fn default_map_name() -> String {
+    MAP_NAME_ARENA_DUEL.to_string()
+}
+
 /// Host line while Continuance compliance pressure is live.
 pub fn compliance_host_line() -> String {
     "HOST: CONTINUANCE COMPLIANCE PING. APPROVED LANES ONLY.".to_string()
@@ -274,6 +285,12 @@ pub struct Snapshot {
     /// Mid-map pads: weapons, health, armor (Quake chase energy). Empty omitted on wire.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub pickups: Vec<PickupState>,
+    /// Contested Frequency scrap layout id (1 = Arena Duel, 2 = Compliance Yard).
+    #[serde(default = "default_map_id")]
+    pub map_id: u32,
+    /// Human-readable scrap layout name.
+    #[serde(default = "default_map_name")]
+    pub map_name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -506,6 +523,8 @@ mod protocol_tests {
             pressure: None,
             host_line: default_host_line(),
             pickups: vec![],
+            map_id: default_map_id(),
+            map_name: default_map_name(),
         };
         let v = serde_json::to_value(&snap).unwrap();
         assert_eq!(v["shot_results"][0]["hit"], true);
@@ -632,6 +651,8 @@ mod protocol_tests {
             pressure: None,
             host_line: default_host_line(),
             pickups: vec![pad.clone()],
+            map_id: default_map_id(),
+            map_name: default_map_name(),
         };
         let v = serde_json::to_value(&snap).unwrap();
         assert_eq!(v["pickups"][0]["id"], "pad_rail");

@@ -1,12 +1,12 @@
 #[cfg(test)]
 use crate::protocol::{
-    boss_down_host_line, boss_host_line, compliance_host_line, default_host_line,
-    default_mode_name, default_playlist, mvp_host_line, Action, ClientMessage, GameEvent,
-    PlayerScore, PlayerState, Role, ServerMessage, Snapshot, WeaponType, BOSS_NAME,
+    boss_down_host_line, boss_host_line, compliance_host_line, default_host_line, default_map_id,
+    default_map_name, default_mode_name, default_playlist, mvp_host_line, Action, ClientMessage,
+    GameEvent, PlayerScore, PlayerState, Role, ServerMessage, Snapshot, WeaponType, BOSS_NAME,
 };
 #[cfg(test)]
 use crate::sim::{
-    BotBehavior, BotController, GameState, MatchConfig, RoundState, BOSS_MAX_HP,
+    BotBehavior, BotController, GameState, MapKind, MatchConfig, RoundState, BOSS_MAX_HP,
     HEALTH_PICKUP_RESPAWN_TICKS, PICKUP_RESPAWN_TICKS,
 };
 #[cfg(test)]
@@ -263,6 +263,8 @@ fn test_protocol_snapshot_serialization() {
         pressure: None,
         host_line: default_host_line(),
         pickups: vec![],
+        map_id: default_map_id(),
+        map_name: default_map_name(),
     };
     let json = serde_json::to_value(&snapshot).unwrap();
     assert_eq!(json["tick"], 123);
@@ -283,6 +285,8 @@ fn test_protocol_snapshot_empty_players() {
         pressure: None,
         host_line: default_host_line(),
         pickups: vec![],
+        map_id: default_map_id(),
+        map_name: default_map_name(),
     };
     let json = serde_json::to_string(&snapshot).unwrap();
     assert!(json.contains(r#""tick":0"#));
@@ -2159,6 +2163,8 @@ async fn test_net_ws_action_forwarded_for_agent() {
             pressure: None,
             host_line: default_host_line(),
             pickups: vec![],
+            map_id: default_map_id(),
+            map_name: default_map_name(),
         });
         broadcast_to_clients(&clients, &[snap]).await;
         let msg = tokio::time::timeout(std::time::Duration::from_secs(2), stream.next())
@@ -3711,4 +3717,117 @@ fn test_round_end_empty_mvp_host_line() {
     assert!(host.0.is_none());
     assert!(host.1.contains("NO MVP"));
     assert!(state.snapshot().host_line.contains("NO MVP"));
+}
+
+#[test]
+fn test_map_kind_cli_and_names() {
+    assert_eq!(MapKind::from_cli("1"), Some(MapKind::ArenaDuel));
+    assert_eq!(MapKind::from_cli("arena"), Some(MapKind::ArenaDuel));
+    assert_eq!(MapKind::from_cli("2"), Some(MapKind::ComplianceYard));
+    assert_eq!(
+        MapKind::from_cli("compliance-yard"),
+        Some(MapKind::ComplianceYard)
+    );
+    assert_eq!(MapKind::from_cli("nope"), None);
+    assert_eq!(MapKind::ArenaDuel.id(), 1);
+    assert_eq!(MapKind::ComplianceYard.id(), 2);
+    assert_eq!(MapKind::ArenaDuel.name(), "Arena Duel");
+    assert_eq!(MapKind::ComplianceYard.name(), "Compliance Yard");
+    assert_eq!(MapKind::ArenaDuel.next(), MapKind::ComplianceYard);
+    assert_eq!(MapKind::ComplianceYard.next(), MapKind::ArenaDuel);
+}
+
+#[test]
+fn test_sim_compliance_yard_blocks_move_into_post() {
+    let mut state = GameState::with_map(MapKind::ComplianceYard, false);
+    state.start_round();
+    let id = Uuid::new_v4();
+    state.add_player(id, "Rusher".into(), Role::Human);
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == id) {
+        // South of NE post at (5, -5); walk north into it.
+        p.x = 5.0;
+        p.z = -7.5;
+        p.yaw = std::f32::consts::FRAC_PI_2;
+    }
+    for _ in 0..40 {
+        state.set_action(
+            id,
+            Action {
+                forward: true,
+                ..Default::default()
+            },
+        );
+        state.tick(0.05);
+    }
+    let player = state.players.iter().find(|p| p.id == id).unwrap();
+    assert!(
+        player.z <= -6.4,
+        "player should be stopped by yard post, z={}",
+        player.z
+    );
+}
+
+#[test]
+fn test_sim_compliance_yard_pad_claim_and_hub_clear() {
+    let mut state = GameState::with_map(MapKind::ComplianceYard, false);
+    state.start_round();
+    let snap = state.snapshot();
+    assert_eq!(snap.map_id, 2);
+    assert_eq!(snap.map_name, "Compliance Yard");
+    assert_eq!(state.pickups.len(), 6);
+    let armor = state.pickups.iter().find(|p| p.id == "pad_armor").unwrap();
+    assert!((armor.x - 11.0).abs() < 0.01);
+    assert!((armor.z - 0.0).abs() < 0.01);
+
+    // Hub must stay clear for drone (circle at 0,0 not blocked).
+    for obs in MapKind::ComplianceYard.obstacles() {
+        assert!(
+            !obs.expand(0.5).contains(0.0, 0.0),
+            "hub blocked by {:?}",
+            obs
+        );
+    }
+
+    let id = Uuid::new_v4();
+    state.add_player(id, "Scrapper".into(), Role::Human);
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == id) {
+        p.x = 11.0;
+        p.z = 0.0;
+        p.armor = 0;
+        p.hp = 100;
+    }
+    state.tick(0.05);
+    let player = state.players.iter().find(|p| p.id == id).unwrap();
+    assert!(player.armor > 0, "armor pad should claim on yard");
+}
+
+#[test]
+fn test_sim_map_rotate_each_start_round() {
+    let mut state = GameState::with_map(MapKind::ArenaDuel, true);
+    assert_eq!(state.map, MapKind::ArenaDuel);
+    state.start_round(); // round 1, stay Arena Duel
+    assert_eq!(state.round_number, 1);
+    assert_eq!(state.map, MapKind::ArenaDuel);
+    state.end_round("test".into());
+    state.start_round(); // round 2, rotate to yard
+    assert_eq!(state.round_number, 2);
+    assert_eq!(state.map, MapKind::ComplianceYard);
+    assert_eq!(state.snapshot().map_id, 2);
+    state.end_round("test".into());
+    state.start_round(); // round 3, back to arena
+    assert_eq!(state.map, MapKind::ArenaDuel);
+}
+
+#[test]
+fn test_protocol_snapshot_map_defaults_round_trip() {
+    let json = serde_json::json!({
+        "tick": 1,
+        "players": [],
+        "mode_name": "Contested Frequency",
+        "playlist": "Arena Duel",
+        "host_line": "HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE. ARENA DUEL IS LIVE."
+    });
+    let snap: Snapshot = serde_json::from_value(json).unwrap();
+    assert_eq!(snap.map_id, default_map_id());
+    assert_eq!(snap.map_name, default_map_name());
 }
