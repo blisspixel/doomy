@@ -166,7 +166,11 @@ func set_round_info(state: String, time_left: int, frag_limit: int):
 		elif pressure_id == "compliance":
 			text += "\nAPPROVED LANES ONLY"
 	elif state == "Warmup":
-		text = "WARMUP - Contested Frequency tuning in"
+		text = "WARMUP // " + map_label.to_upper()
+		if time_left > 0:
+			text += " // GOES LIVE IN " + str(time_left)
+		else:
+			text += " // Contested Frequency tuning in"
 	elif state == "Ended":
 		text = "ROUND OVER - podium holds"
 		if leader_name != "":
@@ -294,6 +298,24 @@ func show_host_join(host_line: String):
 		tween.tween_property(round_message, "scale", Vector2(1.2, 1.2), 0.15)
 		tween.tween_property(round_message, "scale", Vector2(1.0, 1.0), 0.2)
 		await get_tree().create_timer(2.5).timeout
+		if is_instance_valid(round_message):
+			round_message.visible = false
+
+func show_warmup_bumper(host_line: String, secs_left: int = 0):
+	# Warmup / pre-round Host drama: roster + map bumper readable before RoundStart.
+	if round_message:
+		var line = host_line
+		if line == "":
+			line = "HOST: CONTESTED FREQUENCY. " + map_label.to_upper() + " TUNES IN."
+		var sub = "WARMUP // " + map_label.to_upper()
+		if secs_left > 0:
+			sub += " // " + str(secs_left)
+		round_message.text = line + "\n" + sub
+		round_message.visible = true
+		var tween = create_tween()
+		tween.tween_property(round_message, "scale", Vector2(1.2, 1.2), 0.12)
+		tween.tween_property(round_message, "scale", Vector2(1.0, 1.0), 0.18)
+		await get_tree().create_timer(2.2).timeout
 		if is_instance_valid(round_message):
 			round_message.visible = false
 

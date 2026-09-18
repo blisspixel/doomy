@@ -83,13 +83,40 @@ pub fn roster_host_line(names: &[String]) -> String {
     if names.is_empty() {
         return default_host_line();
     }
+    let listed = format_roster_names(names);
+    format!("HOST: {listed} ON THE SCRAP. FREQUENCY STAYS LIVE.")
+}
+
+fn format_roster_names(names: &[String]) -> String {
     let upper: Vec<String> = names.iter().map(|n| n.to_uppercase()).collect();
-    let listed = if upper.len() <= 4 {
+    if upper.len() <= 4 {
         upper.join(", ")
     } else {
         format!("{}, +{}", upper[..3].join(", "), upper.len() - 3)
-    };
-    format!("HOST: {listed} ON THE SCRAP. FREQUENCY STAYS LIVE.")
+    }
+}
+
+/// Warmup / pre-round Host drama: Contested Frequency bumper, map, roster, countdown.
+pub fn warmup_host_line(map_name: &str, names: &[String], secs_left: u32) -> String {
+    let map = map_name.to_uppercase();
+    let secs = secs_left.max(1);
+    if names.is_empty() {
+        return format!(
+            "HOST: CONTESTED FREQUENCY. {map} TUNES IN. FREQUENCY GOES LIVE IN {secs}."
+        );
+    }
+    let listed = format_roster_names(names);
+    format!("HOST: CONTESTED FREQUENCY. {map} TUNES IN. {listed} ON THE SCRAP. {secs}.")
+}
+
+/// RoundStart Host line once Warmup ends (map + roster, fight energy, no countdown).
+pub fn round_open_host_line(map_name: &str, names: &[String]) -> String {
+    let map = map_name.to_uppercase();
+    if names.is_empty() {
+        return format!("HOST: CONTESTED FREQUENCY. {map} IS LIVE. FIGHT!");
+    }
+    let listed = format_roster_names(names);
+    format!("HOST: CONTESTED FREQUENCY. {map}. {listed} ON THE SCRAP. FIGHT!")
 }
 
 /// Display name for the mid-round Continuance boss NPC.
@@ -800,6 +827,27 @@ mod protocol_tests {
         assert_eq!(roster_host_line(&[]), default_host_line());
         let many = roster_host_line(&["A".into(), "B".into(), "C".into(), "D".into(), "E".into()]);
         assert!(many.contains("+2"));
+    }
+
+    #[test]
+    fn warmup_and_round_open_host_lines() {
+        let names = vec!["Dead Air Dan".into(), "Nightfall".into()];
+        let warm = warmup_host_line("Arena Duel", &names, 2);
+        assert!(warm.contains("CONTESTED FREQUENCY"));
+        assert!(warm.contains("ARENA DUEL"));
+        assert!(warm.contains("DEAD AIR DAN"));
+        assert!(warm.contains("ON THE SCRAP"));
+        assert!(warm.contains("2."));
+        let empty = warmup_host_line("Compliance Yard", &[], 3);
+        assert!(empty.contains("COMPLIANCE YARD"));
+        assert!(empty.contains("GOES LIVE IN 3"));
+        let open = round_open_host_line("Arena Duel", &names);
+        assert!(open.contains("FIGHT!"));
+        assert!(open.contains("ARENA DUEL"));
+        assert!(open.contains("ON THE SCRAP"));
+        let open_empty = round_open_host_line("Compliance Yard", &[]);
+        assert!(open_empty.contains("IS LIVE"));
+        assert!(open_empty.contains("FIGHT!"));
     }
 
     #[test]
