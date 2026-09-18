@@ -205,17 +205,26 @@ func show_frag(killer: String, victim: String, killer_color: Color = Color.WHITE
 			frag_label.visible = false
 			frag_label.modulate = Color.WHITE
 
-func set_host_line(line: String, flash_on_first: bool = false):
+func reset_host_chrome():
+	# Clear sticky Host + flash latch so a reconnect mid-round can flash once again.
+	sticky_host_line = ""
+	host_line_seen = false
+	_refresh_mode_label()
+
+func set_host_line(line: String, flash_on_first: bool = false) -> bool:
+	# Returns true when this call triggered the one-shot mid-join Host flash.
 	if line == "":
-		return
+		return false
 	sticky_host_line = line
 	_refresh_mode_label()
 	if flash_on_first and not host_line_seen:
 		host_line_seen = true
 		show_host_join(line)
+		return true
+	return false
 
 func show_host_join(host_line: String):
-	# Mid-join Host bumper: show sticky line without waiting for RoundStart.
+	# Mid-join Host bumper: same energy as RoundStart Host chrome, without waiting for RoundStart.
 	if round_message:
 		var line = host_line
 		if line == "":

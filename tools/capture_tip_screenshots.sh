@@ -54,10 +54,10 @@ if [ ! -d "$ROOT/client/.godot/imported" ]; then
   "$GODOT_BIN" --path "$ROOT/client" --rendering-driver opengl3 --import --headless --quit-after 120 || true
 fi
 
-# Timed stills: Host bumper / Contested Frequency, scoreboard+killfeed, compliance.
+# Timed stills: Host bumper / Contested Frequency, scoreboard+killfeed, compliance, mid-join Host flash.
 # --quit-after is frames; give headroom for ~20s of wall clock.
 # gl_compatibility / opengl3: Vulkan on Xvfb needs lavapipe; keep the simple path.
-"$GODOT_BIN" --path "$ROOT/client" --rendering-driver opengl3 --quit-after 24000 \
+"$GODOT_BIN" --path "$ROOT/client" --rendering-driver opengl3 --quit-after 30000 \
   --script res://scripts/tip_capture.gd
 
 echo "Tip capture finished. Inspect PNGs under $OUT_DIR"
