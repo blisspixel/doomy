@@ -35,14 +35,14 @@ Connects as an agent role, observes snapshots, computes simple chase-and-shoot a
 
 ### `observe`
 
-Get the current game state snapshot.
+Get the current game state snapshot including self player ID and recent events.
 
 **Input schema:**
 ```json
 {}
 ```
 
-**Output:**
+**Output (after first snapshot):**
 ```json
 {
   "tick": 12345,
@@ -62,13 +62,30 @@ Get the current game state snapshot.
   ],
   "round_state": "Active",
   "round_time_left": 120,
-  "frag_limit": 10
+  "frag_limit": 10,
+  "self_player_id": "550e8400-e29b-41d4-a716-446655440000",
+  "recent_events": [
+    {"event": "frag", "killer": "Bot1", "victim": "Bot2"},
+    {"event": "respawn", "player": "Bot2"}
+  ]
+}
+```
+
+**Output (connecting state, before first snapshot):**
+```json
+{
+  "status": "connecting",
+  "message": "Waiting for first snapshot from server",
+  "self_player_id": "550e8400-e29b-41d4-a716-446655440000",
+  "recent_events": []
 }
 ```
 
 **Notes:**
-- Returns the most recent snapshot received from the server
-- Dead players (HP <= 0) are omitted
+- Returns connecting state until first snapshot arrives from server
+- `self_player_id`: UUID of your agent's player (null for spectators)
+- `recent_events`: Last 50 game events (frags, respawns) in chronological order
+- Dead players (HP <= 0) are omitted from players array
 - `behavior` field is present only for server-side bots
 - Call rate: 1-10 Hz is typical; faster is allowed but returns cached data between server ticks
 
@@ -102,10 +119,40 @@ All fields are optional booleans, default `false`.
 ```
 
 **Notes:**
-- Actions are queued and applied on the next server tick
+- Actions are **level-held (sticky)** within each server tick window, not edge-triggered
+- Each `act` call overwrites the previous pending action state
+- All `true` fields are applied together on the next server tick
 - Movement keys combine (e.g., `forward + left` = diagonal)
-- Server enforces cooldowns (fire rate: ~500ms)
-- Call rate: 1-20 Hz typical; higher rates allowed but limited by server tick rate
+- Server enforces cooldowns (fire rate: 10 ticks / ~500ms)
+- Call rate: 1-10 Hz typical for MCP agents; faster allowed but limited by server tick rate
+
+### `get_events`
+
+Get recent game events (frags, respawns) explicitly.
+
+**Input schema:**
+```json
+{
+  "clear": false
+}
+```
+
+All fields are optional. `clear` (boolean, default false): clear event buffer after retrieving.
+
+**Output:**
+```json
+{
+  "content": [{
+    "type": "text",
+    "text": "Recent events: [{\"event\":\"frag\",\"killer\":\"Bot1\",\"victim\":\"Bot2\"},{\"event\":\"respawn\",\"player\":\"Bot2\"}]"
+  }]
+}
+```
+
+**Notes:**
+- Returns last 50 events in chronological order
+- Events are also included in `observe` output
+- Set `clear: true` to acknowledge events and reset buffer
 
 ## Architecture
 
