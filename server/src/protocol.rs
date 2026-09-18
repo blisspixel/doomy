@@ -111,7 +111,9 @@ pub fn warmup_host_line(map_name: &str, names: &[String], secs_left: u32) -> Str
         );
     }
     let listed = format_roster_names(names);
-    format!("HOST: CONTESTED FREQUENCY. {map} TUNES IN. {listed} ON THE SCRAP. {secs}.")
+    format!(
+        "HOST: CONTESTED FREQUENCY. {map} TUNES IN. {listed} ON THE SCRAP. GOES LIVE IN {secs}."
+    )
 }
 
 /// RoundStart Host line once Warmup ends (map + roster, fight energy, no countdown).
@@ -928,7 +930,7 @@ mod protocol_tests {
         assert!(warm.contains("ARENA DUEL"));
         assert!(warm.contains("DEAD AIR DAN"));
         assert!(warm.contains("ON THE SCRAP"));
-        assert!(warm.contains("2."));
+        assert!(warm.contains("GOES LIVE IN 2"));
         let empty = warmup_host_line("Compliance Yard", &[], 3);
         assert!(empty.contains("COMPLIANCE YARD"));
         assert!(empty.contains("GOES LIVE IN 3"));

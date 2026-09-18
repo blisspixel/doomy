@@ -22,6 +22,7 @@ signal host_spoke(seconds: float)
 @onready var on_air_badge = $OnAirBadge
 @onready var contested_frequency_badge = $ContestedFrequencyBadge
 @onready var hangar_candy_badge = $HangarCandyBadge
+@onready var warmup_tv = $WarmupTv
 var crosshair_hbar = null
 var crosshair_vbar = null
 var crosshair_dot = null
@@ -66,6 +67,19 @@ var fp_kick_amount = Vector2.ZERO
 var current_fp_weapon = ""
 var floating_damage_nodes = []
 
+# Full-frame Warmup Contested Frequency TV bumper (unmissable scrap open).
+var warmup_tv_veil = null
+var warmup_tv_league = null
+var warmup_tv_map = null
+var warmup_tv_countdown = null
+var warmup_tv_roster = null
+var warmup_tv_host = null
+var warmup_tv_active = false
+var warmup_tv_linger_timer = 0.0
+var warmup_tv_roster_names = []
+var warmup_tv_secs = 0
+var warmup_tv_host_line = ""
+
 func _ready():
 	weapon_textures["Flechette"] = load("res://assets/weapons/32/flechette.png")
 	weapon_textures["Rail"] = load("res://assets/weapons/32/rail.png")
@@ -104,6 +118,24 @@ func _ready():
 		fp_weapon_base_pos = fp_weapon.position
 		fp_weapon_scene_base = fp_weapon.position
 	_update_broadcast_chrome("Warmup")
+	_bind_warmup_tv()
+
+func _bind_warmup_tv() -> void:
+	if warmup_tv == null:
+		warmup_tv = get_node_or_null("WarmupTv")
+	if warmup_tv == null:
+		return
+	warmup_tv_veil = warmup_tv.get_node_or_null("Veil")
+	var center = warmup_tv.get_node_or_null("Center")
+	if center:
+		warmup_tv_league = center.get_node_or_null("LeagueLabel")
+		warmup_tv_map = center.get_node_or_null("MapTitle")
+		warmup_tv_countdown = center.get_node_or_null("Countdown")
+		warmup_tv_roster = center.get_node_or_null("RosterChips")
+		warmup_tv_host = center.get_node_or_null("HostLine")
+	warmup_tv.visible = false
+	warmup_tv_active = false
+	warmup_tv_linger_timer = 0.0
 
 func set_status(text: String):
 	if status_label:
@@ -283,6 +315,7 @@ func reset_host_chrome():
 	# Clear sticky Host + flash latch so a reconnect mid-round can flash once again.
 	sticky_host_line = ""
 	host_line_seen = false
+	hide_warmup_tv()
 	_refresh_mode_label()
 
 
@@ -354,37 +387,140 @@ func show_host_join(host_line: String):
 		if is_instance_valid(round_message):
 			round_message.visible = false
 
-func show_warmup_bumper(host_line: String, secs_left: int = 0):
+func show_warmup_bumper(host_line: String, secs_left: int = 0, roster = []):
 	host_spoke.emit(3.0)
 	# Warmup / pre-round Host drama: roster + map bumper readable before RoundStart.
 	flash_broadcast_chrome("host")
-	if round_message:
+	# Unmissable full-frame Contested Frequency Warmup TV bumper.
+	warmup_tv_linger_timer = 0.0
+	_apply_warmup_tv(host_line, secs_left, roster, false)
+	# Fallback only when WarmupTv nodes are missing (headless / old scene).
+	if warmup_tv == null and round_message:
 		var line = host_line
 		if line == "":
 			line = "HOST: CONTESTED FREQUENCY. " + map_label.to_upper() + " TUNES IN."
 		var sub = "WARMUP // " + map_label.to_upper()
 		if secs_left > 0:
-			sub += " // " + str(secs_left)
+			sub += " // GOES LIVE IN " + str(secs_left)
 		round_message.text = line + "\n" + sub
 		round_message.visible = true
+
+func refresh_warmup_tv(host_line: String, secs_left: int = 0, roster = []) -> void:
+	# Live Warmup Snapshot refresh while the TV is up.
+	if not warmup_tv_active:
+		return
+	_apply_warmup_tv(host_line, secs_left, roster, true)
+
+func linger_warmup_tv_into_active(host_line: String = "", roster = []) -> void:
+	# Hold full-frame Host flash ~1s into Active so Warmup is not blink-and-miss.
+	if not warmup_tv_active and warmup_tv != null and not warmup_tv.visible:
+		# Raise briefly if RoundStart arrived before Warmup flash latch (reconnect edge).
+		_apply_warmup_tv(host_line if host_line != "" else sticky_host_line, 0, roster, false)
+	if warmup_tv_countdown:
+		warmup_tv_countdown.text = "LIVE"
+		warmup_tv_countdown.add_theme_color_override("font_color", Color(1.0, 0.78, 0.28, 1))
+	if host_line != "":
+		warmup_tv_host_line = host_line
+		if warmup_tv_host:
+			warmup_tv_host.text = host_line
+	if typeof(roster) == TYPE_ARRAY and roster.size() > 0:
+		_set_warmup_roster(roster)
+	warmup_tv_active = true
+	warmup_tv_linger_timer = 1.0
+	if warmup_tv:
+		warmup_tv.visible = true
+	# Ember grit flash on the Active handoff.
+	streak_flash_timer = 0.45
+	if streak_flash:
+		streak_flash.visible = true
+		streak_flash.modulate = Color(1.0, 0.72, 0.22, 0.45)
+
+func hide_warmup_tv() -> void:
+	warmup_tv_active = false
+	warmup_tv_linger_timer = 0.0
+	warmup_tv_secs = 0
+	warmup_tv_roster_names = []
+	warmup_tv_host_line = ""
+	if warmup_tv:
+		warmup_tv.visible = false
+	if round_message and round_message.visible and "WARMUP //" in round_message.text:
+		round_message.visible = false
+
+func _apply_warmup_tv(host_line: String, secs_left: int, roster, refresh_only: bool) -> void:
+	if warmup_tv == null:
+		_bind_warmup_tv()
+	if warmup_tv == null:
+		return
+	var line = host_line
+	if line == "":
+		line = "HOST: CONTESTED FREQUENCY. " + map_label.to_upper() + " TUNES IN."
+	warmup_tv_host_line = line
+	warmup_tv_secs = max(secs_left, 0)
+	if warmup_tv_league:
+		warmup_tv_league.text = league_mode_name.to_upper()
+	if warmup_tv_map:
+		warmup_tv_map.text = map_label.to_upper()
+	if warmup_tv_countdown:
+		if warmup_tv_secs > 0:
+			warmup_tv_countdown.text = "GOES LIVE IN " + str(warmup_tv_secs)
+		else:
+			warmup_tv_countdown.text = "GOES LIVE"
+		warmup_tv_countdown.add_theme_color_override("font_color", Color(1.0, 0.72, 0.22, 1))
+	_set_warmup_roster(roster)
+	if warmup_tv_host:
+		warmup_tv_host.text = line
+	warmup_tv_active = true
+	warmup_tv.visible = true
+	if not refresh_only:
+		# Punch scale on first raise so tip capture / spectators feel the open.
+		warmup_tv.scale = Vector2(1.0, 1.0)
 		var tween = create_tween()
-		tween.tween_property(round_message, "scale", Vector2(1.2, 1.2), 0.12)
-		tween.tween_property(round_message, "scale", Vector2(1.0, 1.0), 0.18)
-		await get_tree().create_timer(2.2).timeout
-		if is_instance_valid(round_message):
-			round_message.visible = false
+		tween.tween_property(warmup_tv, "scale", Vector2(1.04, 1.04), 0.08)
+		tween.tween_property(warmup_tv, "scale", Vector2(1.0, 1.0), 0.14)
+		streak_flash_timer = 0.35
+		if streak_flash:
+			streak_flash.visible = true
+			streak_flash.modulate = Color(1.0, 0.72, 0.22, 0.4)
+
+func _set_warmup_roster(roster) -> void:
+	var names = []
+	if typeof(roster) == TYPE_ARRAY:
+		for entry in roster:
+			var n = str(entry)
+			if n == "" or n == "Spectator":
+				continue
+			names.append(n)
+	warmup_tv_roster_names = names
+	if warmup_tv_roster == null:
+		return
+	if names.size() == 0:
+		warmup_tv_roster.text = "SCRAP ROSTER TUNING IN"
+		return
+	var upper = []
+	for n in names:
+		upper.append(n.to_upper())
+	var shown = upper
+	if upper.size() > 6:
+		shown = upper.slice(0, 5)
+		shown.append("+" + str(upper.size() - 5))
+	warmup_tv_roster.text = " // ".join(PackedStringArray(shown))
 
 func show_round_start(round_number: int, host_line: String = ""):
 	host_spoke.emit(3.0)
 	flash_broadcast_chrome("on_air")
+	var line = host_line
+	if line == "":
+		line = HOST_BUMPERS[host_bumper_index % HOST_BUMPERS.size()]
+		host_bumper_index += 1
+	sticky_host_line = line
+	host_line_seen = true
+	_refresh_mode_label()
+	# Full-frame Warmup Host flash lingers ~1s into Active, then fight chrome.
+	if warmup_tv_active or (warmup_tv != null and warmup_tv.visible):
+		linger_warmup_tv_into_active(line, warmup_tv_roster_names)
+		await get_tree().create_timer(1.0).timeout
+		hide_warmup_tv()
 	if round_message:
-		var line = host_line
-		if line == "":
-			line = HOST_BUMPERS[host_bumper_index % HOST_BUMPERS.size()]
-			host_bumper_index += 1
-		sticky_host_line = line
-		host_line_seen = true
-		_refresh_mode_label()
 		round_message.text = line + "\n" + league_playlist.to_upper() + " ROUND " + str(round_number) + " - FIGHT!"
 		if ghost_rival != "":
 			round_message.text += "\nGHOST RIVAL: " + ghost_rival
@@ -648,6 +784,10 @@ func set_followed_weapon(weapon_name: String, player_name: String = "", behavior
 	weapon_icon.visible = true
 
 func _process(delta):
+	if warmup_tv_linger_timer > 0:
+		warmup_tv_linger_timer -= delta
+		if warmup_tv_linger_timer <= 0:
+			hide_warmup_tv()
 	if damage_flash_timer > 0:
 		damage_flash_timer -= delta
 		if damage_flash:
