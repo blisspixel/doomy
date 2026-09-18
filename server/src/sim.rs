@@ -30,7 +30,7 @@ impl Default for MatchConfig {
         Self {
             frag_limit: Some(10),
             time_limit_ticks: Some(20 * 60 * 3),
-            warmup_ticks: 20 * 3,
+            warmup_ticks: 20 * 2,
             end_delay_ticks: 20 * 5,
         }
     }
@@ -137,6 +137,7 @@ impl GameState {
         final_scores.sort_by_key(|a| std::cmp::Reverse(a.score));
 
         self.round_state = RoundState::Ended;
+        self.round_ticks = 0;
 
         self.events.push(GameEvent::RoundEnd {
             winner: winner.clone(),

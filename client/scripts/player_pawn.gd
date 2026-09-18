@@ -7,6 +7,7 @@ var player_color: Color = Color.WHITE
 var hit_flash_timer: float = 0.0
 var idle_anim_timer: float = 0.0
 var current_weapon: String = ""
+var behavior: String = ""
 var is_highlighted: bool = false
 
 var target_position: Vector3 = Vector3.ZERO
@@ -125,16 +126,36 @@ func update_state(state: Dictionary):
 		current_weapon = weapon_name
 		_update_weapon_sprite()
 	
+	if state.has("behavior") and state.behavior != null:
+		behavior = str(state.behavior)
+	else:
+		behavior = ""
+	
 	if label:
 		var behavior_chip = ""
-		if state.has("behavior") and state.behavior != null:
-			behavior_chip = " [" + str(state.behavior) + "]"
+		if behavior != "":
+			var short = behavior
+			match behavior:
+				"Aggressive":
+					short = "AGG"
+				"Defensive":
+					short = "DEF"
+				"Flanker":
+					short = "FLK"
+				"Balanced":
+					short = "BAL"
+			behavior_chip = " [" + short + "]"
 		
 		var hp_display = str(hp) + " HP"
 		if hp < 30:
 			hp_display = "!" + hp_display + "!"
 		
-		label.text = player_name + " [" + hp_display + "]" + behavior_chip
+		var score = int(state.get("score", 0))
+		var score_chip = ""
+		if score > 0:
+			score_chip = " +" + str(score)
+		
+		label.text = player_name + score_chip + " [" + hp_display + "]" + behavior_chip
 	
 	if muzzle and state.get("just_fired", false):
 		var weapon = state.get("weapon", "")
