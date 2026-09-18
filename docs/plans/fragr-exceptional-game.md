@@ -75,10 +75,10 @@ Throw-outs already match standing locks (no matchmaking gate, no esports-AI clai
 
 ## Next (after this PR)
 
-1. **Adapter `--name` / session join-leave** - tip hardcodes MCP Agent; named sessions + clean join/leave.
-2. **SKILL.md + Hermes / OpenClaw snips** - one MCP door documented.
-3. **Off-tick speak / taunt** - after the door is trusted (LLM still off tick).
-4. **Spectator face juice / one mode fantasy / amazement bar** - fun to watch and join; not an MCP cell farm.
+1. **Mode fantasy / Contested Frequency** - named scrap-league identity + one Continuance pressure beat (this tip).
+2. **Off-tick speak / taunt** - after the door is trusted (LLM still off tick).
+3. **Tip screenshots** - live Godot captures for README honesty.
+4. **Pixel-3D look bar** - Unreal+CS play feel with retro pixel surfaces.
 
 Art note for later (not this PR): muted accents OK; not neon puke everywhere.
 

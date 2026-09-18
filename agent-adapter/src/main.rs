@@ -103,11 +103,7 @@ async fn run_mcp_server(
     let tool_state = std::sync::Arc::new(tokio::sync::Mutex::new(ToolState::default()));
 
     if let Some(Ok(Message::Text(text))) = ws_stream.next().await {
-        if let Ok(ServerMessage::Welcome {
-            player_id: pid,
-            role: _,
-        }) = serde_json::from_str(&text)
-        {
+        if let Ok(ServerMessage::Welcome { player_id: pid, .. }) = serde_json::from_str(&text) {
             tool_state.lock().await.player_id = pid;
             tracing::info!("Connected to game server, player_id: {:?}", pid);
         }
@@ -213,11 +209,7 @@ async fn run_scripted_bot(
 
     let mut player_id = None;
     if let Some(Ok(Message::Text(text))) = ws_stream.next().await {
-        if let Ok(ServerMessage::Welcome {
-            player_id: pid,
-            role: _,
-        }) = serde_json::from_str(&text)
-        {
+        if let Ok(ServerMessage::Welcome { player_id: pid, .. }) = serde_json::from_str(&text) {
             player_id = pid;
             tracing::info!("Bot connected, player_id: {:?}", player_id);
         }
@@ -331,6 +323,9 @@ mod tests {
             time_limit: Some(180),
             players: vec!["Bot1".to_string(), "Bot2".to_string()],
             previous_winner: None,
+            mode_name: protocol::default_mode_name(),
+            playlist: protocol::default_playlist(),
+            host_line: protocol::default_host_line(),
         };
 
         let round_start_json = serde_json::to_value(&round_start_event).unwrap();
@@ -434,6 +429,7 @@ mod tests {
                 time_limit,
                 players,
                 previous_winner,
+                ..
             }) => {
                 assert_eq!(round_number, 2);
                 assert_eq!(frag_limit, Some(10));
@@ -511,7 +507,9 @@ mod tests {
         assert!(parsed.is_ok());
 
         match parsed.unwrap() {
-            protocol::ServerMessage::Welcome { player_id, role } => {
+            protocol::ServerMessage::Welcome {
+                player_id, role, ..
+            } => {
                 assert!(player_id.is_some());
                 assert_eq!(role, protocol::Role::Agent);
             }
@@ -523,7 +521,9 @@ mod tests {
         assert!(parsed.is_ok());
 
         match parsed.unwrap() {
-            protocol::ServerMessage::Welcome { player_id, role } => {
+            protocol::ServerMessage::Welcome {
+                player_id, role, ..
+            } => {
                 assert!(player_id.is_none());
                 assert_eq!(role, protocol::Role::Spectator);
             }
@@ -658,6 +658,9 @@ mod tests {
             round_time_left: Some(120),
             frag_limit: Some(10),
             shot_results: vec![],
+            mode_name: protocol::default_mode_name(),
+            playlist: protocol::default_playlist(),
+            pressure: None,
         };
 
         let json = serde_json::to_value(&snapshot).unwrap();
@@ -709,6 +712,9 @@ mod tests {
             round_time_left: Some(90),
             frag_limit: Some(10),
             shot_results: vec![],
+            mode_name: protocol::default_mode_name(),
+            playlist: protocol::default_playlist(),
+            pressure: None,
         };
 
         let json = serde_json::to_value(&snapshot).unwrap();
@@ -1007,6 +1013,9 @@ mod tests {
             round_time_left: Some(60),
             frag_limit: Some(10),
             shot_results: vec![],
+            mode_name: protocol::default_mode_name(),
+            playlist: protocol::default_playlist(),
+            pressure: None,
         };
         let action = compute_bot_action(bot_id, &snapshot);
         let look = action.look_at.expect("look_at toward nearest");
