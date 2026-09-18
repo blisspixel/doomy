@@ -67,7 +67,7 @@ func _ready():
 	crosshair_ring = get_node_or_null("Crosshair/RingBorder")
 	hit_marker = get_node_or_null("HitMarker")
 	damage_numbers = get_node_or_null("DamageNumbers")
-	
+
 	if frag_label:
 		frag_label.text = ""
 	if round_message:
@@ -228,12 +228,12 @@ func show_frag(killer: String, victim: String, killer_color: Color = Color.WHITE
 	if not scores.has(killer):
 		scores[killer] = 0
 	scores[killer] += 1
-	
+
 	update_scoreboard()
-	
+
 	if frag_label:
 		var message = killer + " SCRAPPED " + victim
-		
+
 		if randf() < 0.067:
 			var quips = [
 				killer + " took " + victim + " off the air",
@@ -241,15 +241,15 @@ func show_frag(killer: String, victim: String, killer_color: Color = Color.WHITE
 				"so back (" + killer + " -> " + victim + ")"
 			]
 			message = quips[randi() % quips.size()]
-		
+
 		frag_label.text = message
 		frag_label.modulate = killer_color.lightened(0.4)
 		frag_label.visible = true
-		
+
 		var tween = create_tween()
 		tween.tween_property(frag_label, "scale", Vector2(1.3, 1.3), 0.08)
 		tween.tween_property(frag_label, "scale", Vector2(1.0, 1.0), 0.12)
-		
+
 		await get_tree().create_timer(2.8).timeout
 		if is_instance_valid(frag_label):
 			frag_label.visible = false
@@ -424,37 +424,79 @@ func show_speak(player: String, line: String):
 		if is_instance_valid(round_message):
 			round_message.visible = false
 
-func show_round_end(winner: String, reason: String):
+func show_round_end(mvp_name: String, reason: String, mvp_frags: int = 0, host_line: String = "", podium = []):
+	# Round-end MVP / podium Host drama (Contested Frequency voice).
 	scores = {}
 	behaviors = {}
-	leader_name = ""
+	leader_name = mvp_name
 	pressure_id = ""
+	if host_line != "":
+		sticky_host_line = host_line
+		host_line_seen = true
 	_refresh_mode_label()
 	update_scoreboard()
-	
+
 	if weapon_label:
 		weapon_label.text = ""
 	if weapon_icon:
 		weapon_icon.visible = false
-	
+
 	followed_player_name = ""
-	
+
+	# Brief ember podium flash (same grit as killstreak).
+	streak_flash_timer = 0.55
+	if streak_flash:
+		streak_flash.visible = true
+		streak_flash.modulate = Color(1.0, 0.78, 0.28, 0.55)
+
 	if round_message:
-		var message = "HOST: " + reason.to_upper()
-		if winner != "":
-			message += "\n\nSCRAP WINNER: " + winner + "!"
+		var message = host_line
+		if message == "":
+			if mvp_name != "":
+				message = "HOST: ROUND MVP. " + mvp_name + " WITH " + str(mvp_frags) + " FRAGS. CONTINUANCE DENIES THE PODIUM."
+			else:
+				message = "HOST: ROUND CLOSED. NO MVP. LEAGUE DENIES THE SCRAP."
+		if reason != "":
+			message += "\n" + reason.to_upper()
+		# Podium: top three scrap scores.
+		var lines = []
+		if typeof(podium) == TYPE_ARRAY:
+			var n = mini(3, podium.size())
+			for i in range(n):
+				var row = podium[i]
+				var nm = str(row.get("name", "?")) if typeof(row) == TYPE_DICTIONARY else str(row)
+				var sc = str(row.get("score", "?")) if typeof(row) == TYPE_DICTIONARY else ""
+				var rank = str(i + 1)
+				if sc != "":
+					lines.append("#" + rank + " " + nm + " " + sc)
+				else:
+					lines.append("#" + rank + " " + nm)
+		if lines.size() > 0:
+			message += "\nPODIUM: " + " | ".join(PackedStringArray(lines))
 		message += "\n" + league_mode_name.to_upper() + " // " + league_playlist.to_upper()
-		
+
 		round_message.text = message
 		round_message.visible = true
-		
+
 		var tween = create_tween()
-		tween.tween_property(round_message, "scale", Vector2(1.4, 1.4), 0.15)
-		tween.tween_property(round_message, "scale", Vector2(1.0, 1.0), 0.2)
-		
-		await get_tree().create_timer(4.0).timeout
+		tween.tween_property(round_message, "scale", Vector2(1.45, 1.45), 0.12)
+		tween.tween_property(round_message, "scale", Vector2(1.0, 1.0), 0.22)
+
+		await get_tree().create_timer(4.5).timeout
 		if is_instance_valid(round_message):
 			round_message.visible = false
+
+	if frag_label and mvp_name != "":
+		frag_label.text = "MVP // " + mvp_name + " // " + str(mvp_frags)
+		frag_label.modulate = Color(1.0, 0.88, 0.4)
+		frag_label.visible = true
+		var ft = create_tween()
+		ft.tween_property(frag_label, "scale", Vector2(1.45, 1.45), 0.1)
+		ft.tween_property(frag_label, "scale", Vector2(1.0, 1.0), 0.16)
+		await get_tree().create_timer(3.2).timeout
+		if is_instance_valid(frag_label):
+			frag_label.visible = false
+			frag_label.modulate = Color.WHITE
 
 func show_pickup_toast(player_name: String, weapon_name: String, kind: String = "weapon", amount: int = 0):
 	if not round_message:
@@ -484,14 +526,14 @@ func show_pickup_toast(player_name: String, weapon_name: String, kind: String = 
 func set_followed_weapon(weapon_name: String, player_name: String = "", behavior: String = ""):
 	if not weapon_label or not weapon_icon:
 		return
-	
+
 	followed_player_name = player_name
-	
+
 	if weapon_name == "" or not weapon_textures.has(weapon_name):
 		weapon_label.text = ""
 		weapon_icon.visible = false
 		return
-	
+
 	var weapon_desc = ""
 	match weapon_name:
 		"Flechette":
@@ -500,14 +542,14 @@ func set_followed_weapon(weapon_name: String, player_name: String = "", behavior
 			weapon_desc = "RAIL (long)"
 		"Scatter":
 			weapon_desc = "SCATTER (close)"
-	
+
 	var display_text = weapon_desc
 	if player_name != "":
 		var role_chip = ""
 		if behavior != "":
 			role_chip = " [" + _short_behavior(behavior) + "]"
 		display_text = "FOLLOWING: " + player_name + role_chip + "\n" + weapon_desc
-	
+
 	weapon_label.text = display_text
 	weapon_icon.texture = weapon_textures[weapon_name]
 	weapon_icon.modulate = Color(1.15, 1.1, 1.05, 1)

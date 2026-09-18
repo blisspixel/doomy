@@ -508,6 +508,9 @@ mod tests {
                 },
             ],
             winner_score: Some(10),
+            mvp: Some("Bot1".to_string()),
+            mvp_frags: Some(10),
+            host_line: protocol::default_host_line(),
         };
 
         let round_end_json = serde_json::to_value(&round_end_event).unwrap();
@@ -515,6 +518,8 @@ mod tests {
         assert_eq!(round_end_json["winner"], "Bot1");
         assert_eq!(round_end_json["reason"], "Frag limit reached");
         assert_eq!(round_end_json["winner_score"], 10);
+        assert_eq!(round_end_json["mvp"], "Bot1");
+        assert_eq!(round_end_json["mvp_frags"], 10);
         assert_eq!(round_end_json["final_scores"].as_array().unwrap().len(), 2);
 
         let player_joined_event = protocol::GameEvent::PlayerJoined {
@@ -609,6 +614,9 @@ mod tests {
                 reason,
                 final_scores,
                 winner_score,
+                mvp,
+                mvp_frags,
+                ..
             }) => {
                 assert_eq!(winner, Some("Bot1".to_string()));
                 assert_eq!(reason, "Frag limit reached");
@@ -616,6 +624,9 @@ mod tests {
                 assert_eq!(final_scores[0].name, "Bot1");
                 assert_eq!(final_scores[0].score, 10);
                 assert_eq!(winner_score, Some(10));
+                // Legacy wire without mvp fields -> None
+                assert!(mvp.is_none());
+                assert!(mvp_frags.is_none());
             }
             _ => panic!("Expected Event(RoundEnd)"),
         }

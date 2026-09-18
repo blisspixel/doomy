@@ -305,7 +305,12 @@ func _on_event_received(data):
 		var line = str(data.get("text", ""))
 		hud.show_speak(speaker, line)
 	elif event_type == "round_end":
-		hud.show_round_end(data.get("winner", ""), data.get("reason", ""))
+		var mvp_name = str(data.get("mvp", data.get("winner", "")))
+		var mvp_frags = int(data.get("mvp_frags", data.get("winner_score", 0)))
+		var host_line = str(data.get("host_line", ""))
+		var podium = data.get("final_scores", [])
+		if hud and hud.has_method("show_round_end"):
+			hud.show_round_end(mvp_name, str(data.get("reason", "")), mvp_frags, host_line, podium)
 		if round_end_sound and round_end_sound.stream:
 			round_end_sound.play()
 
