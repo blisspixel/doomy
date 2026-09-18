@@ -1,6 +1,6 @@
 use clap::Parser;
 use fragr_server::net::NetServer;
-use fragr_server::session::{broadcast_to_clients, GameSession};
+use fragr_server::session::{broadcast_to_clients, send_unicasts_to_players, GameSession};
 use std::time::Duration;
 use tokio::sync::mpsc;
 use tracing_subscriber::EnvFilter;
@@ -54,6 +54,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             Some(cmd) = game_rx.recv() => {
                 session.apply_command(cmd);
+                let unicasts = session.take_unicasts();
+                send_unicasts_to_players(&clients, &session.client_to_player, &unicasts).await;
             }
         }
     }

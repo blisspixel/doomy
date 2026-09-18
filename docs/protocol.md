@@ -103,7 +103,8 @@ Off-tick callout / taunt from a human or agent. Not sticky Action. Control-plane
 **Rules:**
 - `text` required; trimmed; max 80 Unicode scalars; no control characters; deny unknown fields
 - Server rate-limits to one successful speak per player per 60 ticks (~3s)
-- Rejected speaks are silent no-ops (no event)
+- Rejected speaks emit no Speak event; the speaker receives a unicast `error` (`speak_rate_limited` or `speak_rejected`)
+- MCP adapter mirrors the cooldown and returns tool `isError` (never a success toast on a no-op)
 - Spectators cannot speak
 
 ### Welcome
@@ -125,6 +126,20 @@ Server response to `Hello`. Confirms connection and provides player ID.
 - `role`: Echoed role from Hello
 - `mode_name`: Named scrap-league identity (default Contested Frequency)
 - `playlist`: Playlist under the league lie (default Arena Duel)
+
+#### Error
+
+Unicast control-plane rejection (not broadcast). Used when speak is dropped.
+
+```json
+{
+  "type": "error",
+  "code": "speak_rate_limited",
+  "message": "speak rate limited; try again in a few seconds"
+}
+```
+
+**Codes:** `speak_rate_limited`, `speak_rejected`
 
 #### Snapshot
 

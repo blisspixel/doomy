@@ -30,12 +30,17 @@ pub struct McpError {
     pub message: String,
 }
 
+/// Mirrored speak cooldown (~3s at 20 Hz). Same as server SPEAK_COOLDOWN_TICKS.
+pub const SPEAK_COOLDOWN_TICKS: u64 = 60;
+
 /// In-memory MCP tool state mirrored from the WebSocket receive loop.
 #[derive(Debug, Default, Clone)]
 pub struct ToolState {
     pub last_snapshot: Option<Value>,
     pub recent_events: Vec<Value>,
     pub player_id: Option<Uuid>,
+    /// Tick of last MCP speak that was accepted for send (rate-limit honesty).
+    pub last_speak_tick: Option<u64>,
 }
 
 /// Outcome of handling one MCP request.
@@ -342,6 +347,41 @@ fn tools_list_result() -> Value {
     })
 }
 
+fn snapshot_tick(state: &ToolState) -> u64 {
+    state
+        .last_snapshot
+        .as_ref()
+        .and_then(|s| s.get("tick"))
+        .and_then(|t| t.as_u64())
+        .unwrap_or(0)
+}
+
+fn speak_rate_limited(state: &ToolState, tick: u64) -> bool {
+    match state.last_speak_tick {
+        Some(last) => tick.saturating_sub(last) < SPEAK_COOLDOWN_TICKS,
+        None => false,
+    }
+}
+
+fn tool_error_result(message: &str) -> Value {
+    serde_json::json!({
+        "content": [{
+            "type": "text",
+            "text": message
+        }],
+        "isError": true
+    })
+}
+
+fn tool_ok_text(message: &str) -> Value {
+    serde_json::json!({
+        "content": [{
+            "type": "text",
+            "text": message
+        }]
+    })
+}
+
 /// Dispatch one JSON-RPC MCP request against tool state.
 pub fn handle_mcp_request(request: McpRequest, state: &mut ToolState) -> HandleOutcome {
     let id = request.id.clone().unwrap_or(Value::Null);
@@ -429,21 +469,24 @@ pub fn handle_mcp_request(request: McpRequest, state: &mut ToolState) -> HandleO
 
                     match validate_speak_arguments(&arguments) {
                         Ok(speak) => {
-                            pending_speak = Some(speak);
-                            serde_json::json!({
-                                "content": [{
-                                    "type": "text",
-                                    "text": "Speak sent successfully"
-                                }]
-                            })
+                            if state.player_id.is_none() {
+                                tool_error_result(
+                                    "speak rejected: not connected as a player (spectators cannot speak)",
+                                )
+                            } else {
+                                let tick = snapshot_tick(state);
+                                if speak_rate_limited(state, tick) {
+                                    tool_error_result(
+                                        "speak rate limited; try again in a few seconds",
+                                    )
+                                } else {
+                                    state.last_speak_tick = Some(tick);
+                                    pending_speak = Some(speak);
+                                    tool_ok_text("Speak sent successfully")
+                                }
+                            }
                         }
-                        Err(msg) => serde_json::json!({
-                            "content": [{
-                                "type": "text",
-                                "text": msg
-                            }],
-                            "isError": true
-                        }),
+                        Err(msg) => tool_error_result(&msg),
                     }
                 }
 
@@ -525,6 +568,9 @@ pub fn ingest_server_text(state: &mut ToolState, text: &str) {
             }
         }
         Ok(protocol::ServerMessage::Welcome { .. }) => {}
+        Ok(protocol::ServerMessage::Error { .. }) => {
+            // Unicast speak rejection; MCP speak path already mirrors cooldown as isError.
+        }
         Err(_) => {
             if let Ok(raw) = serde_json::from_str::<Value>(text) {
                 if raw.get("type").and_then(|v| v.as_str()) == Some("event") {
@@ -569,6 +615,7 @@ mod mcp_tests {
             last_snapshot: Some(serde_json::json!({"tick": 3, "players": []})),
             recent_events: vec![serde_json::json!({"event":"frag"})],
             player_id: Some(Uuid::nil()),
+            last_speak_tick: None,
         };
         let out = handle_mcp_request(
             req("tools/call", Some(serde_json::json!({"name":"observe"}))),
@@ -762,7 +809,11 @@ mod mcp_tests {
 
     #[test]
     fn speak_valid_sets_pending_speak() {
-        let mut state = ToolState::default();
+        let mut state = ToolState {
+            player_id: Some(Uuid::nil()),
+            last_snapshot: Some(serde_json::json!({"tick": 10})),
+            ..Default::default()
+        };
         let out = handle_mcp_request(
             req(
                 "tools/call",
@@ -776,6 +827,121 @@ mod mcp_tests {
         let speak = out.pending_speak.expect("pending speak");
         assert_eq!(speak.text, "nice scrap");
         assert!(out.pending_action.is_none());
+        let result = out.response.result.unwrap();
+        assert!(result.get("isError").is_none() || result["isError"] == false);
+        assert!(result["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("Speak sent successfully"));
+        assert_eq!(state.last_speak_tick, Some(10));
+    }
+
+    #[test]
+    fn speak_rate_limited_sets_is_error() {
+        let mut state = ToolState {
+            player_id: Some(Uuid::nil()),
+            last_snapshot: Some(serde_json::json!({"tick": 100})),
+            last_speak_tick: Some(90),
+            ..Default::default()
+        };
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({
+                    "name": "speak",
+                    "arguments": {"text": "again"}
+                })),
+            ),
+            &mut state,
+        );
+        assert!(
+            out.pending_speak.is_none(),
+            "rate-limited must not queue speak"
+        );
+        let result = out.response.result.unwrap();
+        assert_eq!(result["isError"], true);
+        let text = result["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains("rate limited"), "{text}");
+        assert!(!text.contains("Speak sent successfully"), "{text}");
+    }
+
+    #[test]
+    fn speak_after_cooldown_ok() {
+        let mut state = ToolState {
+            player_id: Some(Uuid::nil()),
+            last_snapshot: Some(serde_json::json!({"tick": 200})),
+            last_speak_tick: Some(100),
+            ..Default::default()
+        };
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({
+                    "name": "speak",
+                    "arguments": {"text": "back"}
+                })),
+            ),
+            &mut state,
+        );
+        assert!(out.pending_speak.is_some());
+        let result = out.response.result.unwrap();
+        assert!(result.get("isError").is_none() || result["isError"] == false);
+    }
+
+    #[test]
+    fn speak_overlong_sets_is_error() {
+        let mut state = ToolState {
+            player_id: Some(Uuid::nil()),
+            last_snapshot: Some(serde_json::json!({"tick": 1})),
+            ..Default::default()
+        };
+        let long = "x".repeat(SPEAK_MAX_CHARS + 1);
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({
+                    "name": "speak",
+                    "arguments": {"text": long}
+                })),
+            ),
+            &mut state,
+        );
+        assert!(out.pending_speak.is_none());
+        let result = out.response.result.unwrap();
+        assert_eq!(result["isError"], true);
+        assert!(state.last_speak_tick.is_none());
+    }
+
+    #[test]
+    fn speak_spectator_sets_is_error() {
+        let mut state = ToolState {
+            player_id: None,
+            last_snapshot: Some(serde_json::json!({"tick": 1})),
+            ..Default::default()
+        };
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({
+                    "name": "speak",
+                    "arguments": {"text": "hi"}
+                })),
+            ),
+            &mut state,
+        );
+        assert!(out.pending_speak.is_none());
+        let result = out.response.result.unwrap();
+        assert_eq!(result["isError"], true);
+        assert!(
+            result["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains("spectator")
+                || result["content"][0]["text"]
+                    .as_str()
+                    .unwrap()
+                    .contains("not connected")
+        );
     }
 
     #[test]
