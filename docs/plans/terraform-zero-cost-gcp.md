@@ -56,7 +56,7 @@ Create Terraform infrastructure-as-code for deploying fragr game servers on GCP 
   - Private Google access enabled
 
 - **Firewall Rules:**
-  - `google_compute_firewall.game_port` - Allow UDP 7777 from 0.0.0.0/0
+  - `google_compute_firewall.game_port` - Allow UDP 6767 from 0.0.0.0/0
   - `google_compute_firewall.iap_ssh` - Allow TCP 22 from 35.235.240.0/20 (IAP)
   - `google_compute_firewall.ssh_custom` - Optional: Allow TCP 22 from specific IPs
 
@@ -95,7 +95,7 @@ See `infra/terraform/variables.tf` for full list. Key variables:
 | `zone` | `us-west1-a` | Any zone in region |
 | `machine_type` | `e2-micro` | Must be exactly `e2-micro` |
 | `boot_disk_size_gb` | 20 | Between 1 and 30 GB |
-| `game_port` | 7777 | Between 1024 and 65535 |
+| `game_port` | 6767 | Between 1024 and 65535 |
 | `network_cidr` | `10.0.0.0/24` | Valid IPv4 CIDR |
 | `enable_cloud_run_adapter` | false | Boolean |
 
@@ -155,7 +155,7 @@ See `infra/terraform/outputs.tf`. Notable outputs:
 
 ### Network
 
-- Game port (UDP 7777) open to all (required for gameplay)
+- Game port (UDP 6767) open to all (required for gameplay)
 - SSH only via IAP tunnel (no public key auth, no password auth)
 - Optional: Restrict SSH to specific source IPs
 - No other ports exposed
@@ -302,7 +302,7 @@ terraform validate                # Validate configuration
 1. SSH via IAP: `gcloud compute ssh fragr-game-server --zone=us-west1-a --tunnel-through-iap`
 2. Copy server binary to VM (scp or GCS)
 3. Configure systemd service (optional)
-4. Start server: `./fragr-server --bind 0.0.0.0:7777`
+4. Start server: `./fragr-server --bind 0.0.0.0:6767`
 5. Test connectivity from client
 6. Monitor costs in GCP Console
 
