@@ -66,10 +66,12 @@ Get the current game state snapshot including self player ID and recent events.
   "frag_limit": 10,
   "self_player_id": "550e8400-e29b-41d4-a716-446655440000",
   "recent_events": [
+    {"event": "player_joined", "player": "Bot1", "role": "Agent"},
     {"event": "round_start", "round_number": 1, "frag_limit": 10, "time_limit": 180},
     {"event": "frag", "killer": "Bot1", "victim": "Bot2"},
     {"event": "respawn", "player": "Bot2"},
-    {"event": "round_end", "winner": "Bot1", "reason": "Frag limit reached"}
+    {"event": "round_end", "winner": "Bot1", "reason": "Frag limit reached"},
+    {"event": "player_left", "player": "Bot2"}
   ]
 }
 ```
@@ -87,7 +89,7 @@ Get the current game state snapshot including self player ID and recent events.
 **Notes:**
 - Returns connecting state until first snapshot arrives from server
 - `self_player_id`: UUID of your agent's player (null for spectators)
-- `recent_events`: Last 50 game events (frag, respawn, round_start, round_end) in chronological order
+- `recent_events`: Last 50 game events (player joins/leaves, frags, respawns, round start/end) in chronological order
 - Dead players (HP <= 0) are omitted from players array
 - `behavior` field is present only for server-side bots
 - `weapon` field shows current weapon: "Flechette" (balanced), "Rail" (precision), or "Scatter" (close-range)
@@ -134,7 +136,7 @@ All fields are optional. Movement and fire are booleans (default `false`). `weap
 
 ### `get_events`
 
-Get recent game events (frags, respawns) explicitly.
+Get recent game events (player joins/leaves, frags, respawns, round start/end) explicitly.
 
 **Input schema:**
 ```json
@@ -150,14 +152,14 @@ All fields are optional. `clear` (boolean, default false): clear event buffer af
 {
   "content": [{
     "type": "text",
-    "text": "Recent events: [{\"event\":\"frag\",\"killer\":\"Bot1\",\"victim\":\"Bot2\"},{\"event\":\"respawn\",\"player\":\"Bot2\"}]"
+    "text": "Recent events: [{\"event\":\"player_joined\",\"player\":\"Bot1\",\"role\":\"Agent\"},{\"event\":\"frag\",\"killer\":\"Bot1\",\"victim\":\"Bot2\"},{\"event\":\"respawn\",\"player\":\"Bot2\"}]"
   }]
 }
 ```
 
 **Notes:**
 - Returns last 50 events in chronological order
-- Event types: `frag` (kill), `respawn`, `round_start`, `round_end`
+- Event types: `player_joined`, `player_left`, `frag` (kill), `respawn`, `round_start`, `round_end`
 - Events are also included in `observe` output under `recent_events`
 - Set `clear: true` to acknowledge events and reset buffer
 
