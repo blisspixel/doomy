@@ -79,7 +79,7 @@ All game truth lives in **fragr-server**. Godot never simulates combat/HP; it in
 - **Later (post-slice):** Optional UDP/`renet`-style channel for low-latency FPS once WS proves the loop. Do **not** block Slice 1 on custom UDP in GDScript.
 
 ### Server - Rust, **not** Bevy-as-client
-| Option | Verdict for Doomy |
+| Option | Verdict for fragr |
 |--------|-------------------|
 | **Custom tokio + WS + tick ECS-lite** | **Choose for Slice 1.** Thin, Godot-friendly, easy for MCP adapter. |
 | `renet` / `bevy_renet` | Strong UDP/netcode later; Godot client support is DIY. Defer. |
@@ -109,7 +109,7 @@ All game truth lives in **fragr-server**. Godot never simulates combat/HP; it in
 - **Spectators:** same snapshot stream; server ignores input from `spectator` role.
 
 ### How agents issue actions (agent-play path)
-**Best current approach for 2026 Doomy:** dedicated **MCP server adapter** in front of the game session (pattern proven by doom-mcp, minecraft-mcp, nethack-mcp style stacks).
+**Best current approach for 2026 fragr:** dedicated **MCP server adapter** in front of the game session (pattern proven by doom-mcp, minecraft-mcp, nethack-mcp style stacks).
 
 - Process: `fragr-agent-adapter` (Rust or TypeScript; prefer **Rust** to share protocol types with server, or TS if Buildy wants FastMCP speed - **recommend Rust** for one language on server side).
 - Transport to agents: **MCP over stdio** (local clawbots / any MCP client) - zero cloud.

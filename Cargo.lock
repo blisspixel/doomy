@@ -176,7 +176,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "doomy-agent-adapter"
+name = "errno"
+version = "0.3.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
+dependencies = [
+ "libc",
+ "windows-sys",
+]
+
+[[package]]
+name = "fragr-agent-adapter"
 version = "0.1.0"
 dependencies = [
  "clap",
@@ -192,7 +202,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "doomy-server"
+name = "fragr-server"
 version = "0.1.0"
 dependencies = [
  "clap",
@@ -206,16 +216,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
-]
-
-[[package]]
-name = "errno"
-version = "0.3.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
-dependencies = [
- "libc",
- "windows-sys",
 ]
 
 [[package]]
