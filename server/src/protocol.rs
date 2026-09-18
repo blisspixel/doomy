@@ -73,6 +73,25 @@ pub fn empty_mvp_host_line() -> String {
     "HOST: ROUND CLOSED. NO MVP. LEAGUE DENIES THE SCRAP.".to_string()
 }
 
+/// Host bumper when a named scrap bot dials in (Warmup / spawn flavor).
+pub fn bot_intro_host_line(name: &str) -> String {
+    format!("HOST: {} DIALS THE FREQUENCY.", name.to_uppercase())
+}
+
+/// Sticky Warmup / mid-join Host line naming the dialed-in rule-bot roster.
+pub fn roster_host_line(names: &[String]) -> String {
+    if names.is_empty() {
+        return default_host_line();
+    }
+    let upper: Vec<String> = names.iter().map(|n| n.to_uppercase()).collect();
+    let listed = if upper.len() <= 4 {
+        upper.join(", ")
+    } else {
+        format!("{}, +{}", upper[..3].join(", "), upper.len() - 3)
+    };
+    format!("HOST: {listed} ON THE SCRAP. FREQUENCY STAYS LIVE.")
+}
+
 /// Display name for the mid-round Continuance boss NPC.
 pub const BOSS_NAME: &str = "COMPLIANCE-DRONE";
 
@@ -763,6 +782,24 @@ mod protocol_tests {
         assert!(line.contains("10 FRAGS"));
         assert!(line.contains("CONTINUANCE DENIES THE PODIUM"));
         assert!(empty_mvp_host_line().contains("NO MVP"));
+    }
+
+    #[test]
+    fn scrap_bot_host_lines() {
+        let intro = bot_intro_host_line("Dead Air Dan");
+        assert!(intro.contains("DEAD AIR DAN"));
+        assert!(intro.contains("DIALS THE FREQUENCY"));
+        let roster = roster_host_line(&[
+            "Dead Air Dan".into(),
+            "Nightfall".into(),
+            "Static Kid".into(),
+            "Aunt Linda".into(),
+        ]);
+        assert!(roster.contains("DEAD AIR DAN"));
+        assert!(roster.contains("ON THE SCRAP"));
+        assert_eq!(roster_host_line(&[]), default_host_line());
+        let many = roster_host_line(&["A".into(), "B".into(), "C".into(), "D".into(), "E".into()]);
+        assert!(many.contains("+2"));
     }
 
     #[test]

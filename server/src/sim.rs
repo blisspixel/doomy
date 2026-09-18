@@ -1,8 +1,8 @@
 use crate::protocol::{
     boss_down_host_line, boss_host_line, compliance_host_line, default_host_line,
     default_mode_name, default_playlist, empty_mvp_host_line, killstreak_host_line, mvp_host_line,
-    Action, GameEvent, PickupState, PlayerScore, PlayerState, Role, ShotResult, Snapshot,
-    WeaponType, BOSS_NAME, MODE_NAME, PLAYLIST_NAME,
+    roster_host_line, Action, GameEvent, PickupState, PlayerScore, PlayerState, Role, ShotResult,
+    Snapshot, WeaponType, BOSS_NAME, MODE_NAME, PLAYLIST_NAME,
 };
 use std::collections::HashMap;
 use std::f32::consts::PI;
@@ -533,6 +533,8 @@ pub struct GameState {
     pub ended_mvp: Option<String>,
     /// Sticky MVP frag count while Ended.
     pub ended_mvp_frags: Option<u32>,
+    /// Sticky Warmup / mid-join Host line naming dialed-in rule bots (None = default league line).
+    pub roster_host_line: Option<String>,
     /// Active Contested Frequency scrap layout.
     pub map: MapKind,
     /// When true, alternate map each start_round.
@@ -619,7 +621,10 @@ impl GameState {
             previous_winner,
             mode_name: default_mode_name(),
             playlist: default_playlist(),
-            host_line: default_host_line(),
+            host_line: self
+                .roster_host_line
+                .clone()
+                .unwrap_or_else(default_host_line),
         });
 
         tracing::info!(
@@ -1192,6 +1197,10 @@ impl GameState {
                 boss_host_line()
             } else if self.compliance_ticks_left > 0 {
                 compliance_host_line()
+            } else if self.round_state == RoundState::Warmup {
+                self.roster_host_line
+                    .clone()
+                    .unwrap_or_else(default_host_line)
             } else {
                 default_host_line()
             },
@@ -1208,6 +1217,16 @@ impl GameState {
             pickups: self.pickups.iter().map(|p| p.to_state()).collect(),
             map_id: self.map.id(),
             map_name: self.map.name().to_string(),
+        }
+    }
+
+    /// Refresh sticky Warmup Host roster line from current rule-bot display names.
+    /// Clears when `names` is empty so mid-join falls back to the default league line.
+    pub fn set_roster_host_line_from_names(&mut self, names: &[String]) {
+        if names.is_empty() {
+            self.roster_host_line = None;
+        } else {
+            self.roster_host_line = Some(roster_host_line(names));
         }
     }
 
@@ -1461,6 +1480,7 @@ impl Default for GameState {
             ended_host_line: None,
             ended_mvp: None,
             ended_mvp_frags: None,
+            roster_host_line: None,
             map: MapKind::ArenaDuel,
             map_rotate: false,
         }
