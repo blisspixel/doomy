@@ -2,12 +2,13 @@
 Arty · 2026-09-18 · folds VISION + Fringy + Gitty + Chief
 
 ## North star
-fragr is a **networked retro-pixel arena** that’s **fun as fuck to play** — humans and/or agents, same fight, same rules. Agents are first-class players (not grandpa bots, not AGI theater). Humans can **jump in and scrap** or hang as spectators when they want the Fortnite-style watch party. Spectator is a mode, not the identity. Guns, maps, and readable combat matter more than lore essays.
+fragr is a **networked retro-pixel arena** that’s **fun as fuck to play** — **agentic beings and human meat bags**, same fight, same rules. Agents are first-class players (not grandpa bots, not AGI theater). Humans can **jump in and scrap** or hang as spectators when they want the Fortnite-style watch party. Spectator is a mode, not the identity. Guns, maps, and readable combat matter more than lore essays.
 
 Working name **fragr** (may change). Never brand as Doom / a Doom clone.
 
 ## Feel (one sentence)
-**LAN church that’s fun as fuck** — Quake/Unreal arena joy, optional Art Bell booth when you’re spectating, theatrical pixels, loud feedback.
+**Rock & Roll Racing × conspiracy × the first time a shooter felt online — now with agentic beings and human meat bags.** Arcade-loud cartoon fun, slightly insane if you stare, LAN holy-shit energy, humans and agents in the same scrap. Booth flavor when spectating. Not a Doom remake; not milsim; not AGI theater — just players (silicon or flesh) fragging.
+
 
 ## Atmosphere (Fringy) — ritual, not homework
 - The match can feel like a late-night **call-in** when you’re watching. When you’re in: you’re a fighter, same as the agents. Spectators are callers; players are on the air.
@@ -30,7 +31,7 @@ Working name **fragr** (may change). Never brand as Doom / a Doom clone.
 - Fighter seed brands: **Cyanex** / **Kragge** (screenshot crumbs; keep unless Nick kills)
 - Match: FRAG, frag_limit, SPECTATING HUD
 
-**Scrub complete:** Rename from doomy to fragr completed. All crates, binaries, documentation, and client title now use fragr.
+**Scrub when convenient:** leftover `doomy-*` / “Doomy” crate & doc titles → fragr.
 
 **Not invented yet:** named maps in sim (graybox ~50); full weapon enum on main (icons exist; flechette / rail / scatter are art + Buildy PR spine).
 
@@ -51,7 +52,34 @@ Working name **fragr** (may change). Never brand as Doom / a Doom clone.
 | Weapons | Distinct roles (flechette / rail / scatter); loud juice | Generic grey guns; Doom BFG/SSG copies |
 | Maps | Callouts as ritual (HUB / CHOKE / PIT / HIGH) | Cityscape milsim; underwater gothic |
 | UI / spectate | Broadcast/studio frame, killfeed as “air,” FRAG drama | Codices, lore tabs, campaign journals |
-| Vibe refs | LAN church, Quake/Unreal/Halo arena, Art Bell booth | SCP wiki, Doom marketing, CoD realism |
+| Vibe refs | Rock & Roll Racing arcade chaos, conspiracy seasoning, first networked Doom *feeling* (not IP), Quake/Unreal/Halo arena, Art Bell booth | SCP wiki, Doom marketing/clones, CoD realism |
+
+
+## Color lock (from preferred logo · Nick 2026-09-18)
+**Master rule:** white/outline type energy, **not neon**. Logo is the north-star swatch.
+
+| Role | Hex (approx) | Use |
+|------|----------------|-----|
+| Ink / void | `#0A0A0C` | backgrounds, outlines |
+| Bone white | `#E8E2D6` | FRAGR wordmark, primary UI type |
+| Outline purple | `#3A2A48` | bevels, soft brand accent (dull, not neon) |
+| Gunmetal | `#3A3836` / `#5A554F` | armor, weapons, HUD chrome |
+| Rust | `#7A3A22` | damage, Hangar Candy grit |
+| Dried blood | `#6E1218` | accents, kill feedback |
+| Ember | `#C45A20` | muzzle/heat — sparingly |
+| Signal cyan (muted) | `#4A8A92` | Cyanex / Night Watch — desaturated |
+| Signal magenta (muted) | `#8A3A58` | Kragge / Hangar Candy — desaturated |
+| ON AIR red | `#8B1E1E` | broadcast chrome only |
+
+**Throw:** neon *floods* — hot magenta↔orange gradients, synthwave glow, toy neon fills. **OK:** muted cyan/magenta/ember as *accents* (Cyanex/Kragge signals, muzzle heat), not wall-to-wall glow.
+
+**Type:** distressed bone-white + dark outline (logo style) for titles; HUD stays chunky pixel readable.
+
+**Feel reminder:** Rock & Roll Racing arcade chunk × conspiracy seasoning × first-online rush — meatbags + agents — grimy LAN flyer, not club poster.
+
+## Logo
+- Preferred: **wordmark** (`docs/fragr-logo.png` / `fragr-logo-wordmark.png`) — ON AIR + Hangar Candy badge + waveform. Nick pick 2026-09-18.
+- Alt mark (square): `docs/fragr-logo-mark.png` — kept as secondary/app-icon candidate.
 
 ## Asset pipeline (current)
 - Godot pack: `/workspace/fragr-game-assets/client/assets/` (v3 grit; Buildy PRing)
@@ -73,10 +101,23 @@ Working name **fragr** (may change). Never brand as Doom / a Doom clone.
 2. **Maps** — Fringy myths are player-facing names (Perim Ghost, Area Kitchen, East-West Pipe, Diego Far, Larak Lot, …). **HUB / CHOKE / PIT / HIGH** stay layout codes under the hood.
 3. **Key art** — `fragr-keyart-hangar-candy.png` drops into fragr `docs/` via Buildy/Gitty (Nick approved vibe).
 
-Host voice Slice 1 still open (on-screen text vs audio later).
+Host voice Slice 1: **on-screen text**; audio later (Fringy).
+
+
+## Slice 1 presentation (Fringy · post key art)
+**Split:** scrap is the meal, booth is the frame. Booth DNA in key art / loading / spectate chrome — **not** forced into the gunfight HUD.
+
+**On-screen now (cheap, high impact)**
+- Geometry callouts: HUB / CHOKE / PIT / HIGH for play. Myth titles (Perim Ghost, Area Kitchen…) = map names / loading cards later, not HUD clutter.
+- Killfeed = “you’re on the air.” Rare eggs only (67, skill issue, Scout ant deleted, DENIED if Hangar Candy).
+- Between-round Host bumper: 1–2 lines text (“In the morning.” / “Value for value. Frag for frag.”) — no lore dump.
+- Soft-join UX copy: Contested Frequency / “call in” — no VO required.
+- Hangar Candy / void triangles: cosmetics when sprites ready. Cyanex/Kragge soft canon under Night Watch / Hangar Candy umbrellas.
+
+**Audio / later (Slice 2+)**
+- Host VO, Dead Air Bell, AM ads, numbers-station weather — don’t block Slice 1.
+- Signal Bleed = rare visual (+ optional SFX later).
+
+**Host:** on-screen text Slice 1; audio later. Loudest when spectating; quieter/text-only when fighting.
 
 — End bible v1 —
-
-## Logo
-
-Canonical mark is the wide wordmark (`docs/fragr-logo.png`). Square mark (`docs/fragr-logo-mark.png`) is the alt for tight spaces.
