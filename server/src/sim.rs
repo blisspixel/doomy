@@ -18,6 +18,14 @@ pub const SPEAK_MAX_CHARS: usize = 80;
 /// Min ticks between successful speaks for one player (~3s at 20 Hz).
 pub const SPEAK_COOLDOWN_TICKS: u64 = 60;
 
+/// Result of attempting an off-tick speak.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SpeakOutcome {
+    Sent,
+    RateLimited,
+    Rejected,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RoundState {
     Warmup,
@@ -614,28 +622,28 @@ impl GameState {
         );
     }
 
-    /// Validate and emit an off-tick speak event. Returns true if broadcast.
-    pub fn try_speak(&mut self, player_id: Uuid, raw_text: &str) -> bool {
+    /// Validate and emit an off-tick speak event.
+    pub fn try_speak(&mut self, player_id: Uuid, raw_text: &str) -> SpeakOutcome {
         let trimmed: String = raw_text.trim().chars().take(SPEAK_MAX_CHARS + 1).collect();
         if trimmed.is_empty() {
-            return false;
+            return SpeakOutcome::Rejected;
         }
         if trimmed.chars().count() > SPEAK_MAX_CHARS {
-            return false;
+            return SpeakOutcome::Rejected;
         }
         if trimmed.chars().any(|c| c.is_control()) {
-            return false;
+            return SpeakOutcome::Rejected;
         }
 
         let tick = self.tick;
         let player = match self.players.iter_mut().find(|p| p.id == player_id) {
             Some(p) => p,
-            None => return false,
+            None => return SpeakOutcome::Rejected,
         };
 
         if let Some(last) = player.last_speak_tick {
             if tick.saturating_sub(last) < SPEAK_COOLDOWN_TICKS {
-                return false;
+                return SpeakOutcome::RateLimited;
             }
         }
 
@@ -646,7 +654,7 @@ impl GameState {
             player_id,
             text: trimmed,
         });
-        true
+        SpeakOutcome::Sent
     }
 
     pub fn take_events(&mut self) -> Vec<GameEvent> {

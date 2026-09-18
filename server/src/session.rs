@@ -3,7 +3,7 @@
 
 use crate::net::{ClientSession, GameCommand};
 use crate::protocol::{self, Role, ServerMessage};
-use crate::sim::{BotController, GameState};
+use crate::sim::{BotController, GameState, SpeakOutcome};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -14,6 +14,8 @@ pub struct GameSession {
     pub state: GameState,
     pub bots: Vec<BotController>,
     pub client_to_player: HashMap<Uuid, Uuid>,
+    /// Player-targeted control messages (e.g. speak rate-limit Error). Drained by the game loop.
+    pub pending_unicasts: Vec<(Uuid, ServerMessage)>,
 }
 
 impl GameSession {
@@ -22,6 +24,7 @@ impl GameSession {
             state: GameState::new(),
             bots: Vec::new(),
             client_to_player: HashMap::new(),
+            pending_unicasts: Vec::new(),
         }
     }
 
@@ -116,7 +119,28 @@ impl GameSession {
             }
 
             GameCommand::Speak { player_id, text } => {
-                let _ = self.state.try_speak(player_id, &text);
+                match self.state.try_speak(player_id, &text) {
+                    SpeakOutcome::Sent => {}
+                    SpeakOutcome::RateLimited => {
+                        self.pending_unicasts.push((
+                            player_id,
+                            ServerMessage::Error {
+                                code: "speak_rate_limited".to_string(),
+                                message: "speak rate limited; try again in a few seconds"
+                                    .to_string(),
+                            },
+                        ));
+                    }
+                    SpeakOutcome::Rejected => {
+                        self.pending_unicasts.push((
+                            player_id,
+                            ServerMessage::Error {
+                                code: "speak_rejected".to_string(),
+                                message: "speak rejected".to_string(),
+                            },
+                        ));
+                    }
+                }
             }
         }
     }
@@ -137,6 +161,11 @@ impl GameSession {
         }
         out
     }
+
+    /// Drain player-targeted unicast messages queued by apply_command.
+    pub fn take_unicasts(&mut self) -> Vec<(Uuid, ServerMessage)> {
+        std::mem::take(&mut self.pending_unicasts)
+    }
 }
 
 impl Default for GameSession {
@@ -156,6 +185,30 @@ pub async fn broadcast_to_clients(
             let _ = client.tx.send(msg.clone());
         }
         drop(clients_lock);
+    }
+}
+
+/// Send queued unicast messages to the client session that owns each player_id.
+pub async fn send_unicasts_to_players(
+    clients: &Arc<Mutex<Vec<ClientSession>>>,
+    client_to_player: &HashMap<Uuid, Uuid>,
+    unicasts: &[(Uuid, ServerMessage)],
+) {
+    if unicasts.is_empty() {
+        return;
+    }
+    let clients_lock = clients.lock().await;
+    for (player_id, msg) in unicasts {
+        let client_id = client_to_player
+            .iter()
+            .find(|(_, pid)| *pid == player_id)
+            .map(|(cid, _)| *cid);
+        let Some(client_id) = client_id else {
+            continue;
+        };
+        if let Some(client) = clients_lock.iter().find(|c| c.id == client_id) {
+            let _ = client.tx.send(msg.clone());
+        }
     }
 }
 
@@ -388,7 +441,7 @@ mod session_tests {
             events
         );
 
-        // Rate limit: immediate second speak is dropped.
+        // Rate limit: immediate second speak is dropped + Error unicast.
         session.apply_command(GameCommand::Speak {
             player_id,
             text: "again".to_string(),
@@ -397,6 +450,16 @@ mod session_tests {
             session.state.take_events().is_empty(),
             "rate-limited speak must not emit"
         );
+        let unicasts = session.take_unicasts();
+        assert_eq!(unicasts.len(), 1, "expected one speak Error unicast");
+        assert_eq!(unicasts[0].0, player_id);
+        match &unicasts[0].1 {
+            ServerMessage::Error { code, message } => {
+                assert_eq!(code, "speak_rate_limited");
+                assert!(message.contains("rate limited"), "{message}");
+            }
+            other => panic!("expected Error, got {:?}", other),
+        }
 
         // Advance ticks past cooldown.
         for _ in 0..crate::sim::SPEAK_COOLDOWN_TICKS {
@@ -433,6 +496,16 @@ mod session_tests {
             text: "   ".to_string(),
         });
         assert!(session.state.take_events().is_empty());
+        let u = session.take_unicasts();
+        assert!(
+            matches!(
+                &u[..],
+                [(pid, ServerMessage::Error { code, .. })]
+                    if *pid == player_id && code == "speak_rejected"
+            ),
+            "empty speak must Error unicast, got {:?}",
+            u
+        );
 
         let long = "x".repeat(crate::sim::SPEAK_MAX_CHARS + 1);
         session.apply_command(GameCommand::Speak {
@@ -440,5 +513,15 @@ mod session_tests {
             text: long,
         });
         assert!(session.state.take_events().is_empty());
+        let u = session.take_unicasts();
+        assert!(
+            matches!(
+                &u[..],
+                [(pid, ServerMessage::Error { code, .. })]
+                    if *pid == player_id && code == "speak_rejected"
+            ),
+            "overlong speak must Error unicast, got {:?}",
+            u
+        );
     }
 }
