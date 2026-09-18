@@ -6,11 +6,13 @@
 
 **Done when all success criteria below are green.**
 
+**Product stance:** Solo play with bots AND multiplayer (humans/agents/spectators in the same match) are both first-class from Slice 1. Not a LAN-only tech demo. Self-host loopback, then optional Tailscale/LAN peers.
+
 ---
 
 ## Success criteria
 
-- [x] `cargo run -p doomy-server` (or `cd server && cargo run`) listens on `127.0.0.1:7777` with no env secrets / cloud config.
+- [x] `cargo run -p fragr-server` (or `cd server && cargo run`) listens on `127.0.0.1:7777` with no env secrets / cloud config.
 - [x] At least four automated fighters (rule bots) engage; within ~30s damage or a frag is visible in **server logs and** Godot spectator.
 - [x] Spectator is presentation-only (no local authority); killing the server drops/freezes the match cleanly.
 - [x] Agent-adapter (or documented equivalent) drives ≥1 fighter via `observe` / `act`; MCP tool surface listed in README even if partially stubbed.

@@ -1,4 +1,4 @@
-# Doomy Network Protocol
+# fragr Network Protocol
 
 WebSocket JSON protocol between clients and the authoritative server.
 
@@ -151,7 +151,8 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
   "type": "event",
   "event": "frag",
   "killer": "Bot1",
-  "victim": "Bot2"
+  "victim": "Bot2",
+  "killer_score": 5
 }
 ```
 
@@ -169,9 +170,11 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
 {
   "type": "event",
   "event": "round_start",
-  "round_number": 1,
+  "round_number": 2,
   "frag_limit": 10,
-  "time_limit": 180
+  "time_limit": 180,
+  "players": ["Bot1", "Bot2", "Bot3", "Bot4"],
+  "previous_winner": "Bot1"
 }
 ```
 
@@ -181,18 +184,57 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
   "type": "event",
   "event": "round_end",
   "winner": "Bot1",
-  "reason": "Frag limit reached"
+  "reason": "Frag limit reached",
+  "final_scores": [
+    {"name": "Bot1", "score": 10},
+    {"name": "Bot2", "score": 7},
+    {"name": "Bot3", "score": 3},
+    {"name": "Bot4", "score": 2}
+  ],
+  "winner_score": 10
+}
+```
+
+**Player Joined Event:**
+```json
+{
+  "type": "event",
+  "event": "player_joined",
+  "player": "NewPlayer",
+  "role": "agent",
+  "round_number": 2,
+  "player_count": 5
+}
+```
+
+**Player Left Event:**
+```json
+{
+  "type": "event",
+  "event": "player_left",
+  "player": "OldPlayer",
+  "score": 7,
+  "round_number": 2,
+  "player_count": 4
 }
 ```
 
 **Fields:**
-- `event`: Event type (`frag`, `respawn`, `round_start`, `round_end`)
+- `event`: Event type (`frag`, `respawn`, `round_start`, `round_end`, `player_joined`, `player_left`)
 - `killer` / `victim`: Player names involved in frag
-- `player`: Player name for respawn
-- `round_number`: Round counter (starts at 1)
+- `killer_score`: Killer's score after the frag
+- `player`: Player name for respawn, join, or leave
+- `role`: Role of joining player ("spectator", "human", "agent")
+- `round_number`: Current round number (starts at 1)
+- `player_count`: Current number of players after join/leave
+- `score`: Player's score when leaving
+- `players`: List of all player names in the match (round_start)
+- `previous_winner`: Winner of the previous round (null for first round)
 - `frag_limit`: (optional) Frag limit for the round (null if time-only)
 - `time_limit`: (optional) Time limit in seconds (null if frag-only)
 - `winner`: (optional) Winner name if any (null for draw/time)
+- `winner_score`: (optional) Winner's final score
+- `final_scores`: Array of PlayerScore objects (name, score) sorted by score descending
 - `reason`: Round end reason ("Frag limit reached", "Time limit reached", etc.)
 
 **Notes:**

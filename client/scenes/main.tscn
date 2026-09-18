@@ -1,10 +1,18 @@
-[gd_scene load_steps=6 format=3 uid="uid://ba4u2t3o17x7x"]
+[gd_scene load_steps=7 format=3 uid="uid://ba4u2t3o17x7x"]
 
 [ext_resource type="Script" path="res://scripts/game_manager.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/net_client.gd" id="2_net"]
 [ext_resource type="PackedScene" uid="uid://bgah5r5qw6x5m" path="res://scenes/arena.tscn" id="3_arena"]
 [ext_resource type="Script" path="res://scripts/spectator_cam.gd" id="4_camera"]
 [ext_resource type="Script" path="res://scripts/hud.gd" id="5_hud"]
+
+[sub_resource type="StyleBoxFlat" id="PanelStyleBox_Weapon"]
+bg_color = Color(0.1, 0.1, 0.15, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.3, 0.3, 0.4, 1)
 
 [node name="GameManager" type="Node"]
 script = ExtResource("1_main")
@@ -64,6 +72,11 @@ layout_mode = 2
 text = "Round: Warmup"
 theme_override_colors/font_color = Color(1, 0.7, 0.3, 1)
 
+[node name="WeaponLabel" type="Label" parent="HUD/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Weapon:"
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+
 [node name="Scoreboard" type="Label" parent="HUD/Panel/VBoxContainer"]
 layout_mode = 2
 text = "SCOREBOARD
@@ -109,3 +122,44 @@ theme_override_font_sizes/font_size = 56
 text = "ROUND 1 - FIGHT!"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="WeaponIcon" type="TextureRect" parent="HUD"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -140.0
+offset_top = -140.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 0
+grow_vertical = 0
+texture_filter = 0
+expand_mode = 1
+stretch_mode = 5
+
+[node name="WeaponIconBg" type="Panel" parent="HUD"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -150.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_styles/panel = SubResource("PanelStyleBox_Weapon")
+
+[node name="AudioPlayers" type="Node" parent="."]
+
+[node name="FragSound" type="AudioStreamPlayer" parent="AudioPlayers"]
+volume_db = -3.0
+
+[node name="RoundStartSound" type="AudioStreamPlayer" parent="AudioPlayers"]
+volume_db = -5.0
+
+[node name="RoundEndSound" type="AudioStreamPlayer" parent="AudioPlayers"]
+volume_db = -5.0
