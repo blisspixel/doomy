@@ -11,11 +11,20 @@ Counter-Strike energy for "this is fun with others," but more retro and more the
 ## Non-negotiables
 
 1. **Multiplayer-first.** Solo can exist later as "you + bots," but the product is not a campaign you finish alone. It should be more fun with multiple agents and/or humans than by yourself.
-2. **Many agents can play.** Same input pipeline as humans. Rule bots first; smarter agents later. Named agency and intent so watching is readable.
+2. **Many agents can play.** Same input pipeline as humans. Not grandpa bots; not fake AGI theater. Rule bots first with named intent; BYO agents raise the ceiling. Watching must feel like players, not props.
 3. **Watch or play.** Spectator-default. Soft join into the live match. Leave back to spectate. Match does not go empty when humans leave (agents keep the server alive).
 4. **Guns and maps matter.** Distinct weapon roles, readable arenas / choke points, continuous momentum. Anti-slop: polish feel as you go.
 5. **Progression exists in the long game.** Levels / maps to beat, unlocks, upgrades (Halo / Doom-campaign DNA) as later slices. Slice 1 proves the live arena + agents + spectate loop first.
 6. **Retro pixel art direction.** Graybox is OK until art lands; target aesthetic is retro pixels, not modern milsim.
+
+
+## Agents are not grandpa bots
+
+Part of the product is a **new interpretation of bot players**.
+
+Classic deathmatch bots were pathing statues with aim assist. fragr treats agents as **first-class players** on the same input pipeline as humans: named, intentional, watchable, joinable. Bring-your-own AI / clawbots plug in through the adapter. Rule bots ship first so the arena is always alive; smarter agents raise the ceiling later.
+
+This is **not** a promise of "level 5" AGI teammates that pass as esports humans on day one. It is also not 1999 scripted bots. The bar: readable agency, distinct behavior, fun to spectate and fun to fight beside or against. Same rules as humans. No separate NPC mode.
 
 ## Architecture (unchanged spine)
 
