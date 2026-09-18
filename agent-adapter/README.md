@@ -17,7 +17,7 @@ Agents and humans share the same discrete action channel into the server. The ad
 
 ```bash
 cd agent-adapter
-cargo run -- mcp --server ws://127.0.0.1:7777
+cargo run -- mcp --server ws://127.0.0.1:6767
 ```
 
 Connect via MCP client (stdio) and use the `observe` and `act` tools.
@@ -26,7 +26,7 @@ Connect via MCP client (stdio) and use the `observe` and `act` tools.
 
 ```bash
 cd agent-adapter
-cargo run -- scripted-bot --server ws://127.0.0.1:7777 --name MyBot
+cargo run -- scripted-bot --server ws://127.0.0.1:6767 --name MyBot
 ```
 
 Connects as an agent role, observes snapshots, computes simple chase-and-shoot actions at ~20 Hz.

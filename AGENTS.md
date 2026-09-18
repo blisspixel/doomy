@@ -34,7 +34,7 @@ Distinguish: vision / planned / implemented / tested / shipped / proven. Do not 
 - **Spend:** hard cap **$50** total for cloud/API/hosting/assets. Slice 1 and normal iteration are **$0** (loopback / LAN). Any money needs Nick or Chief approval **before** purchase. Prefer home-host, then Tailscale Personal ($0), then Oracle Always Free if needed. Paid VPS is an approval gate.
 - **Authority:** Rust server is source of truth for positions, damage, HP, frags. Godot never decides combat outcomes.
 - **MCP / LLM off the hot path:** agents and humans share the same discrete action channel into the server. Scripted/utility AI runs at tick rate on the server (or via adapter-injected intents). MCP/JSON-RPC is for slow ops (join, summaries, goals), never aim/fire at 20-60 Hz. No paid model APIs without approval.
-- **Transport (Slice 1):** WebSocket JSON (default bind `0.0.0.0:7777`; clients use loopback or `FRAGR_SERVER`). UDP/`renet` is a later spike, not a silent mid-slice rewrite unless Nick asks.
+- **Transport (Slice 1):** WebSocket JSON (default bind `0.0.0.0:6767`; clients use loopback or `FRAGR_SERVER`). UDP/`renet` is a later spike, not a silent mid-slice rewrite unless Nick asks.
 - **Client pin:** Godot **4.7.2-stable**, GDScript only (no .NET export template for Slice 1).
 - **Dependencies:** minimal and intentional. Prefer std / existing crates. No Bevy client, no lightyear (Bevy-centric), no second HTTP client / logger / serializer without consolidating.
 - **Secrets:** none required for local play. Never commit credentials. Temporary agent scratch goes in gitignored `.agents/` only.
@@ -79,7 +79,7 @@ Godot may exit `0` even when the log contains `SCRIPT ERROR` / `Parse Error`. Tr
 
 **Playable smoke (Slice 1 bar):**
 
-1. `cargo run -p fragr-server` (or `cd server && cargo run`) listens on `127.0.0.1:7777` with no cloud env. 
+1. `cargo run -p fragr-server` (or `cd server && cargo run`) listens on `127.0.0.1:6767` with no cloud env. 
 2. Bots fight; damage/frag within ~30s in server logs. 
 3. Godot spectator shows the match (presentation only). 
 4. Optional: human join + leave-to-spectate; adapter `observe`/`act` for at least one pawn.
