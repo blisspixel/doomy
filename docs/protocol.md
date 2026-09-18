@@ -2,8 +2,8 @@
 
 WebSocket JSON protocol between clients and the authoritative server.
 
-**Transport:** WebSocket on `ws://127.0.0.1:7777` (configurable)  
-**Format:** JSON text messages  
+**Transport:** WebSocket on `ws://127.0.0.1:7777` (configurable)
+**Format:** JSON text messages
 **Tick rate:** ~20 Hz (50ms per tick)
 
 ## Connection Flow
