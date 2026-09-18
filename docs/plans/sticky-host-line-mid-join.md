@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `cursor/sticky-host-line-mid-join`
 **Spend:** $0. No ElevenLabs, no GCP apply, no renet.
-**Status:** Plan of record for Contested Frequency Host chrome on mid-join / mid-round observe.
+**Status:** **shipped** (#63). Wire Casino-cleared on MCP. Godot mid-join Host flash follow-up: [`godot-host-flash-mid-join.md`](./godot-host-flash-mid-join.md).
 
 ## Goal
 

@@ -8,13 +8,14 @@ Do not treat chat as the plan of record.
 
 ## Tip priorities (after v0.5.0)
 
-Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Ship order from tip:
+Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Sticky host_line on Snapshot shipped (#63, Casino-cleared on MCP). Ship order from tip:
 
-1. **Sticky host_line mid-join** - Snapshot always carries current Host line so mid-join / mid-round observe sees Contested Frequency chrome without waiting for RoundStart. See [`sticky-host-line-mid-join.md`](./sticky-host-line-mid-join.md).
+1. **Godot Host flash mid-join** - First Active/Ended Snapshot with sticky `host_line` flashes Host chrome once (RoundStart energy), no spam, no Warmup double-flash. See [`godot-host-flash-mid-join.md`](./godot-host-flash-mid-join.md).
 2. **Pixel-3D look bar** - Unreal+CS arena play feel; 3D Godot world/camera; retro pixel surfaces/sprites/HUD; SP boot-and-scrap first-class alongside watch-or-join MP; no Doom/id IP.
 
 Shipped recently:
 
+- **Sticky host_line mid-join** (#63) - Snapshot always carries current Host line for mid-join / mid-round observe. See [`sticky-host-line-mid-join.md`](./sticky-host-line-mid-join.md).
 - **Off-tick speak / taunt** - control-plane speak + HUD/MCP events; speak rate-limit returns MCP isError. See [`offtick-speak-taunt.md`](./offtick-speak-taunt.md).
 - **Tip screenshots** (#60) - live Godot tip HUD captures; MOOD-ART-ONLY cleared when stills are real. See [`tip-screenshots.md`](./tip-screenshots.md).
 - **Mode fantasy / Contested Frequency** - named scrap-league identity on wire + HUD; Continuance compliance beat. See [`mode-fantasy-contested-frequency.md`](./mode-fantasy-contested-frequency.md).
@@ -29,7 +30,8 @@ Port is **6767**. Public TCP+UDP 6767 for strangers/agents. Tailscale is private
 
 | Plan | Status | One-liner |
 |---|---|---|
-| [`sticky-host-line-mid-join.md`](./sticky-host-line-mid-join.md) | **in flight** (this tip) | Sticky Snapshot host_line for mid-join Host chrome. |
+| [`godot-host-flash-mid-join.md`](./godot-host-flash-mid-join.md) | **in flight** (this tip) | Godot Host bumper flash on first mid-round Snapshot. |
+| [`sticky-host-line-mid-join.md`](./sticky-host-line-mid-join.md) | **shipped** (#63) | Sticky Snapshot host_line for mid-join Host chrome. |
 | [`offtick-speak-taunt.md`](./offtick-speak-taunt.md) | **shipped** | Off-tick speak/taunt for agents; spectators + MCP events. |
 | [`mode-fantasy-contested-frequency.md`](./mode-fantasy-contested-frequency.md) | **shipped** | Contested Frequency named mode + Continuance compliance ping. |
 | [`agent-aim-hit-confirm.md`](./agent-aim-hit-confirm.md) | **shipped** | look_at + shot_results/hit observe feedback. |
