@@ -36,6 +36,10 @@ pub fn boss_down_host_line() -> String {
 /// Display name for the mid-round Continuance boss NPC.
 pub const BOSS_NAME: &str = "COMPLIANCE-DRONE";
 
+pub fn default_pickup_kind() -> String {
+    "weapon".to_string()
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum WeaponType {
@@ -173,11 +177,16 @@ pub struct ShotResult {
     pub target_hp_after: Option<i32>,
 }
 
-/// Floor weapon pad state (authoritative mid-map pickup).
+/// Floor pickup pad state (weapon / health / armor; authoritative mid-map).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PickupState {
     pub id: String,
+    #[serde(default = "default_pickup_kind")]
+    pub kind: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub weapon: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub amount: Option<i32>,
     pub x: f32,
     pub y: f32,
     pub z: f32,
@@ -211,7 +220,7 @@ pub struct Snapshot {
     /// Sticky Contested Frequency Host chrome (mid-join / observe).
     #[serde(default = "default_host_line")]
     pub host_line: String,
-    /// Mid-map weapon pads (Quake chase energy). Empty omitted on wire.
+    /// Mid-map pads: weapons, health, armor (Quake chase energy). Empty omitted on wire.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub pickups: Vec<PickupState>,
 }
@@ -225,6 +234,8 @@ pub struct PlayerState {
     pub z: f32,
     pub yaw: f32,
     pub hp: i32,
+    #[serde(default)]
+    pub armor: i32,
     pub just_fired: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub behavior: Option<String>,
@@ -309,11 +320,16 @@ pub enum GameEvent {
         killer: Option<String>,
         message: String,
     },
-    /// Mid-map weapon pad claimed (touch = loadout change).
+    /// Mid-map pad claimed (weapon swap, heal, or armor scrap).
     Pickup {
         player: String,
         player_id: Uuid,
+        #[serde(default = "default_pickup_kind")]
+        kind: String,
+        #[serde(default, skip_serializing_if = "String::is_empty")]
         weapon: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        amount: Option<i32>,
         pickup_id: String,
     },
     /// Off-tick agent/human callout (rate-limited, length-capped).
@@ -527,7 +543,9 @@ mod protocol_tests {
     fn pickup_state_and_event_wire_json_shape() {
         let pad = PickupState {
             id: "pad_rail".into(),
+            kind: "weapon".into(),
             weapon: "Rail".into(),
+            amount: None,
             x: 12.0,
             y: 0.4,
             z: 12.0,
@@ -559,22 +577,42 @@ mod protocol_tests {
         let ev = GameEvent::Pickup {
             player: "Rusher".into(),
             player_id: id,
+            kind: "weapon".into(),
             weapon: "Rail".into(),
+            amount: None,
             pickup_id: "pad_rail".into(),
         };
         let v = serde_json::to_value(&ev).unwrap();
         assert_eq!(v["event"], "pickup");
+        assert_eq!(v["kind"], "weapon");
         assert_eq!(v["weapon"], "Rail");
         assert_eq!(v["pickup_id"], "pad_rail");
         let back: GameEvent = serde_json::from_value(v).unwrap();
         match back {
             GameEvent::Pickup {
-                weapon, pickup_id, ..
+                kind,
+                weapon,
+                pickup_id,
+                ..
             } => {
+                assert_eq!(kind, "weapon");
                 assert_eq!(weapon, "Rail");
                 assert_eq!(pickup_id, "pad_rail");
             }
             other => panic!("expected Pickup, got {:?}", other),
         }
+
+        let heal = GameEvent::Pickup {
+            player: "Rusher".into(),
+            player_id: id,
+            kind: "health".into(),
+            weapon: String::new(),
+            amount: Some(40),
+            pickup_id: "pad_health_n".into(),
+        };
+        let v = serde_json::to_value(&heal).unwrap();
+        assert_eq!(v["kind"], "health");
+        assert_eq!(v["amount"], 40);
+        assert!(v.get("weapon").is_none());
     }
 }
