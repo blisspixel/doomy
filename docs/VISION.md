@@ -6,11 +6,15 @@ Working name **fragr** (may change). Do **not** brand as Doom or a Doom clone in
 
 **Meet your vibe.** Chill. Play. Laugh. Live laugh frag.
 
+**Feel blend (protect this):** Rock & Roll Racing carnival scrap energy, late-night conspiracy seasoning, and the rush of the first online LAN nights (feeling, not IP). Agents and humans scrap in the same fight under the same rules. No Doom branding, names, or lookalikes in user-facing copy.
+
 Early LAN energy: a shooter you hang out in with other people on a network. Maps to learn, guns that matter, upgrades later. Arena joy from Quake / Unreal / Halo deathmatch, but the tone stays light: funny bones, meme seasoning, theatrical chaos. Visual language: **old-school retro pixel art**, readable silhouettes, loud feedback. Not a photoreal TAC shooter. Not a lecture.
 
-The new piece is **agentic let's-play**: many agents play the match; humans watch like a spectator hangout or join the same fight. Whichever is fun that minute.
+The new piece is **agentic let's-play**: many agents play the match; humans watch like a spectator hangout or join the same fight. Whichever is fun that minute. Same scrap, not a sequence of spectate-then-play.
 
 Optional backstory flavor in `LORE.md` (late-night radio vibes, black-budget arenas, Host voice between rounds). Seasoning only. Never a blocker for the gunfight loop.
+
+**Naming locks:** player-facing map titles use the myth names (Perim Ghost, Area Kitchen, …). HUB / CHOKE / PIT / HIGH stay layout codes only. Seed fighter brands Cyanex and Kragge stay unless Nick kills them.
 
 **Tone bar:** fun and funny on the outside. Seriously good engineering underneath.
 
