@@ -185,9 +185,12 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
   "pressure": "compliance",
   "host_line": "HOST: CONTINUANCE COMPLIANCE PING. APPROVED LANES ONLY.",
   "pickups": [
-    {"id": "pad_rail", "weapon": "Rail", "x": 12.0, "y": 0.4, "z": 12.0, "available": true},
-    {"id": "pad_scatter", "weapon": "Scatter", "x": -12.0, "y": 0.4, "z": -12.0, "available": false, "respawn_in": 80},
-    {"id": "pad_flechette", "weapon": "Flechette", "x": -12.0, "y": 0.4, "z": 12.0, "available": true}
+    {"id": "pad_rail", "kind": "weapon", "weapon": "Rail", "x": 12.0, "y": 0.4, "z": 12.0, "available": true},
+    {"id": "pad_scatter", "kind": "weapon", "weapon": "Scatter", "x": -12.0, "y": 0.4, "z": -12.0, "available": false, "respawn_in": 80},
+    {"id": "pad_flechette", "kind": "weapon", "weapon": "Flechette", "x": -12.0, "y": 0.4, "z": 12.0, "available": true},
+    {"id": "pad_health_n", "kind": "health", "amount": 40, "x": 0.0, "y": 0.4, "z": 8.0, "available": true},
+    {"id": "pad_health_s", "kind": "health", "amount": 40, "x": 0.0, "y": 0.4, "z": -8.0, "available": true},
+    {"id": "pad_armor", "kind": "armor", "amount": 25, "x": 8.0, "y": 0.4, "z": 0.0, "available": true}
   ]
 }
 ```
@@ -200,6 +203,7 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
   - `x`, `y`, `z`: Position in world space (arena is ±25 units)
   - `yaw`: Rotation in radians (0 = +X axis, counter-clockwise)
   - `hp`: Health points (0-100)
+  - `armor`: Scrap armor (0-100, default 0); absorbs damage before HP
   - `just_fired`: True on the tick a weapon was fired (for muzzle flash)
   - `behavior`: (optional) Bot behavior type if server-side bot
   - `score`: Kills in current round
@@ -212,7 +216,7 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
 - `playlist`: Arena Duel under the league lie
 - `pressure`: (optional) Live pressure beat id. `"compliance_drone"` while the Compliance Drone is alive; `"compliance"` during Continuance compliance ping slow.
 - `host_line`: Sticky Contested Frequency Host chrome for mid-join / mid-round observe. League Host line by default; switches to the compliance Host line while pressure is live. Clients show this on join without waiting for the next `round_start`.
-- `pickups`: (optional, omitted when empty) Mid-map weapon pads. Each entry: `id`, `weapon` ("Flechette" / "Rail" / "Scatter"), `x`/`y`/`z`, `available`, optional `respawn_in` (ticks until the pad returns). Touch claim is authoritative on the server; clients only render.
+- `pickups`: (optional, omitted when empty) Mid-map pads (weapons, health, armor). Each entry: `id`, `kind` (`"weapon"` / `"health"` / `"armor"`, default `"weapon"`), optional `weapon` (weapon pads), optional `amount` (health/armor pads), `x`/`y`/`z`, `available`, optional `respawn_in` (ticks until the pad returns). Health pads heal +40 (cap max HP); armor scrap grants +25 (cap 100). Touch claim is authoritative on the server; clients only render.
 
 **Notes:**
 - Dead players (HP ≤ 0) are omitted from the snapshot
@@ -320,15 +324,29 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
 }
 ```
 
-**Pickup Event:** (player touched an available mid-map weapon pad; loadout changes)
+**Pickup Event:** (player touched an available mid-map pad; weapon swap, heal, or armor scrap)
 ```json
 {
   "type": "event",
   "event": "pickup",
   "player": "Rusher",
   "player_id": "550e8400-e29b-41d4-a716-446655440000",
+  "kind": "weapon",
   "weapon": "Rail",
   "pickup_id": "pad_rail"
+}
+```
+
+Health example:
+```json
+{
+  "type": "event",
+  "event": "pickup",
+  "player": "Rusher",
+  "player_id": "550e8400-e29b-41d4-a716-446655440000",
+  "kind": "health",
+  "amount": 40,
+  "pickup_id": "pad_health_n"
 }
 ```
 

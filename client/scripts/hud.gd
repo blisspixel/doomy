@@ -374,13 +374,25 @@ func show_round_end(winner: String, reason: String):
 		if is_instance_valid(round_message):
 			round_message.visible = false
 
-func show_pickup_toast(player_name: String, weapon_name: String):
+func show_pickup_toast(player_name: String, weapon_name: String, kind: String = "weapon", amount: int = 0):
 	if not round_message:
 		return
-	var line = "SCRAP PAD: %s grabbed %s" % [player_name, weapon_name.to_upper()]
+	var what: String
+	if kind == "health":
+		what = ("+%d HP" % amount) if amount > 0 else "MEDKIT"
+	elif kind == "armor":
+		what = ("+%d ARMOR" % amount) if amount > 0 else "ARMOR"
+	else:
+		what = weapon_name.to_upper() if weapon_name != "" else "PAD"
+	var line = "SCRAP PAD: %s grabbed %s" % [player_name, what]
 	round_message.text = line
 	round_message.visible = true
-	round_message.modulate = Color(0.86, 0.82, 0.74)
+	if kind == "health":
+		round_message.modulate = Color(0.72, 0.32, 0.28)
+	elif kind == "armor":
+		round_message.modulate = Color(0.55, 0.52, 0.46)
+	else:
+		round_message.modulate = Color(0.86, 0.82, 0.74)
 	var tree = get_tree()
 	if tree:
 		await tree.create_timer(1.6).timeout
