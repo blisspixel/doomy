@@ -54,11 +54,31 @@ Dedicated server must be rock-solid, secure, and cheap: home LAN **or** a small 
    - Canonical port **6767** everywhere.
    - Scrub leftover **7777** (mention only as "not 7777" historical note if needed).
 
+## Researcher DIY (Clawd / Hermes / L5)
+
+Architecture lock (matches standing throw-outs):
+
+- **One MCP door:** agent-adapter is the only agent ingress. Adapter maps tools to the same `Action` path humans use on public **:6767**. No second control plane.
+- **Skill pack:** `SKILL.md` plus Hermes / OpenClaw config snips so BYO agents can find the door.
+- **LLM off tick:** model never sits on the combat tick; observe/act (and later speak) stay off-tick / control-plane.
+- **L5 aspiration, not DoD:** deeper agent competence is a north star, not a ship gate.
+
+### Ship order after junk-act / HUD PR
+
+1. (done / this PR) Junk-act reject + round HUD face.
+2. (done) Join/leave Casino path (`2f38625`).
+3. **Adapter `--name` / session join-leave** - tip still hardcodes MCP Agent; agents need named sessions and clean join/leave.
+4. **SKILL.md + Hermes / OpenClaw snips** - document the one door.
+5. **Off-tick speak / taunt** - only after the door is trusted.
+
+Throw-outs already match standing locks (no matchmaking gate, no esports-AI claims, no LLM overseer on the gunfight).
+
 ## Next (after this PR)
 
-1. **Spectator face juice** - Host bumpers and readable HUD already starting; more watchability.
-2. **One mode fantasy** - pick and deepen a single arena fantasy.
-3. **Amazement bar** - fun to watch and join. Not an MCP cell farm / tool sprawl.
+1. **Adapter `--name` / session join-leave** - tip hardcodes MCP Agent; named sessions + clean join/leave.
+2. **SKILL.md + Hermes / OpenClaw snips** - one MCP door documented.
+3. **Off-tick speak / taunt** - after the door is trusted (LLM still off tick).
+4. **Spectator face juice / one mode fantasy / amazement bar** - fun to watch and join; not an MCP cell farm.
 
 Art note for later (not this PR): muted accents OK; not neon puke everywhere.
 
