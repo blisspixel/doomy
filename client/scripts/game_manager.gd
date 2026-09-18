@@ -125,6 +125,8 @@ func _on_snapshot_received(data):
 			targets.append(pawn)
 	if camera:
 		camera.set_available_targets(targets)
+	
+	_update_followed_weapon()
 
 func _on_event_received(data):
 	var event_type = data.get("event", "")
@@ -153,7 +155,7 @@ func _on_event_received(data):
 			frag_sound.play()
 		
 		if not is_human_player and killer_id != "" and camera:
-			camera.lock_on_frag(killer_id, 1.5)
+			camera.lock_on_frag(killer_id, 2.0)
 	elif event_type == "round_start":
 		hud.show_round_start(data.get("round_number", 0))
 		if round_start_sound and round_start_sound.stream:
@@ -162,3 +164,28 @@ func _on_event_received(data):
 		hud.show_round_end(data.get("winner", ""), data.get("reason", ""))
 		if round_end_sound and round_end_sound.stream:
 			round_end_sound.play()
+
+func _update_followed_weapon():
+	if not camera or not hud:
+		return
+	
+	if not camera.follow_mode or len(camera.available_targets) == 0:
+		hud.set_followed_weapon("", "")
+		return
+	
+	var target_index = camera.follow_target_index % len(camera.available_targets)
+	var target = camera.available_targets[target_index]
+	
+	if not is_instance_valid(target):
+		hud.set_followed_weapon("", "")
+		return
+	
+	var weapon_name = ""
+	var player_name = ""
+	if players.has(target.player_id):
+		var pawn = players[target.player_id]
+		if pawn.has_method("get_weapon_name"):
+			weapon_name = pawn.get_weapon_name()
+		player_name = pawn.player_name
+	
+	hud.set_followed_weapon(weapon_name, player_name)

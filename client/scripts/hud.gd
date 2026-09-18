@@ -5,18 +5,30 @@ extends CanvasLayer
 @onready var player_count_label = $Panel/VBoxContainer/PlayerCountLabel
 @onready var mode_label = $Panel/VBoxContainer/ModeLabel
 @onready var round_label = $Panel/VBoxContainer/RoundLabel
+@onready var weapon_label = $Panel/VBoxContainer/WeaponLabel
 @onready var frag_label = $FragLabel
 @onready var round_message = $RoundMessage
 @onready var scoreboard = $Panel/VBoxContainer/Scoreboard
+@onready var weapon_icon = $WeaponIcon
 
 var scores = {}
 
+var weapon_textures = {}
+
 func _ready():
+	weapon_textures["Flechette"] = load("res://assets/weapons/32/flechette.png")
+	weapon_textures["Rail"] = load("res://assets/weapons/32/rail.png")
+	weapon_textures["Scatter"] = load("res://assets/weapons/32/scatter.png")
+	
 	if frag_label:
 		frag_label.text = ""
 	if round_message:
 		round_message.text = ""
 		round_message.visible = false
+	if weapon_label:
+		weapon_label.text = ""
+	if weapon_icon:
+		weapon_icon.visible = false
 	set_mode("SPECTATING")
 	update_scoreboard()
 
@@ -108,6 +120,11 @@ func show_round_end(winner: String, reason: String):
 	scores = {}
 	update_scoreboard()
 	
+	if weapon_label:
+		weapon_label.text = ""
+	if weapon_icon:
+		weapon_icon.visible = false
+	
 	if round_message:
 		var message = reason.to_upper()
 		if winner != "":
@@ -123,3 +140,16 @@ func show_round_end(winner: String, reason: String):
 		await get_tree().create_timer(4.0).timeout
 		if is_instance_valid(round_message):
 			round_message.visible = false
+
+func set_followed_weapon(weapon_name: String):
+	if not weapon_label or not weapon_icon:
+		return
+	
+	if weapon_name == "" or not weapon_textures.has(weapon_name):
+		weapon_label.text = ""
+		weapon_icon.visible = false
+		return
+	
+	weapon_label.text = "Weapon: " + weapon_name
+	weapon_icon.texture = weapon_textures[weapon_name]
+	weapon_icon.visible = true
