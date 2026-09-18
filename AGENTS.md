@@ -1,123 +1,139 @@
 # AGENTS.md - fragr
 
-Guidance for coding agents working in this repository. Humans: start with `README.md` and `docs/`.
+Operating rules for coding agents and human contributors. Humans: start with `README.md`, then `docs/ROADMAP.md`.
 
 ## What this is
 
-**fragr** (working name) is an agentic-first **3D** FPS arena (pixel surfaces, not photoreal) with **single-player boot-and-scrap** and watch-or-join multiplayer both first-class. Do not brand as Doom/id. Monorepo:
+**fragr** (working name) is an agentic-first **3D** arena FPS with retro pixel surfaces. Solo boot-and-scrap against local bots, and watch-or-join multiplayer where humans, agents, and spectators share one match, are both first-class. Not branded as Doom or id. Monorepo:
 
-- `client/` - Godot **4.7.2-stable**, GDScript only. Thin presenter (render, audio, spectator UI, input). Not sim authority.
-- `server/` - Rust authoritative game server (tokio). Owns tick, combat, spawns, scoring, server-side rule bots.
-- `agent-adapter/` - slow control plane for clawbots / MCP-style tooling (`observe` / `act` / join / goals). Not the combat tick.
-- `docs/` - architecture, protocol, slice checklists, plans, vision.
-- `infra/` - native GCP IaC for cheap scale (plan-only until spend approval). Self-host / run-your-own-server (public TCP+UDP 6767) is first-class; LAN optional; Tailscale private/dev smoke only.
+- `server/` - Rust authoritative game server (tokio, WebSocket JSON, 20 Hz tick). Owns positions, damage, HP, frags, spawns, scoring, rule bots, rounds, maps.
+- `client/` - Godot **4.7.2-stable**, GDScript only. Thin presenter: render, audio, HUD, spectator cameras, input. Never sim authority.
+- `agent-adapter/` - MCP server over stdio (`observe`, `act`, `speak`, `join`, `leave`, `round_state`, `get_events`). Slow control plane, never the combat tick.
+- `tools/` - `solo_scrap.sh`, screenshot capture, and `audiogen/` (developer-only ElevenLabs sound and music generation, Rust).
+- `docs/` - vision, roadmap, architecture, protocol, art bible, plans. `infra/` - GCP Terraform plus self-host guides, plan-only until spend approval.
 
-**Product spine:** meet your vibe. Chill, play, laugh (live laugh frag). Default human mode is **spectator**; join or leave anytime. Fun and funny on the outside; serious engineering underneath. Community-server drama, not a pitch deck.
+**Product spine:** meet your vibe. Watch by default, join anytime, leave anytime. Fun and funny outside, serious engineering underneath. Full intent: `docs/VISION.md`. Sequencing: `docs/ROADMAP.md`.
 
-**Finish line:** exceptional full multiplayer game; run-your-own-server (Minecraft-shaped) + GCP IaC cheap scale; CI green; no Doom branding. Slice 1 is floor not finish.
-
-**Lane:** personal `blisspixel` / Nick only. No work accounts. No Spark/DGX.
+**Lane:** personal `blisspixel` / Nick only. No work accounts.
 
 ## Truth ranking
 
-1. Source, tests, manifests, lockfiles, `git` history 
-2. `docs/protocol.md` for on-wire shapes once implemented 
-3. `docs/ARCHITECTURE.md` and `docs/SLICE-1.md` for intent and slice bars 
-4. This file for agent operating rules 
+1. Source, tests, manifests, lockfiles, CI, `git` history
+2. `docs/protocol.md` for on-wire shapes
+3. `docs/ARCHITECTURE.md` (decisions) and `docs/ROADMAP.md` (sequencing and status)
+4. This file for operating rules
 
-If prose and code disagree, **code wins**. Update the prose in the same change when behavior materially moves.
-
-Distinguish: vision / planned / implemented / tested / shipped / proven. Do not treat a checklist item as done without evidence.
+If prose and code disagree, code wins; fix the prose in the same change. Keep planned, implemented, tested, shipped, and proven distinct. A checklist box is not evidence.
 
 ## Hard constraints (project law)
 
-- **Spend:** hard cap **$50** total for cloud/API/hosting/assets. Local Solo Scrap and LAN iteration are **$0**. Public self-host (home port-forward, cheap VPS, or GCP) sits under the $50 cap and needs Nick or Chief approval **before** purchase. Prefer local $0, then Minecraft-shaped public self-host under $50 with spend ACK (GCP IaC plan-only until then). Tailscale Personal is optional private/dev smoke only, not the preferred multiplayer path. Paid VPS is an approval gate.
-- **Authority:** Rust server is source of truth for positions, damage, HP, frags. Godot never decides combat outcomes.
-- **MCP / LLM off the hot path:** agents and humans share the same discrete action channel into the server. Scripted/utility AI runs at tick rate on the server (or via adapter-injected intents). MCP/JSON-RPC is for slow ops (join, summaries, goals), never aim/fire at 20-60 Hz. No paid model APIs without approval.
-- **Transport (Slice 1):** WebSocket JSON (default bind `0.0.0.0:6767`; clients use loopback or `FRAGR_SERVER`). UDP/`renet` is a later spike, not a silent mid-slice rewrite unless Nick asks.
-- **Client pin:** Godot **4.7.2-stable**, GDScript only (no .NET export template for Slice 1).
-- **Dependencies:** minimal and intentional. Prefer std / existing crates. No Bevy client, no lightyear (Bevy-centric), no second HTTP client / logger / serializer without consolidating.
-- **Secrets:** none required for local play. Never commit credentials. Temporary agent scratch goes in gitignored `.agents/` only.
+- **Spend:** hard cap **$50** total. Local play and LAN are $0. Anything that bills (cloud apply, VPS, paid assets, paid model APIs) needs written approval from Nick first. The one approved paid API is ElevenLabs, used only by developers through `tools/audiogen`, never in CI and never at player runtime. No other paid model or vision API without approval.
+- **Authority:** the Rust server is the source of truth for every game outcome. Godot never decides combat.
+- **Agents off the hot path:** humans and agents share one discrete action channel. Rule and utility bots run at tick rate on the server. MCP is for slow operations, never aim or fire at 20 to 60 Hz.
+- **Transport:** WebSocket JSON on `0.0.0.0:6767` (clients use loopback or `FRAGR_SERVER`). UDP is a planned, measured spike (`docs/TRANSPORT.md`), not a silent rewrite.
+- **Languages:** Rust and GDScript only. No Python or other scripting languages in tooling; the remaining `tools/generate_audio.py` is scheduled for a Rust port (`docs/ROADMAP.md`, Phase 0).
+- **Pins:** Godot 4.7.2-stable (current stable line as of 2026-09-18; 4.8 exists only as dev builds). Rust stable via rustup, edition 2021. Verify pins against primary sources before changing them; do not trust memory for versions or flags.
+- **Dependencies:** minimal and intentional. Prefer std and existing crates. One logger (`tracing` + `EnvFilter`, `RUST_LOG`), one serializer (`serde_json`), one CLI parser (`clap` derive), one HTTP client (`reqwest`, audiogen only), one WebSocket stack (`tokio-tungstenite`). No Bevy client, no lightyear. Check `Cargo.toml` files before adding anything; `Cargo.lock` is committed and CI runs with `--locked`.
+- **Secrets:** none required for local play. Never commit credentials. `.agents/`, `.env`, and `*.key` are gitignored; keep keys there or in the environment.
+- **Attribution lock:** zero tool or model attribution anywhere. No `Co-authored-by` trailers, no "generated by" or "made with" notes, no tool badges or PR footers, no assistant names as authors in commits, PRs, docs, comments, assets, or image metadata. Commits are authored by Nick Seal `<32712898+blisspixel@users.noreply.github.com>` only. Name a product only when documenting a runtime or developer integration.
+- **Prose:** no emoji. No em dashes or en dashes; use commas, periods, colons, parentheses, or hyphens in compound words.
 
 ## Canonical seams
 
 | Concern | Home |
 |---|---|
-| Sim tick, hit detection, bots | `server/` |
-| Wire protocol messages | shared types in `server` (and mirrored docs in `docs/protocol.md`); client/adapter speak that schema |
-| Presentation / cameras / HUD | `client/` |
-| External agent tooling | `agent-adapter/` |
-| Product / stack decisions | `docs/ARCHITECTURE.md` |
-| Current vertical slice DoD | `docs/SLICE-1.md` |
+| Sim tick, hit detection, movement, pickups, boss, bots | `server/src/sim.rs` |
+| Session glue, rosters, `min_bots`, broadcast | `server/src/session.rs` |
+| Wire types and Host line generators | `server/src/protocol.rs`, mirrored in `docs/protocol.md` |
+| WebSocket accept and per-client plumbing | `server/src/net.rs` |
+| Server CLI, tracing, tick loop | `server/src/main.rs` (`--bind`, `--bots`, `--map`, `--map-rotate`) |
+| MCP request handling and tool schemas | `agent-adapter/src/mcp.rs` |
+| Adapter CLI and WebSocket session | `agent-adapter/src/main.rs` |
+| Adapter copy of wire types | `agent-adapter/src/protocol.rs` (keep in lockstep with the server until the shared `fragr-protocol` crate lands) |
+| Client networking (`FRAGR_SERVER`) | `client/scripts/net_client.gd` |
+| Client match orchestration, role, audio routing | `client/scripts/game_manager.gd` |
+| HUD, killfeed, Host bumpers | `client/scripts/hud.gd` |
+| Pawn presentation, first-person weapon face | `client/scripts/player_pawn.gd` |
+| Spectator cameras | `client/scripts/spectator_cam.gd` |
+| Boot menu and map picker (`FRAGR_MAP`, `FRAGR_SOLO`) | `client/scripts/boot_menu.gd` |
+| Pixel assets and import presets | `client/assets/` (nearest filter, no mipmaps) |
+| Audio assets and provenance | `client/assets/audio/` plus `audiogen-manifest.json` |
+| Product and stack decisions | `docs/ARCHITECTURE.md` |
+| Sequencing, status, fun bar | `docs/ROADMAP.md` |
+| Bounded work items | `docs/plans/<slug>.md`, indexed in `docs/plans/README.md` |
+| Look, palette, tone | `docs/ART_STORY_BIBLE.md`, `docs/palette.json` |
+| Hosting and cloud | `infra/README.md`, `infra/docs/`, `infra/terraform/` |
 
-Before adding a second way to log, configure, serialize, or talk to the server, search the tree and reuse the existing seam.
+Before adding a second way to log, configure, serialize, retry, or talk to the server, search the tree and reuse the seam above. Env vars in use: `FRAGR_SERVER`, `FRAGR_SOLO`, `FRAGR_MAP`, `FRAGR_AGENT_NAME`, `FRAGR_TIP_CAPTURE_DIR`, `RUST_LOG`, `ELEVENLABS_API_KEY`, plus the `FRAGR_BIND`, `FRAGR_BOTS`, `FRAGR_MAP_ROTATE`, and `GODOT_BIN` knobs read by `tools/solo_scrap.sh`.
+
+## Tests and lints
+
+- Rust tests are inline `#[cfg(test)]` modules. The server's bulk suite is `server/src/tests.rs`; `sim.rs` and `net.rs` are covered from there. Adapter tests sit in `agent-adapter/src/{main,mcp}.rs`. Audiogen tests use a fake transport; nothing in the test suite touches the network.
+- Lint policy is `[workspace.lints]` in the root `Cargo.toml` (`unsafe_code` forbidden, 2018 idioms, no `dbg!`, `todo!`, or `unimplemented!`). Every crate opts in. Narrow, justified `#[allow]` at the use site is acceptable; broad allows, silenced modules, or edits to the policy to make a check pass are not.
+- Coverage floor is an unfiltered 80 percent of workspace lines. Carving crates or files out of the report is forbidden. Raise coverage by testing real behavior (wire paths, adapter tools, sim rules), never by shrinking the denominator.
+- Godot may exit 0 with `SCRIPT ERROR` or `Parse Error` in its log. The log is the verifier. `client/scripts/test_far_cam_scale.gd` is a headless check harness; add more like it for client logic.
 
 ## Verification (run before claiming done)
 
-Commands must match the repo as it exists. If a directory is missing, scaffold it first or skip that row.
-
-**Rust (`server/`, `agent-adapter/` when present):**
+These match `.github/workflows/ci.yml`. If CI and this list disagree, fix one in the same PR.
 
 ```bash
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
-cargo llvm-cov --workspace --locked --summary-only --fail-under-lines 80
-cargo build --workspace
+cargo llvm-cov --workspace --locked --fail-under-lines 80
+cargo build --workspace --release
+cargo deny check licenses bans sources   # advisories are reported, not blocking
 ```
 
-Hard minimum 80% line coverage on the unfiltered workspace report. CI enforces this on every PR. Coverage ignores that carve production crates out of the report (agent-adapter, server main/net, or similar) are KAPU: forbidden. Raise coverage by testing real behavior (join/leave/round wire paths, adapter observe/act/get_events), never by shrinking the denominator.
-
-Do not "fix" Clippy by broad `#[allow]`, silencing warnings workspace-wide, or deleting checks. Narrow, justified allows only.
-
-**Godot (`client/` when present):**
+Godot (not in CI yet; run locally with a 4.7.2-stable binary named `godot` or via `GODOT_BIN`):
 
 ```bash
-# Prefer a 4.7.2-stable editor binary named `godot` or pass the full path.
 godot --headless --path client --import
-godot --headless --path client --check-only --script res://path/to/script.gd
+godot --headless --path client --check-only --script res://scripts/<file>.gd
+godot --headless --path client --script res://scripts/test_far_cam_scale.gd
 ```
 
-Godot may exit `0` even when the log contains `SCRIPT ERROR` / `Parse Error`. Treat log contents as the verifier. A stranger must be able to open `client/` in 4.7.2 without missing `project.godot` fields.
+Playable smoke:
 
-**Playable smoke (Slice 1 bar):**
+1. `cargo run -p fragr-server -- --bind 127.0.0.1:6767 --bots 4` starts with no cloud config.
+2. Bots fight; a frag appears in server logs within about 30 seconds.
+3. Godot spectator shows the match; J joins, L leaves; bots persist.
+4. `cd agent-adapter && cargo run -- scripted-bot --name Probe` drives a pawn through the same server.
 
-1. `cargo run -p fragr-server` (or `cd server && cargo run`) listens on `127.0.0.1:6767` with no cloud env. 
-2. Bots fight; damage/frag within ~30s in server logs. 
-3. Godot spectator shows the match (presentation only). 
-4. Optional: human join + leave-to-spectate; adapter `observe`/`act` for at least one pawn.
+Evidence beats assertion. Screenshots must show the current build; regenerate `docs/screenshots/` with `tools/capture_tip_screenshots.sh` when UI, weapons, sprites, HUD, or arenas change, and keep `docs/screenshots/README.md` honest about what is live versus mood.
 
-Evidence beats assertion. Prefer a real smoke run over “should work.”
+## Evidence by change type
 
+| Change | Minimum evidence |
+|---|---|
+| Sim rule, bot behavior, scoring | Deterministic test in `server/src/tests.rs`; server log line from a smoke |
+| Wire or MCP shape | Tests on both sides, `docs/protocol.md` and `agent-adapter/README.md` updated in the same PR |
+| Client presentation | Godot headless checks pass; regenerated tip screenshot |
+| Hosting, infra, spend | `terraform fmt` and `validate`; no apply without written approval; cost note in the doc |
+| Performance or scale claim | A measurement table in the plan doc; no numbers in prose without it |
+| Asset generation | Manifest entry with prompt, model, format; file loads in Godot |
 
 ## Research and plan before build
 
-Do not start implementation until durable plan docs exist for the change.
+1. **Orient** in the real repo: `README.md`, `docs/ROADMAP.md`, the relevant plan, source, tests, recent history.
+2. **Research** current primary sources for anything version-sensitive (Godot 4.7 docs, crates.io, MCP specification, GitHub Actions runners, ElevenLabs API). Never encode a pin, flag, or API from memory.
+3. **Write the plan** into `docs/plans/<slug>.md` (goal, non-goals, architecture impact, protocol or API changes, verification, spend gate, success criteria) and link it from `docs/plans/README.md`. Chat is not a plan.
+4. **Build** the smallest exceptional version. Fix root causes; never weaken the checker that caught the problem.
+5. **Update state** in the same PR: tests, `docs/protocol.md`, README run steps, the plan's status, `docs/ROADMAP.md`, and this file if a constraint moved.
 
-1. **Orient** in the real repo (`README.md`, `docs/`, source, tests, git history). Code and manifests outrank stale prose.
-2. **Research** current primary sources for the stack actually in use (Godot 4.7.2 docs/releases, Rust crates, MCP spec). Do not trust model memory for pins, flags, or APIs that can change.
-3. **Write the plan** into tracked docs before coding: goal, non-goals, architecture impact, protocol or API changes, verification steps, spend/safety gates, and success criteria. Prefer updating `docs/SLICE-*.md`, `docs/ARCHITECTURE.md`, `docs/protocol.md`, or a short `docs/plans/<slug>.md` over chat-only plans.
-4. **Build** only after the plan is in the tree (or an explicit Nick exception). Keep the first playable slice exceptional; do not skip docs to move faster.
-5. After shipping behavior, update the same docs so the next session inherits truth.
+## Workflow
 
-## Working style
-
-- Prefer a smaller **exceptional** playable over a larger half-built scaffold.
-- Fix root causes; do not weaken the checker that caught the failure.
-- After meaningful work, update the durable artifacts the change makes true: tests, `docs/protocol.md`, README run steps, slice checklist boxes, this file if constraints moved.
-- **README screenshots must match the playable tip.** When UI elements, weapons, sprites, HUD features, or arena zones land in the client, regenerate screenshots to show what actually runs now. Prefer `docs/screenshots/` linked from README. Mood art is acceptable when clearly labeled in `docs/screenshots/README.md`, but stale mood stubs that misrepresent the current build are forbidden. Replace mood plates with live captures as soon as the feature is playable.
-- **HARD LOCK - zero tool/model attribution:** no "by Claude/Codex/Cursor/Copilot/Grok", no tool Co-authored-by, no Made-with/Generated-by badges, no platform PR footers. Commits/PRs/assets look like Nick/blisspixel only. Also:
-- **No tool or model attribution anywhere:** no "Generated by", "Written with", or assistant/model coauthor trailers for Cursor, Claude, Codex, ChatGPT, Gemini, Grok, or any other tool; no Cursor/agent PR footers or HTML badges; no "made with AI" notes in README, docs, comments, commits, or PR text. Name products only when documenting a runtime integration, never as authors.
-- **No emoji** in repo prose, comments, commits, PR titles, or PR bodies.
-- **No em dashes or en dashes.** Use commas, periods, parentheses, colons, or hyphens in compound adjectives only when needed. Rewrite sentences instead of using long dashes.
-
-- Comments explain intent, invariants, and tradeoffs, not obvious narration.
-- Research current docs for Godot/Rust crates when versions or APIs may have changed; do not trust memory alone for release pins.
+- One clean `main`, always green. Work on a branch, open a PR, let CI pass, squash merge. `main` requires the `test` check.
+- Conventional commit prefixes (`feat:`, `fix:`, `docs:`, `ci:`, `chore:`, `test:`). Subject under 72 characters, body explains why.
+- Tag `vMAJOR.MINOR.PATCH` and publish release notes when a merge changes what a player or host sees. Keep the release notes in the same voice as the commit body.
+- Plan docs are bounded and finish; the roadmap and plan index are the durable state that carries across sessions. Temporary scratch goes in gitignored `.agents/`; promote anything durable into docs, tests, or code.
+- Security, permissions, and spend are enforced by tooling (branch protection, gitignore, lints, plan-only Terraform), not by prose. If a rule keeps needing repetition, make it mechanical.
 
 ## Out of scope unless Nick asks
 
-Paid cloud apply without approval, paid assets, browser client, Bevy rewrite. CI ownership stays with Gitty when asked. Product rename may change "fragr" later; do not brand as Doom.
+Cloud apply, paid assets, a browser client, a Bevy rewrite, renaming the product, matchmaking or accounts before the exposed-server phase is proven.
 
 ## Nested guidance
 
-If a package later needs tighter rules, add a nested `AGENTS.md` there. Closest file wins for local detail; root constraints above still apply.
+If a package needs tighter rules, add a nested `AGENTS.md` there. Closest file wins for local detail; the constraints above still apply.

@@ -16,3 +16,7 @@
 .idea/
 .vscode/
 *.swp
+
+# Secrets (never commit)
+.env
+*.key

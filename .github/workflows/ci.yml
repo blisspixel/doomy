@@ -10,35 +10,26 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
+          components: rustfmt, clippy, llvm-tools-preview
 
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
 
-      - name: Cache cargo index
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache cargo build
-        uses: actions/cache@v4
-        with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
 
       - name: Check formatting
         run: cargo fmt --all -- --check
@@ -49,11 +40,25 @@ jobs:
       - name: Run tests
         run: cargo test --workspace
 
-      - name: Install llvm-cov
-        run: cargo install cargo-llvm-cov
-
       - name: Check code coverage
-        run: cargo llvm-cov --workspace --locked --summary-only --fail-under-lines 80
+        run: cargo llvm-cov --workspace --locked --fail-under-lines 80
 
       - name: Build release
         run: cargo build --workspace --release
+
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@cargo-deny
+
+      - name: Check licenses, bans, and sources
+        run: cargo deny check licenses bans sources
+
+      - name: Check advisories
+        # New advisories appear without a code change; report them without blocking merges.
+        continue-on-error: true
+        run: cargo deny check advisories
