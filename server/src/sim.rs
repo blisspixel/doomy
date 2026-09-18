@@ -205,7 +205,9 @@ impl GameState {
 
     pub fn tick(&mut self, dt: f32) {
         self.tick += 1;
-        self.events.clear();
+        // Do not clear events here. Join/leave are pushed from the net loop between
+        // ticks; clearing would drop them before main broadcasts take_events().
+        // take_events() in the game loop is the drain.
 
         match self.round_state {
             RoundState::Warmup => {
