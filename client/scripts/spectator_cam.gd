@@ -10,6 +10,8 @@ var available_targets = []
 var auto_cycle_timer = 0.0
 var frag_follow_timer = 0.0
 var frag_follow_target_id = ""
+var camera_shake_intensity = 0.0
+var camera_zoom_offset = 0.0
 
 var mouse_motion = Vector2.ZERO
 
@@ -27,6 +29,9 @@ func _input(event):
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 func _process(delta):
+	camera_shake_intensity = lerp(camera_shake_intensity, 0.0, delta * 10.0)
+	camera_zoom_offset = lerp(camera_zoom_offset, 0.0, delta * 5.0)
+	
 	if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
 		return
 	
@@ -67,10 +72,14 @@ func _free_fly(delta):
 	if Input.is_action_pressed("move_right"):
 		input_dir.x += 1
 	
+	var speed_mult = 1.0
+	if Input.is_key_pressed(KEY_SHIFT):
+		speed_mult = 3.0
+	
 	if input_dir.length() > 0:
 		input_dir = input_dir.normalized()
 		var move_vec = transform.basis * input_dir
-		position += move_vec * move_speed * delta
+		position += move_vec * move_speed * speed_mult * delta
 
 func _follow_target():
 	if len(available_targets) == 0:
@@ -81,7 +90,15 @@ func _follow_target():
 	
 	if is_instance_valid(target):
 		var target_pos = target.global_position
-		var offset = Vector3(0, 4, 7)
+		var offset = Vector3(0, 4, 7 + camera_zoom_offset)
+		
+		if camera_shake_intensity > 0:
+			offset += Vector3(
+				randf_range(-camera_shake_intensity, camera_shake_intensity),
+				randf_range(-camera_shake_intensity, camera_shake_intensity),
+				0
+			)
+		
 		var cam_pos = target_pos + offset.rotated(Vector3.UP, target.rotation.y)
 		position = position.lerp(cam_pos, 0.1)
 		
@@ -108,6 +125,16 @@ func set_available_targets(targets: Array):
 	available_targets = targets
 	if follow_mode and len(targets) > 0:
 		follow_target_index = follow_target_index % len(targets)
+
+func camera_punch():
+	camera_shake_intensity = 0.3
+	camera_zoom_offset = -1.5
+
+func get_followed_target():
+	if follow_mode and len(available_targets) > 0:
+		var idx = follow_target_index % len(available_targets)
+		return available_targets[idx]
+	return null
 
 func lock_on_frag(killer_id: String, duration: float = 1.5):
 	frag_follow_target_id = killer_id
