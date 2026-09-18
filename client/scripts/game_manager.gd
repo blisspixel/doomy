@@ -61,12 +61,14 @@ func _input(event):
 			is_human_player = true
 			net_client.connect_to_server("human", "Human Player")
 			hud.set_mode("PLAYING")
+			_pick_ghost_rival_from_alive()
 		elif event.keycode == KEY_L and is_human_player:
 			print("Leaving match, returning to spectator...")
 			net_client.disconnect_from_server()
 			await get_tree().create_timer(0.5).timeout
 			is_human_player = false
 			net_client.connect_to_server("spectator", "Spectator")
+			hud.set_ghost_rival("")
 			hud.set_mode("SPECTATING")
 
 func _process(_delta):
@@ -94,7 +96,9 @@ func _on_snapshot_received(data):
 	
 	hud.set_tick(tick)
 	hud.set_player_count(len(player_list))
+	hud.sync_scores_from_players(player_list)
 	hud.set_round_info(round_state, round_time_left, frag_limit)
+	_maybe_assign_ghost_rival(player_list)
 	
 	var current_ids = {}
 	
@@ -195,10 +199,43 @@ func _update_followed_weapon():
 	
 	var weapon_name = ""
 	var player_name = ""
+	var behavior = ""
 	if players.has(target.player_id):
 		var pawn = players[target.player_id]
 		if pawn.has_method("get_weapon_name"):
 			weapon_name = pawn.get_weapon_name()
 		player_name = pawn.player_name
+		if "behavior" in pawn:
+			behavior = pawn.behavior
 	
-	hud.set_followed_weapon(weapon_name, player_name)
+	hud.set_followed_weapon(weapon_name, player_name, behavior)
+
+func _pick_ghost_rival_from_alive():
+	var names = []
+	for pawn in players.values():
+		if is_instance_valid(pawn) and pawn.player_name != "" and pawn.player_name != "Human Player":
+			names.append(pawn.player_name)
+	if names.is_empty():
+		hud.set_ghost_rival("")
+		return
+	names.shuffle()
+	hud.set_ghost_rival(names[0])
+
+func _maybe_assign_ghost_rival(player_list: Array):
+	if is_human_player:
+		return
+	# Spectators: keep a live rival chip so the fight has a face.
+	if hud.ghost_rival != "":
+		for p in player_list:
+			if str(p.get("name", "")) == hud.ghost_rival:
+				return
+	var names = []
+	for p in player_list:
+		var n = str(p.get("name", ""))
+		if n != "" and n != "Spectator" and n != "Human Player":
+			names.append(n)
+	if names.is_empty():
+		hud.set_ghost_rival("")
+		return
+	names.shuffle()
+	hud.set_ghost_rival(names[0])

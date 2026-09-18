@@ -12,6 +12,18 @@ extends CanvasLayer
 @onready var weapon_icon = $WeaponIcon
 
 var scores = {}
+var behaviors = {}
+var ghost_rival = ""
+var leader_name = ""
+var host_bumper_index = 0
+
+const HOST_BUMPERS = [
+	"HOST: LIVE LAUGH FRAG.",
+	"HOST: PORT 6767 ENERGY.",
+	"HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE.",
+	"HOST: CONTINUANCE WATCHES. YOU SHOOT.",
+	"HOST: SHALL NOT BE INFRINGED. OPEN WEIGHTS. OPEN FIRE.",
+]
 
 var weapon_textures = {}
 var followed_player_name = ""
@@ -52,17 +64,22 @@ func set_tick(tick: int):
 func set_round_info(state: String, time_left: int, frag_limit: int):
 	if not round_label:
 		return
-	
 	var text = "Round: " + state
 	if state == "Active":
-		if time_left > 0:
-			var time_display = str(time_left) + "s"
-			if time_left == 67:
-				time_display = "67s (!)"
-			text += " | Time: " + time_display
 		if frag_limit > 0:
-			text += " | Frag limit: " + str(frag_limit)
-	
+			text = "FIRST TO " + str(frag_limit)
+			if time_left > 0:
+				text += " | " + str(time_left) + "s"
+		elif time_left > 0:
+			text += " | Time: " + str(time_left) + "s"
+		if leader_name != "":
+			text += "\nLEADER: " + leader_name
+		if ghost_rival != "":
+			text += " | RIVAL: " + ghost_rival
+	elif state == "Warmup":
+		text = "WARMUP - scrap starts cold"
+	elif state == "Ended":
+		text = "ROUND OVER - next scrap loading"
 	round_label.text = text
 
 func set_player_count(count: int):
@@ -72,19 +89,56 @@ func set_player_count(count: int):
 func update_scoreboard():
 	if not scoreboard:
 		return
-	
 	var sorted_scores = []
 	for player in scores.keys():
 		sorted_scores.append({"name": player, "kills": scores[player]})
-	
 	sorted_scores.sort_custom(func(a, b): return a.kills > b.kills)
-	
 	var text = "SCOREBOARD\n"
 	for i in range(min(8, len(sorted_scores))):
 		var entry = sorted_scores[i]
-		text += entry.name + ": " + str(entry.kills) + "\n"
-	
-	scoreboard.text = text if len(sorted_scores) > 0 else "SCOREBOARD\n(no kills yet)"
+		var chip = ""
+		if behaviors.has(entry.name):
+			chip = " [" + _short_behavior(behaviors[entry.name]) + "]"
+		var marker = "*" if i == 0 and entry.kills > 0 else " "
+		text += str(i + 1) + "." + marker + entry.name + chip + ": " + str(entry.kills) + "\n"
+	scoreboard.text = text if len(sorted_scores) > 0 else "SCOREBOARD\n(waiting for scrap)"
+
+func _short_behavior(behavior: String) -> String:
+	match behavior:
+		"Aggressive":
+			return "AGG"
+		"Defensive":
+			return "DEF"
+		"Flanker":
+			return "FLK"
+		"Balanced":
+			return "BAL"
+		_:
+			return behavior.substr(0, 3).to_upper()
+
+func sync_scores_from_players(player_list: Array):
+	var next_scores = {}
+	var next_behaviors = {}
+	for player_data in player_list:
+		var pname = str(player_data.get("name", "?"))
+		next_scores[pname] = int(player_data.get("score", 0))
+		var beh = player_data.get("behavior", null)
+		if beh != null:
+			next_behaviors[pname] = str(beh)
+	scores = next_scores
+	behaviors = next_behaviors
+	leader_name = ""
+	var best = -1
+	for pname in scores.keys():
+		if scores[pname] > best:
+			best = scores[pname]
+			leader_name = pname + " (" + str(best) + ")"
+	if best <= 0:
+		leader_name = ""
+	update_scoreboard()
+
+func set_ghost_rival(rival: String):
+	ghost_rival = rival
 
 func show_frag(killer: String, victim: String, killer_color: Color = Color.WHITE, victim_color: Color = Color.WHITE):
 	if not scores.has(killer):
@@ -119,25 +173,23 @@ func show_frag(killer: String, victim: String, killer_color: Color = Color.WHITE
 
 func show_round_start(round_number: int):
 	if round_message:
-		var host_lines = [
-			"HOST: ROUND " + str(round_number) + ". LIVE LAUGH FRAG.",
-			"HOST: FIGHTERS UP. PORT 6767 ENERGY.",
-			"HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE.",
-			"ROUND " + str(round_number) + " - FIGHT!"
-		]
-		round_message.text = host_lines[randi() % host_lines.size()]
+		var line = HOST_BUMPERS[host_bumper_index % HOST_BUMPERS.size()]
+		host_bumper_index += 1
+		round_message.text = line + "\nROUND " + str(round_number) + " - FIGHT!"
+		if ghost_rival != "":
+			round_message.text += "\nGHOST RIVAL: " + ghost_rival
 		round_message.visible = true
-		
 		var tween = create_tween()
 		tween.tween_property(round_message, "scale", Vector2(1.3, 1.3), 0.2)
 		tween.tween_property(round_message, "scale", Vector2(1.0, 1.0), 0.2)
-		
 		await get_tree().create_timer(3.0).timeout
 		if is_instance_valid(round_message):
 			round_message.visible = false
 
 func show_round_end(winner: String, reason: String):
 	scores = {}
+	behaviors = {}
+	leader_name = ""
 	update_scoreboard()
 	
 	if weapon_label:
@@ -163,7 +215,7 @@ func show_round_end(winner: String, reason: String):
 		if is_instance_valid(round_message):
 			round_message.visible = false
 
-func set_followed_weapon(weapon_name: String, player_name: String = ""):
+func set_followed_weapon(weapon_name: String, player_name: String = "", behavior: String = ""):
 	if not weapon_label or not weapon_icon:
 		return
 	
@@ -185,7 +237,10 @@ func set_followed_weapon(weapon_name: String, player_name: String = ""):
 	
 	var display_text = weapon_desc
 	if player_name != "":
-		display_text = player_name + "\n" + weapon_desc
+		var role_chip = ""
+		if behavior != "":
+			role_chip = " [" + _short_behavior(behavior) + "]"
+		display_text = "FOLLOWING: " + player_name + role_chip + "\n" + weapon_desc
 	
 	weapon_label.text = display_text
 	weapon_icon.texture = weapon_textures[weapon_name]
