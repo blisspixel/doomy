@@ -42,7 +42,7 @@ func _fake_entries(station_id: String, count: int) -> Dictionary:
 
 func _test_build_stations() -> void:
 	var station_list := [
-		{"id": "rock", "name": "Larak Lot Rock", "tagline": "loud", "ducks_in_combat": true},
+		{"id": "rock", "name": "Larak Lot Rock", "tagline": "loud", "ducks_in_combat": true, "badge": "LR", "color": "#7A3A22"},
 		{"id": "lockin", "name": "LOCK IN", "ducks_in_combat": false},
 		{"name": "no id, must be skipped"},
 	]
@@ -60,6 +60,10 @@ func _test_build_stations() -> void:
 	_check(stations[1]["tracks"].is_empty(), "lockin has no tracks in this manifest")
 	_check(stations[1]["ducks_in_combat"] == false, "ducks_in_combat is read from stations.json")
 	_check(stations[0]["ducks_in_combat"] == true, "default ducks_in_combat is true")
+	_check(stations[0]["badge"] == "LR", "badge comes from stations.json")
+	_check(stations[0]["color"] == "#7A3A22", "color comes from stations.json")
+	_check(stations[1]["badge"] == "LO", "badge defaults to the first two letters of the id")
+	_check(stations[1]["color"] == "#5A554F", "color defaults to gunmetal")
 
 
 func _test_pick_next_no_repeat() -> void:
@@ -100,6 +104,13 @@ func _test_station_cycle_and_toggle() -> void:
 	_check(radio.enabled == false, "toggle turns the radio off")
 	radio.toggle()
 	_check(radio.enabled == true, "toggle turns the radio back on")
+	var cards: Array = []
+	radio.station_card.connect(func(card): cards.append(card))
+	radio.toggle()
+	radio.toggle()
+	_check(cards.size() == 2, "toggle emits a station card each time, got %d" % cards.size())
+	_check(cards.size() == 2 and cards[0]["enabled"] == false and cards[1]["enabled"] == true, "card carries the enabled state")
+	_check(cards.size() == 2 and cards[1]["name"] == "C" and cards[1]["has_tracks"] == false, "card carries name and has_tracks")
 	radio.free()
 
 

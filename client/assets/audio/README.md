@@ -25,4 +25,4 @@ The original effect set was synthesised with `tools/generate_audio.py` (sine, sq
 
 Loading paths: `client/scripts/player_pawn.gd` (per-weapon fire and hit), `client/scripts/game_manager.gd` (frag and round cues), `client/scripts/radio.gd` (radio tracks, discovered through the manifest, never by directory listing). Import presets: keep WAV as samples, MP3 as streams, loop flags off unless the manifest marks a file as looping.
 
-Radio controls in the match: R next station, N next track, M radio on or off. The radio ducks under Host lines and sits lower while you play; LOCK IN never ducks for combat.
+Radio controls in the match: R next station, N next track, M radio on or off (D-pad up, down, left on a gamepad). Every switch shows a station card (badge, name, tagline) above the track toast. The radio ducks under Host lines and sits lower while you play; LOCK IN never ducks for combat.

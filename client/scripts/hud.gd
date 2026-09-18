@@ -1089,3 +1089,80 @@ func show_radio(station: String, title: String) -> void:
 	radio_tween = create_tween()
 	radio_tween.tween_interval(3.5)
 	radio_tween.tween_property(radio_label, "modulate:a", 0.0, 1.0)
+
+
+var radio_card: Control = null
+var radio_card_badge: ColorRect = null
+var radio_card_mark: Label = null
+var radio_card_name: Label = null
+var radio_card_tagline: Label = null
+var radio_card_tween: Tween = null
+
+## Station card above the radio toast: badge, name, tagline. Shown on every
+## station switch and radio toggle, then fades.
+func show_station_card(card: Dictionary) -> void:
+	if radio_card == null:
+		radio_card = Control.new()
+		radio_card.name = "RadioCard"
+		radio_card.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		radio_card.anchor_left = 1.0
+		radio_card.anchor_top = 1.0
+		radio_card.anchor_right = 1.0
+		radio_card.anchor_bottom = 1.0
+		radio_card.offset_left = -420.0
+		radio_card.offset_top = -150.0
+		radio_card.offset_right = -16.0
+		radio_card.offset_bottom = -56.0
+		radio_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var back := ColorRect.new()
+		back.color = Color(0.04, 0.04, 0.05, 0.82)
+		back.set_anchors_preset(Control.PRESET_FULL_RECT)
+		back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		radio_card.add_child(back)
+		radio_card_badge = ColorRect.new()
+		radio_card_badge.position = Vector2(8, 8)
+		radio_card_badge.size = Vector2(78, 78)
+		radio_card_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		radio_card.add_child(radio_card_badge)
+		radio_card_mark = Label.new()
+		radio_card_mark.position = Vector2(8, 8)
+		radio_card_mark.size = Vector2(78, 78)
+		radio_card_mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		radio_card_mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		radio_card_mark.add_theme_font_size_override("font_size", 34)
+		radio_card_mark.add_theme_color_override("font_color", Color(0.91, 0.89, 0.84))
+		radio_card_mark.add_theme_color_override("font_outline_color", Color(0.04, 0.04, 0.05))
+		radio_card_mark.add_theme_constant_override("outline_size", 6)
+		radio_card.add_child(radio_card_mark)
+		radio_card_name = Label.new()
+		radio_card_name.position = Vector2(98, 12)
+		radio_card_name.size = Vector2(300, 34)
+		radio_card_name.add_theme_font_size_override("font_size", 24)
+		radio_card_name.add_theme_color_override("font_color", Color(0.91, 0.89, 0.84))
+		radio_card_name.add_theme_color_override("font_outline_color", Color(0.04, 0.04, 0.05))
+		radio_card_name.add_theme_constant_override("outline_size", 4)
+		radio_card.add_child(radio_card_name)
+		radio_card_tagline = Label.new()
+		radio_card_tagline.position = Vector2(98, 48)
+		radio_card_tagline.size = Vector2(300, 40)
+		radio_card_tagline.autowrap_mode = TextServer.AUTOWRAP_WORD
+		radio_card_tagline.add_theme_font_size_override("font_size", 13)
+		radio_card_tagline.add_theme_color_override("font_color", Color(0.72, 0.70, 0.66))
+		radio_card.add_child(radio_card_tagline)
+		add_child(radio_card)
+	radio_card_badge.color = Color.html(str(card.get("color", "#5A554F")))
+	radio_card_mark.text = str(card.get("badge", "CF"))
+	radio_card_name.text = str(card.get("name", "RADIO")).to_upper()
+	var tagline := str(card.get("tagline", ""))
+	if not bool(card.get("enabled", true)):
+		tagline = "RADIO OFF"
+	elif not bool(card.get("has_tracks", true)):
+		tagline = "OFF THE AIR (no tracks yet)"
+	radio_card_tagline.text = tagline
+	radio_card.modulate.a = 1.0
+	radio_card.visible = true
+	if radio_card_tween != null and radio_card_tween.is_valid():
+		radio_card_tween.kill()
+	radio_card_tween = create_tween()
+	radio_card_tween.tween_interval(4.0)
+	radio_card_tween.tween_property(radio_card, "modulate:a", 0.0, 0.8)
