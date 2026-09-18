@@ -15,11 +15,7 @@ Take Slice 1 from "scaffold that mostly demos bots" to an **exceptional** loopba
 - Prediction / rollback
 - LLM agents or paid APIs
 - Public hosting / Tailscale packaging
-<<<<<<< HEAD
 - Full rename of crate/binary names off `doomy-*` to `fragr-*` (completed in separate rename PR)
-=======
-- Rename to fragr-* completed
->>>>>>> 1b6737f (Remove all doomy references, use fragr throughout)
 - CI (Gitty when asked)
 
 ## Findings from code review (evidence)
