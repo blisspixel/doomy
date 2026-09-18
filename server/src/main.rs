@@ -1,12 +1,7 @@
-mod net;
-mod protocol;
-mod sim;
-mod tests;
-
 use clap::Parser;
-use net::{GameCommand, NetServer};
-use protocol::{Role, ServerMessage};
-use sim::{BotController, GameState};
+use fragr_server::net::{GameCommand, NetServer};
+use fragr_server::protocol::{self, Role, ServerMessage};
+use fragr_server::sim::{BotController, GameState};
 use std::collections::HashMap;
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -49,21 +44,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut client_to_player = HashMap::new();
 
     let bot_configs = [
-        ("Rusher", sim::BotBehavior::Aggressive),
-        ("Sniper", sim::BotBehavior::Defensive),
-        ("Flanker", sim::BotBehavior::Flanker),
-        ("Tank", sim::BotBehavior::Balanced),
-        ("Scout", sim::BotBehavior::Flanker),
-        ("Guard", sim::BotBehavior::Defensive),
-        ("Hunter", sim::BotBehavior::Aggressive),
-        ("Striker", sim::BotBehavior::Balanced),
+        ("Rusher", fragr_server::sim::BotBehavior::Aggressive),
+        ("Sniper", fragr_server::sim::BotBehavior::Defensive),
+        ("Flanker", fragr_server::sim::BotBehavior::Flanker),
+        ("Tank", fragr_server::sim::BotBehavior::Balanced),
+        ("Scout", fragr_server::sim::BotBehavior::Flanker),
+        ("Guard", fragr_server::sim::BotBehavior::Defensive),
+        ("Hunter", fragr_server::sim::BotBehavior::Aggressive),
+        ("Striker", fragr_server::sim::BotBehavior::Balanced),
     ];
 
     for i in 0..args.bots {
         let bot_id = Uuid::new_v4();
         let (bot_name, behavior) = bot_configs
             .get(i)
-            .unwrap_or(&("Bot", sim::BotBehavior::Balanced));
+            .unwrap_or(&("Bot", fragr_server::sim::BotBehavior::Balanced));
         state.add_player(bot_id, bot_name.to_string(), Role::Agent);
         let bot_controller = BotController::new(bot_id, *behavior);
         bots.push(bot_controller.clone());
