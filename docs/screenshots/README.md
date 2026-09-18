@@ -2,7 +2,7 @@
 
 ## Current status: live tip captures + archived mood plates
 
-`01_arena_overview_16x9.png`, `02_spectator_hud_16x9.png`, `07_tip_compliance_pressure_16x9.png`, `08_tip_host_flash_midjoin_16x9.png`, and `09_tip_weapons_frags_16x9.png` are **live tip captures** from Godot 4.7.2-stable under Xvfb + opengl3 against a loopback `fragr-server --bots 4`. They show Contested Frequency spectator HUD, Host flash on mid-join, and weapons/frags combat stills. Regenerated after the pixel-3D look bar (scrap materials, billboard fighters, muted zone palette).
+`01_arena_overview_16x9.png`, `02_spectator_hud_16x9.png`, `07_tip_compliance_pressure_16x9.png`, `08_tip_host_flash_midjoin_16x9.png`, and `09_tip_weapons_frags_16x9.png` are **live tip captures** from Godot 4.7.2-stable under Xvfb + opengl3 against a loopback `fragr-server --bots 4`. They show Contested Frequency spectator HUD, Host flash on mid-join, and weapons/frags combat stills. Regenerated after far-cam fighter scale (distance-aware billboards) on the pixel-3D look bar tip face.
 
 Archived mood / concept plates remain under `mood/` for vision direction only. Do not treat mood plates as tip gameplay proof.
 
