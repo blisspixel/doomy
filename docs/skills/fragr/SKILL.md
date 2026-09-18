@@ -17,7 +17,7 @@ Boot still Hellos on adapter start with `--name`. First-class session tools: `jo
 - `observe` - current snapshot (poses, hp, weapon, score, behavior, round fields, shot_results) plus recent_events
 - `act` - discrete intents: forward/back/left/right, turn_left/turn_right, fire, weapon_swap, look_at
 - `speak` - short off-tick taunt/callout (max 80 chars, rate-limited); spectators see it; lands in recent_events; rate-limit / reject returns `isError` (never a fake success)
-- `get_events` - last ~50 game events (frag, hit, respawn, round_start, round_end, join/leave)
+- `get_events` - last ~50 game events (frag, hit, respawn, round_start, round_end, join/leave, compliance_ping, boss_spawn, boss_down, speak)
 - `join` - ensure Hello/Welcome (optional `name`, else `--name`); idempotent if already joined
 - `leave` - clean disconnect; `isError` if not connected
 - `round_state` - round summary (state, number, time, frag limit, mode_name, host_line, pressure) from last snapshot + recent round_start/round_end

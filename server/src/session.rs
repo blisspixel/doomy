@@ -185,7 +185,21 @@ impl GameSession {
     /// Run one sim tick: bot AI, physics, then collect snapshot + event messages to broadcast.
     pub fn tick_messages(&mut self, dt: f32) -> Vec<ServerMessage> {
         self.ensure_min_bots();
+        let mut driven = std::collections::HashSet::new();
         for bot in &self.bots {
+            let action = bot.update(&self.state);
+            self.state.set_action(bot.player_id, action);
+            driven.insert(bot.player_id);
+        }
+        // Continuance boss lives on GameState.bots only (not min_bots roster).
+        let state_only: Vec<_> = self
+            .state
+            .bots
+            .iter()
+            .filter(|b| !driven.contains(&b.player_id))
+            .cloned()
+            .collect();
+        for bot in &state_only {
             let action = bot.update(&self.state);
             self.state.set_action(bot.player_id, action);
         }
@@ -604,5 +618,44 @@ mod session_tests {
             "overlong speak must Error unicast, got {:?}",
             u
         );
+    }
+
+    #[test]
+    fn compliance_drone_spawn_does_not_inflate_min_bots() {
+        let mut session = GameSession::new();
+        session.spawn_bots(2);
+        assert_eq!(session.min_bots, 2);
+        assert_eq!(session.bots.len(), 2);
+
+        session.state.start_round();
+        session.state.config.boss_spawn_ticks = Some(1);
+        session.state.config.compliance_ping_ticks = None;
+        // Advance Active to spawn tick.
+        while !session.state.boss_spawned {
+            let _ = session.tick_messages(0.05);
+            if session.state.round_ticks > 20 {
+                panic!("boss should have spawned");
+            }
+        }
+        assert!(session.state.boss_id.is_some());
+        assert_eq!(
+            session.bots.len(),
+            2,
+            "rule-bot roster must stay at min_bots"
+        );
+        assert_eq!(session.min_bots, 2);
+        // Boss is on state.bots for AI + behavior chip.
+        assert!(session
+            .state
+            .bots
+            .iter()
+            .any(|b| b.behavior == crate::sim::BotBehavior::Compliance));
+        // Snapshot must list the drone.
+        let snap = session.state.snapshot();
+        assert!(snap
+            .players
+            .iter()
+            .any(|p| p.name == protocol::BOSS_NAME && p.behavior.as_deref() == Some("Compliance")));
+        assert_eq!(snap.pressure.as_deref(), Some("compliance_drone"));
     }
 }

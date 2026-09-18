@@ -1,7 +1,7 @@
 use crate::protocol::{
-    compliance_host_line, default_host_line, default_mode_name, default_playlist, Action,
-    GameEvent, PlayerScore, PlayerState, Role, ShotResult, Snapshot, WeaponType, MODE_NAME,
-    PLAYLIST_NAME,
+    boss_down_host_line, boss_host_line, compliance_host_line, default_host_line,
+    default_mode_name, default_playlist, Action, GameEvent, PlayerScore, PlayerState, Role,
+    ShotResult, Snapshot, WeaponType, BOSS_NAME, MODE_NAME, PLAYLIST_NAME,
 };
 use std::collections::HashMap;
 use std::f32::consts::PI;
@@ -18,6 +18,8 @@ const PLAYER_MAX_HP: i32 = 100;
 pub const SPEAK_MAX_CHARS: usize = 80;
 /// Min ticks between successful speaks for one player (~3s at 20 Hz).
 pub const SPEAK_COOLDOWN_TICKS: u64 = 60;
+/// Continuance Compliance Drone hit points (tankier than scrap fighters).
+pub const BOSS_MAX_HP: i32 = 200;
 
 /// Result of attempting an off-tick speak.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -43,6 +45,8 @@ pub struct MatchConfig {
     pub compliance_ping_ticks: Option<u32>,
     /// How long approved-lanes slow lasts after the ping.
     pub compliance_duration_ticks: u32,
+    /// Tick into Active when Compliance Drone spawns once (None = off).
+    pub boss_spawn_ticks: Option<u32>,
 }
 
 impl Default for MatchConfig {
@@ -55,6 +59,8 @@ impl Default for MatchConfig {
             // ~15s into Active so one round of play feels the pressure beat.
             compliance_ping_ticks: Some(20 * 15),
             compliance_duration_ticks: 20 * 6,
+            // ~20s into Active: Continuance escalates with a killable drone.
+            boss_spawn_ticks: Some(20 * 20),
         }
     }
 }
@@ -75,6 +81,10 @@ pub struct GameState {
     pub compliance_ticks_left: u32,
     /// Whether this Active round already fired its compliance ping.
     pub compliance_fired: bool,
+    /// Living Compliance Drone player id (None if not spawned or already down).
+    pub boss_id: Option<Uuid>,
+    /// Whether this Active round already spawned its drone.
+    pub boss_spawned: bool,
 }
 
 pub struct Player {
@@ -93,6 +103,8 @@ pub struct Player {
     pub weapon: WeaponType,
     /// Tick of last successful speak (rate limit).
     pub last_speak_tick: Option<u64>,
+    /// Continuance Compliance Drone (no respawn, distinct silhouette).
+    pub is_boss: bool,
 }
 
 impl GameState {
@@ -117,6 +129,7 @@ impl GameState {
         self.scores.clear();
         self.compliance_fired = false;
         self.compliance_ticks_left = 0;
+        self.clear_boss();
 
         for player in &mut self.players {
             self.scores.insert(player.id, 0);
@@ -210,6 +223,7 @@ impl GameState {
             role,
             weapon: WeaponType::default(),
             last_speak_tick: None,
+            is_boss: false,
         });
 
         self.scores.entry(id).or_insert(0);
@@ -256,6 +270,13 @@ impl GameState {
                     if let Some(at) = self.config.compliance_ping_ticks {
                         if self.round_ticks >= at {
                             self.fire_compliance_ping();
+                        }
+                    }
+                }
+                if !self.boss_spawned {
+                    if let Some(at) = self.config.boss_spawn_ticks {
+                        if self.round_ticks >= at {
+                            self.spawn_compliance_drone();
                         }
                     }
                 }
@@ -453,7 +474,13 @@ impl GameState {
                 });
 
                 if victim.hp <= 0 {
-                    victim.respawn_timer = Some(RESPAWN_DELAY_TICKS);
+                    let victim_was_boss = victim.is_boss;
+                    if victim_was_boss {
+                        // Boss does not respawn; removed after this hit batch.
+                        victim.respawn_timer = None;
+                    } else {
+                        victim.respawn_timer = Some(RESPAWN_DELAY_TICKS);
+                    }
 
                     *self.scores.entry(shooter_id).or_insert(0) += 1;
                     let killer_score = self.scores[&shooter_id];
@@ -463,12 +490,28 @@ impl GameState {
                         victim: target_name.clone(),
                         killer_score,
                     });
-                    tracing::info!(
-                        "FRAG: {} -> {} (score: {})",
-                        shooter_name,
-                        target_name,
-                        killer_score
-                    );
+                    if victim_was_boss {
+                        let boss_id = victim.id;
+                        self.events.push(GameEvent::BossDown {
+                            name: target_name.clone(),
+                            boss_id,
+                            killer: Some(shooter_name.clone()),
+                            message: boss_down_host_line(),
+                        });
+                        tracing::info!(
+                            "BOSS DOWN: {} fragged {} (score: {})",
+                            shooter_name,
+                            target_name,
+                            killer_score
+                        );
+                    } else {
+                        tracing::info!(
+                            "FRAG: {} -> {} (score: {})",
+                            shooter_name,
+                            target_name,
+                            killer_score
+                        );
+                    }
                 }
             } else {
                 self.shot_results.push(ShotResult {
@@ -486,6 +529,8 @@ impl GameState {
         for id in respawn_ids {
             self.do_respawn(id);
         }
+
+        self.reap_dead_boss();
     }
 
     fn check_hitscan(&self, shooter_idx: usize) -> Option<usize> {
@@ -602,12 +647,16 @@ impl GameState {
             shot_results: self.shot_results.clone(),
             mode_name: MODE_NAME.to_string(),
             playlist: PLAYLIST_NAME.to_string(),
-            pressure: if self.compliance_ticks_left > 0 {
+            pressure: if self.boss_id.is_some() {
+                Some("compliance_drone".to_string())
+            } else if self.compliance_ticks_left > 0 {
                 Some("compliance".to_string())
             } else {
                 None
             },
-            host_line: if self.compliance_ticks_left > 0 {
+            host_line: if self.boss_id.is_some() {
+                boss_host_line()
+            } else if self.compliance_ticks_left > 0 {
                 compliance_host_line()
             } else {
                 default_host_line()
@@ -626,6 +675,87 @@ impl GameState {
             "Compliance ping fired (duration {} ticks)",
             self.config.compliance_duration_ticks
         );
+    }
+
+    /// Drop the Continuance Compliance Drone into the Active scrap (once per round).
+    pub fn spawn_compliance_drone(&mut self) -> Option<Uuid> {
+        if self.boss_spawned || self.boss_id.is_some() {
+            return None;
+        }
+        if self.round_state != RoundState::Active {
+            return None;
+        }
+        let id = Uuid::new_v4();
+        self.players.push(Player {
+            id,
+            name: BOSS_NAME.to_string(),
+            x: 0.0,
+            y: 2.2,
+            z: 0.0,
+            yaw: 0.0,
+            hp: BOSS_MAX_HP,
+            pending_action: Action::default(),
+            fire_cooldown: 0,
+            respawn_timer: None,
+            just_fired: false,
+            role: Role::Agent,
+            weapon: WeaponType::Rail,
+            last_speak_tick: None,
+            is_boss: true,
+        });
+        self.bots
+            .push(BotController::new(id, BotBehavior::Compliance));
+        self.scores.insert(id, 0);
+        self.boss_id = Some(id);
+        self.boss_spawned = true;
+        self.events.push(GameEvent::BossSpawn {
+            name: BOSS_NAME.to_string(),
+            boss_id: id,
+            message: boss_host_line(),
+            hp: BOSS_MAX_HP,
+        });
+        tracing::info!("Compliance Drone spawned ({})", id);
+        Some(id)
+    }
+
+    fn clear_boss(&mut self) {
+        if let Some(id) = self.boss_id.take() {
+            self.players.retain(|p| p.id != id);
+            self.bots.retain(|b| b.player_id != id);
+            self.scores.remove(&id);
+        }
+        self.boss_spawned = false;
+        // Also scrub any orphaned boss players (round recycle safety).
+        let orphan_ids: Vec<Uuid> = self
+            .players
+            .iter()
+            .filter(|p| p.is_boss)
+            .map(|p| p.id)
+            .collect();
+        for id in orphan_ids {
+            self.players.retain(|p| p.id != id);
+            self.bots.retain(|b| b.player_id != id);
+            self.scores.remove(&id);
+        }
+    }
+
+    fn reap_dead_boss(&mut self) {
+        let Some(boss_id) = self.boss_id else {
+            return;
+        };
+        let dead = self
+            .players
+            .iter()
+            .find(|p| p.id == boss_id)
+            .map(|p| p.hp <= 0)
+            .unwrap_or(true);
+        if !dead {
+            return;
+        }
+        self.players.retain(|p| p.id != boss_id);
+        self.bots.retain(|b| b.player_id != boss_id);
+        self.scores.remove(&boss_id);
+        self.boss_id = None;
     }
 
     /// Validate and emit an off-tick speak event.
@@ -687,6 +817,8 @@ impl Default for GameState {
             shot_results: Vec::new(),
             compliance_ticks_left: 0,
             compliance_fired: false,
+            boss_id: None,
+            boss_spawned: false,
         }
     }
 }
@@ -697,12 +829,14 @@ pub struct BotController {
     pub behavior: BotBehavior,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BotBehavior {
     Aggressive,
     Defensive,
     Flanker,
     Balanced,
+    /// Continuance Compliance Drone: mid-range Rail enforcer.
+    Compliance,
 }
 
 impl BotController {
@@ -846,6 +980,29 @@ impl BotController {
                 }
 
                 if angle_diff.abs() < 0.5 && nearest_dist < 30.0 {
+                    action.fire = true;
+                }
+            }
+
+            BotBehavior::Compliance => {
+                // Mid-range Rail enforcer: hold orbit near center, precise shots.
+                if angle_diff.abs() > 0.12 {
+                    if angle_diff > 0.0 {
+                        action.turn_right = true;
+                    } else {
+                        action.turn_left = true;
+                    }
+                }
+                if nearest_dist < 10.0 {
+                    action.back = true;
+                } else if nearest_dist > 22.0 {
+                    action.forward = true;
+                } else if (state.tick % 50) < 25 {
+                    action.left = true;
+                } else {
+                    action.right = true;
+                }
+                if angle_diff.abs() < 0.25 && nearest_dist < 40.0 {
                     action.fire = true;
                 }
             }
