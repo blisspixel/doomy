@@ -10,7 +10,7 @@ use std::io::{self, BufRead, Write};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tracing_subscriber::EnvFilter;
 
-#[derive(Parser)]
+#[derive(Parser, Debug, PartialEq, Eq)]
 #[command(name = "fragr-agent-adapter")]
 #[command(about = "fragr agent adapter - MCP server and bot client")]
 struct Args {
@@ -18,7 +18,7 @@ struct Args {
     command: Commands,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug, PartialEq, Eq)]
 enum Commands {
     Mcp {
         #[arg(long, default_value = "ws://127.0.0.1:6767")]
@@ -169,6 +169,97 @@ async fn mcp_leave_session(
     state.last_speak_tick = None;
 }
 
+/// Apply one MCP stdio line: parse, handle tools, drive WS leave/join/act/speak, write response.
+async fn apply_mcp_line(
+    line: &str,
+    server_url: &str,
+    session: &mut Option<McpWsSession>,
+    tool_state: &std::sync::Arc<tokio::sync::Mutex<ToolState>>,
+    stdout: &mut impl Write,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if line.len() > 100_000 {
+        tracing::warn!("Oversized MCP request ({} bytes), ignoring", line.len());
+        return Ok(());
+    }
+
+    let request: McpRequest = match serde_json::from_str(line) {
+        Ok(r) => r,
+        Err(e) => {
+            tracing::warn!("Malformed MCP request: {} - error: {}", line, e);
+            let error_response = McpResponse {
+                jsonrpc: "2.0".to_string(),
+                id: Value::Null,
+                result: None,
+                error: Some(McpError {
+                    code: -32700,
+                    message: "Parse error".to_string(),
+                }),
+            };
+            if let Ok(response_json) = serde_json::to_string(&error_response) {
+                let _ = writeln!(stdout, "{}", response_json);
+                let _ = stdout.flush();
+            }
+            return Ok(());
+        }
+    };
+
+    let outcome = {
+        let mut state = tool_state.lock().await;
+        handle_mcp_request(request, &mut state)
+    };
+
+    if outcome.pending_leave {
+        mcp_leave_session(session, tool_state).await;
+        tracing::info!("MCP leave: WebSocket disconnected");
+    }
+
+    if let Some(join_name) = outcome.pending_join {
+        // Drop any stale socket (recv died) before Hello reconnect.
+        if session.is_some() {
+            if let Some(mut s) = session.take() {
+                let _ = s.sink.send(Message::Close(None)).await;
+                s.recv_task.abort();
+            }
+        }
+        match mcp_connect_and_hello(server_url, &join_name, tool_state).await {
+            Ok(s) => {
+                *session = Some(s);
+                tracing::info!("MCP join: Hello/Welcome as '{}'", join_name);
+            }
+            Err(e) => {
+                tracing::error!("MCP join failed: {}", e);
+                let mut state = tool_state.lock().await;
+                state.connected = false;
+                state.player_id = None;
+                state.session_name = None;
+            }
+        }
+    }
+
+    if let Some(action) = outcome.pending_action {
+        if let Some(ref mut s) = session {
+            let action_msg = ClientMessage::Action(action);
+            s.sink
+                .send(Message::Text(serde_json::to_string(&action_msg)?))
+                .await?;
+        }
+    }
+
+    if let Some(speak) = outcome.pending_speak {
+        if let Some(ref mut s) = session {
+            let speak_msg = ClientMessage::Speak(speak);
+            s.sink
+                .send(Message::Text(serde_json::to_string(&speak_msg)?))
+                .await?;
+        }
+    }
+
+    let response_json = serde_json::to_string(&outcome.response)?;
+    writeln!(stdout, "{}", response_json)?;
+    stdout.flush()?;
+    Ok(())
+}
+
 async fn run_mcp_server(
     server_url: String,
     name: String,
@@ -193,87 +284,7 @@ async fn run_mcp_server(
 
     for line in stdin.lock().lines() {
         let line = line?;
-
-        if line.len() > 100_000 {
-            tracing::warn!("Oversized MCP request ({} bytes), ignoring", line.len());
-            continue;
-        }
-
-        let request: McpRequest = match serde_json::from_str(&line) {
-            Ok(r) => r,
-            Err(e) => {
-                tracing::warn!("Malformed MCP request: {} - error: {}", line, e);
-                let error_response = McpResponse {
-                    jsonrpc: "2.0".to_string(),
-                    id: Value::Null,
-                    result: None,
-                    error: Some(McpError {
-                        code: -32700,
-                        message: "Parse error".to_string(),
-                    }),
-                };
-                if let Ok(response_json) = serde_json::to_string(&error_response) {
-                    let _ = writeln!(stdout, "{}", response_json);
-                    let _ = stdout.flush();
-                }
-                continue;
-            }
-        };
-
-        let outcome = {
-            let mut state = tool_state.lock().await;
-            handle_mcp_request(request, &mut state)
-        };
-
-        if outcome.pending_leave {
-            mcp_leave_session(&mut session, &tool_state).await;
-            tracing::info!("MCP leave: WebSocket disconnected");
-        }
-
-        if let Some(join_name) = outcome.pending_join {
-            // Drop any stale socket (recv died) before Hello reconnect.
-            if session.is_some() {
-                if let Some(mut s) = session.take() {
-                    let _ = s.sink.send(Message::Close(None)).await;
-                    s.recv_task.abort();
-                }
-            }
-            match mcp_connect_and_hello(&server_url, &join_name, &tool_state).await {
-                Ok(s) => {
-                    session = Some(s);
-                    tracing::info!("MCP join: Hello/Welcome as '{}'", join_name);
-                }
-                Err(e) => {
-                    tracing::error!("MCP join failed: {}", e);
-                    let mut state = tool_state.lock().await;
-                    state.connected = false;
-                    state.player_id = None;
-                    state.session_name = None;
-                }
-            }
-        }
-
-        if let Some(action) = outcome.pending_action {
-            if let Some(ref mut s) = session {
-                let action_msg = ClientMessage::Action(action);
-                s.sink
-                    .send(Message::Text(serde_json::to_string(&action_msg)?))
-                    .await?;
-            }
-        }
-
-        if let Some(speak) = outcome.pending_speak {
-            if let Some(ref mut s) = session {
-                let speak_msg = ClientMessage::Speak(speak);
-                s.sink
-                    .send(Message::Text(serde_json::to_string(&speak_msg)?))
-                    .await?;
-            }
-        }
-
-        let response_json = serde_json::to_string(&outcome.response)?;
-        writeln!(stdout, "{}", response_json)?;
-        stdout.flush()?;
+        apply_mcp_line(&line, &server_url, &mut session, &tool_state, &mut stdout).await?;
     }
 
     Ok(())
@@ -419,6 +430,7 @@ fn compute_bot_action(bot_id: uuid::Uuid, snapshot: &protocol::Snapshot) -> prot
 #[cfg(test)]
 mod tests {
     use super::*;
+    use futures_util::{SinkExt, StreamExt};
     use mcp::validate_act_arguments;
     use serde_json::Value;
 
@@ -1226,5 +1238,293 @@ mod tests {
         assert!(maybe_bot_taunt(1, bot_id).is_none());
         let line = maybe_bot_taunt(160, bot_id).expect("taunt on cadence");
         assert!(BOT_TAUNTS.iter().any(|t| *t == line), "{line}");
+    }
+
+    #[test]
+    fn args_parse_mcp_defaults() {
+        let args = Args::try_parse_from(["fragr-agent-adapter", "mcp"]).expect("mcp");
+        match args.command {
+            Commands::Mcp { server, name } => {
+                assert_eq!(server, "ws://127.0.0.1:6767");
+                assert!(name.is_none());
+            }
+            other => panic!("expected Mcp, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn args_parse_scripted_bot_with_name() {
+        let args = Args::try_parse_from([
+            "fragr-agent-adapter",
+            "scripted-bot",
+            "--server",
+            "ws://127.0.0.1:9999",
+            "--name",
+            "ScrapFox",
+        ])
+        .expect("scripted-bot");
+        match args.command {
+            Commands::ScriptedBot { server, name } => {
+                assert_eq!(server, "ws://127.0.0.1:9999");
+                assert_eq!(name.as_deref(), Some("ScrapFox"));
+            }
+            other => panic!("expected ScriptedBot, got {other:?}"),
+        }
+    }
+
+    /// Local WS peer that completes Hello/Welcome (and optional post-welcome traffic).
+    async fn spawn_welcome_peer(mode: WelcomePeerMode) -> (String, tokio::task::JoinHandle<()>) {
+        use tokio::net::TcpListener;
+        use tokio_tungstenite::accept_async;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
+        let addr = listener.local_addr().expect("addr");
+        let handle = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.expect("accept");
+            let mut ws = accept_async(stream).await.expect("ws accept");
+            if let Some(Ok(Message::Text(hello))) = ws.next().await {
+                assert!(
+                    hello.contains("hello") || hello.contains("Hello") || hello.contains("type")
+                );
+                let welcome = serde_json::json!({
+                    "type": "welcome",
+                    "player_id": uuid::Uuid::new_v4().to_string(),
+                    "role": "agent",
+                    "mode_name": "Contested Frequency",
+                    "playlist": "Solo Scrap"
+                });
+                ws.send(Message::Text(welcome.to_string()))
+                    .await
+                    .expect("welcome");
+            } else {
+                panic!("expected hello text");
+            }
+
+            match mode {
+                WelcomePeerMode::HoldOpen => {
+                    // Keep socket open until client closes or test ends.
+                    while let Some(msg) = ws.next().await {
+                        match msg {
+                            Ok(Message::Close(_)) | Err(_) => break,
+                            Ok(Message::Text(_)) => {}
+                            Ok(Message::Ping(p)) => {
+                                let _ = ws.send(Message::Pong(p)).await;
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                WelcomePeerMode::SnapshotThenClose => {
+                    let snapshot = serde_json::json!({
+                        "type": "snapshot",
+                        "tick": 1,
+                        "players": [],
+                        "round_state": "Active",
+                        "round_time_left": 60,
+                        "frag_limit": 10,
+                        "shot_results": [],
+                        "mode_name": "Contested Frequency",
+                        "playlist": "Solo Scrap",
+                        "pressure": null,
+                        "host_line": "frequency contested",
+                        "pickups": []
+                    });
+                    let _ = ws.send(Message::Text(snapshot.to_string())).await;
+                    // Drain one client action/speak if any, then close.
+                    let _ = tokio::time::timeout(std::time::Duration::from_millis(200), ws.next())
+                        .await;
+                    let _ = ws.close(None).await;
+                }
+            }
+        });
+        (format!("ws://{addr}"), handle)
+    }
+
+    #[derive(Clone, Copy)]
+    enum WelcomePeerMode {
+        HoldOpen,
+        SnapshotThenClose,
+    }
+
+    #[tokio::test]
+    async fn mcp_connect_hello_and_leave_smoke() {
+        let (url, peer) = spawn_welcome_peer(WelcomePeerMode::HoldOpen).await;
+        let tool_state = std::sync::Arc::new(tokio::sync::Mutex::new(ToolState {
+            default_name: "CovAgent".into(),
+            ..Default::default()
+        }));
+
+        let session = mcp_connect_and_hello(&url, "CovAgent", &tool_state)
+            .await
+            .expect("connect hello");
+        {
+            let state = tool_state.lock().await;
+            assert!(state.connected, "Welcome should mark connected");
+            assert!(state.player_id.is_some());
+            assert_eq!(state.session_name.as_deref(), Some("CovAgent"));
+        }
+
+        let mut session_opt = Some(session);
+        mcp_leave_session(&mut session_opt, &tool_state).await;
+        assert!(session_opt.is_none());
+        {
+            let state = tool_state.lock().await;
+            assert!(!state.connected);
+            assert!(state.player_id.is_none());
+            assert!(state.session_name.is_none());
+        }
+
+        let _ = tokio::time::timeout(std::time::Duration::from_secs(2), peer).await;
+    }
+
+    #[tokio::test]
+    async fn apply_mcp_line_malformed_and_oversized() {
+        let tool_state = std::sync::Arc::new(tokio::sync::Mutex::new(ToolState::default()));
+        let mut session = None;
+        let mut out = Vec::new();
+
+        apply_mcp_line(
+            "{not-json",
+            "ws://127.0.0.1:9",
+            &mut session,
+            &tool_state,
+            &mut out,
+        )
+        .await
+        .expect("malformed ok");
+        let malformed = String::from_utf8(out.clone()).expect("utf8");
+        assert!(malformed.contains("Parse error"), "{malformed}");
+
+        out.clear();
+        let huge = "x".repeat(100_001);
+        apply_mcp_line(
+            &huge,
+            "ws://127.0.0.1:9",
+            &mut session,
+            &tool_state,
+            &mut out,
+        )
+        .await
+        .expect("oversized ok");
+        assert!(out.is_empty(), "oversized must not write a response");
+    }
+
+    #[tokio::test]
+    async fn apply_mcp_line_leave_act_speak_over_live_ws() {
+        let (url, peer) = spawn_welcome_peer(WelcomePeerMode::HoldOpen).await;
+        let tool_state = std::sync::Arc::new(tokio::sync::Mutex::new(ToolState {
+            default_name: "LineAgent".into(),
+            ..Default::default()
+        }));
+        let mut session = Some(
+            mcp_connect_and_hello(&url, "LineAgent", &tool_state)
+                .await
+                .expect("hello"),
+        );
+        let mut out = Vec::new();
+
+        let act = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {
+                "name": "act",
+                "arguments": {"forward": true, "fire": true}
+            }
+        });
+        apply_mcp_line(&act.to_string(), &url, &mut session, &tool_state, &mut out)
+            .await
+            .expect("act");
+        assert!(session.is_some());
+        assert!(String::from_utf8_lossy(&out).contains("jsonrpc"));
+
+        out.clear();
+        let speak = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/call",
+            "params": {
+                "name": "speak",
+                "arguments": {"text": "frequency contested"}
+            }
+        });
+        apply_mcp_line(
+            &speak.to_string(),
+            &url,
+            &mut session,
+            &tool_state,
+            &mut out,
+        )
+        .await
+        .expect("speak");
+
+        out.clear();
+        let leave = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {"name": "leave", "arguments": {}}
+        });
+        apply_mcp_line(
+            &leave.to_string(),
+            &url,
+            &mut session,
+            &tool_state,
+            &mut out,
+        )
+        .await
+        .expect("leave");
+        assert!(session.is_none(), "leave should drop WS session");
+        {
+            let state = tool_state.lock().await;
+            assert!(!state.connected);
+        }
+
+        let _ = tokio::time::timeout(std::time::Duration::from_secs(2), peer).await;
+    }
+
+    #[tokio::test]
+    async fn apply_mcp_line_join_reconnects_when_disconnected() {
+        let (url, peer) = spawn_welcome_peer(WelcomePeerMode::HoldOpen).await;
+        let tool_state = std::sync::Arc::new(tokio::sync::Mutex::new(ToolState {
+            default_name: "Rejoin".into(),
+            ..Default::default()
+        }));
+        // Start disconnected (no boot Hello) so join path fires.
+        let mut session = None;
+        let mut out = Vec::new();
+        let join = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {
+                "name": "join",
+                "arguments": {"name": "RejoinFox"}
+            }
+        });
+        apply_mcp_line(&join.to_string(), &url, &mut session, &tool_state, &mut out)
+            .await
+            .expect("join");
+        assert!(session.is_some(), "join should open WS");
+        {
+            let state = tool_state.lock().await;
+            assert!(state.connected);
+            assert_eq!(state.session_name.as_deref(), Some("RejoinFox"));
+        }
+        mcp_leave_session(&mut session, &tool_state).await;
+        let _ = tokio::time::timeout(std::time::Duration::from_secs(2), peer).await;
+    }
+
+    #[tokio::test]
+    async fn run_scripted_bot_hello_snapshot_then_disconnect() {
+        let (url, peer) = spawn_welcome_peer(WelcomePeerMode::SnapshotThenClose).await;
+        let result = tokio::time::timeout(
+            std::time::Duration::from_secs(3),
+            run_scripted_bot(url, "ScriptCov".into()),
+        )
+        .await
+        .expect("scripted bot timeout");
+        assert!(result.is_ok(), "{result:?}");
+        let _ = tokio::time::timeout(std::time::Duration::from_secs(2), peer).await;
     }
 }
