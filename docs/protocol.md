@@ -17,6 +17,8 @@ WebSocket JSON protocol between clients and the authoritative server.
 
 **MCP agent-adapter session tools:** boot Hello-on-start remains valid. First-class tools `join` (Hello/Welcome, optional name, idempotent), `leave` (clean WebSocket disconnect; `isError` if not connected), and `round_state` (round fields from last snapshot + recent `round_start` / `round_end`) are documented in `agent-adapter/README.md`. There is no separate on-wire Leave message; leave is disconnect.
 
+**Reconnect:** re-Hello as human/agent with the same display name reclaims the prior client-mapped seat (ghost eviction + `PlayerLeft`, then fresh `Welcome` / `PlayerJoined`). Rule bots are not client-mapped and are never evicted by name. A new name after a clean leave is a new session. Late Disconnect for an already-evicted socket is a noop.
+
 ## Message Types
 
 ### Client → Server
