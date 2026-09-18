@@ -55,56 +55,80 @@ Change `config/name` in `client/project.godot` from `"Doomy Client"` to `"fragr"
 ### 3. Weapon icons on HUD
 
 Modify `client/scripts/hud.gd`:
-- Add a `TextureRect` node for weapon icon display (or create dynamically)
+- Add a `TextureRect` node for weapon icon display (130x130px, bottom-right)
+- Add dark panel background for weapon display
 - Load weapon textures: `res://assets/weapons/32/flechette.png`, `rail.png`, `scatter.png`
-- Display appropriate weapon icon based on followed player's `state.weapon`
+- Display weapon icon + player name + weapon role ("RAIL (sniper)", "SCATTER (close)", "FLECHETTE (balanced)")
 
 Modify `client/scripts/player_pawn.gd`:
-- Continue showing weapon name in label text as fallback
-- Expose current weapon for HUD queries
+- Track current weapon for HUD queries
+- Expose weapon name via `get_weapon_name()` method
 
-### 4. Character sprites
+### 4. Character sprites with variety
 
 Replace `CapsuleMesh` bodies in `client/scenes/player.tscn` with `Sprite3D` nodes:
-- Use `cyanex_idle_strip.png` for one faction/team (or all bots)
-- Optionally use `kragge_idle_strip.png` for visual variety
-- Set `Sprite3D` billboard mode to `BILLBOARD_FIXED_Y` (face camera, but stay upright)
+- Use **two character types for clear visual distinction:**
+  - **Kragge** (bulkier): Rusher, Tank, Hunter
+  - **Cyanex** (sleeker): Sniper, Flanker, Scout, Guard, Striker
+- Set `Sprite3D` billboard mode to `BILLBOARD_FIXED_Y` (face camera, stay upright)
 - Keep label above character
-- Apply color tint via `modulate` or material to preserve per-player colors
+- Apply color tint via `modulate` to preserve per-player colors
+- Add 4-frame idle animation bob
 
 Modify `client/scripts/player_pawn.gd`:
 - Update to work with `Sprite3D` instead of `MeshInstance3D`
+- Select character sprite based on bot name (kragge vs cyanex)
 - Keep color coding system
-- Keep hit flash and emission effects (adapt for sprite materials)
+- Enhanced hit flash: scale to 1.2x, brighter red (1.8, 0.3, 0.3)
+- Low-HP warning: show `!HP!` when < 30
 
-### 5. Floor and wall tiles
+### 5. Weapon sprites on characters
 
-Option A (simple):
-- Apply texture to existing floor `PlaneMesh` using `StandardMaterial3D.albedo_texture`
-- Apply texture to wall meshes
+Add `WeaponSprite` Sprite3D child to character body:
+- Display current weapon icon on fighter
+- Position offset to side/front (visible silhouette)
+- Color-tint to match fighter color
+- Update dynamically when weapon changes
+
+### 6. Floor and wall tiles
+
+Apply textures to existing arena meshes:
+- Floor: `StandardMaterial3D.albedo_texture` with `floor.png`, nearest filter
+- Walls: same approach with `wall.png`
 - Keep arena zone markers (spawn areas, hazards) as-is
+- Arena functionality must not regress
 
-Option B (TileMap):
-- Only if trivial to add without breaking arena zones
-- Otherwise, defer to future work
-
-Start with Option A. Arena functionality must not regress.
-
-### 6. VFX wiring
+### 7. VFX wiring - Punchy and dramatic
 
 Modify `client/scripts/player_pawn.gd` `show_muzzle_flash()`:
 - Replace muzzle `MeshInstance3D` capsule with `Sprite3D`
-- Use `muzzle_flash.png` for Flechette and Scatter weapons
-- Use `rail_beam_tip.png` for Rail weapon (check `state.weapon`)
+- **Rail weapon:** 2.5x scale, cyan-tinted `rail_beam_tip.png`, 4.0 energy cyan `OmniLight3D` (5m range)
+- **Scatter/Flechette:** 2x scale, warm-tinted `muzzle_flash.png`, 3.5 energy warm `OmniLight3D` (4m range)
+- **Snappier timing:** 0.06s flash duration
 - Position sprite at weapon muzzle location (billboard mode)
-- Keep existing flash timing and scale animation
 
-### 7. HUD layout enhancement (optional)
+Add `OmniLight3D` child to muzzle sprite:
+- Dynamic light energy and color based on weapon type
+- Creates dramatic lighting during fire
 
-If weapon icon looks awkward in current HUD:
-- Adjust `client/scenes/main.tscn` HUD panel layout
-- Add weapon icon display area near player name or corner
-- Keep changes minimal and consistent with existing style
+### 8. HUD and combat drama
+
+Enhance `client/scripts/hud.gd`:
+- Weapon icon enlarged to 130x130px with dark panel background
+- Weapon display shows player name + weapon + role description
+- Frag label: 1.3x scale animation, 2.8s display duration, brighter color (0.4 lighten)
+- Round end winner: more dramatic formatting and animation (1.4x scale)
+
+Enhance `client/scripts/game_manager.gd`:
+- Frag camera lock extended to 2.0s (from 1.5s)
+- Pass player name to weapon display for context
+
+### 9. Arena lighting
+
+Brighten arena for better visibility:
+- Directional light: 1.5 energy (was 1.2), warm color tint
+- Omni light: 0.5 energy (was 0.3)
+- Better fighter and VFX visibility
 
 ## Architecture impact
 
@@ -133,7 +157,7 @@ If weapon icon looks awkward in current HUD:
 
 ### Post-implementation
 
-- [ ] Smoke test: `cargo run -p doomy-server` with 4 bots
+- [ ] Smoke test: `cargo run -p fragr-server` with 4 bots
 - [ ] Godot client shows pixel art characters fighting
 - [ ] Weapon icons visible and change with weapon state
 - [ ] Muzzle flash and rail effects use correct sprites
