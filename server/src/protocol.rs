@@ -67,6 +67,18 @@ pub enum Role {
     Agent,
 }
 
+/// World-point or player-id aim target. Server applies yaw toward the target.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct LookAt {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub x: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub z: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub player_id: Option<Uuid>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct Action {
@@ -86,6 +98,24 @@ pub struct Action {
     pub fire: bool,
     #[serde(default)]
     pub weapon_swap: Option<WeaponType>,
+    /// Authoritative aim: yaw snaps toward player_id (preferred) or world x/z.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub look_at: Option<LookAt>,
+}
+
+/// Per-tick fire outcome for observe (hit-confirm without vision).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ShotResult {
+    pub shooter_id: Uuid,
+    pub shooter: String,
+    pub hit: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target: Option<String>,
+    pub damage: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_hp_after: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -98,6 +128,9 @@ pub struct Snapshot {
     pub round_time_left: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub frag_limit: Option<u32>,
+    /// Shots resolved on this tick (empty omitted on wire).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub shot_results: Vec<ShotResult>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -129,6 +162,15 @@ pub enum GameEvent {
         killer: String,
         victim: String,
         killer_score: u32,
+    },
+    /// Non-lethal or pre-frag damage. Structured hit-confirm for agents.
+    Hit {
+        shooter: String,
+        shooter_id: Uuid,
+        target: String,
+        target_id: Uuid,
+        damage: i32,
+        target_hp_after: i32,
     },
     Respawn {
         player: String,
@@ -185,8 +227,103 @@ mod protocol_tests {
                 assert!(a.forward);
                 assert!(a.fire);
                 assert!(!a.back);
+                assert!(a.look_at.is_none());
             }
             other => panic!("expected Action, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn look_at_player_id_deserializes() {
+        let id = Uuid::new_v4();
+        let json = format!(r#"{{"type":"action","look_at":{{"player_id":"{}"}}}}"#, id);
+        let parsed: ClientMessage = serde_json::from_str(&json).expect("look_at action");
+        match parsed {
+            ClientMessage::Action(a) => {
+                let look = a.look_at.expect("look_at present");
+                assert_eq!(look.player_id, Some(id));
+                assert!(look.x.is_none());
+                assert!(look.z.is_none());
+            }
+            other => panic!("expected Action, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn look_at_world_xz_deserializes() {
+        let json = r#"{"type":"action","look_at":{"x":10.0,"z":-5.0}}"#;
+        let parsed: ClientMessage = serde_json::from_str(json).expect("look_at xz");
+        match parsed {
+            ClientMessage::Action(a) => {
+                let look = a.look_at.expect("look_at present");
+                assert_eq!(look.x, Some(10.0));
+                assert_eq!(look.z, Some(-5.0));
+                assert!(look.player_id.is_none());
+            }
+            other => panic!("expected Action, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn unknown_look_at_field_fails_deserialize() {
+        let json = r#"{"type":"action","look_at":{"x":1.0,"z":2.0,"laser":true}}"#;
+        let parsed: Result<ClientMessage, _> = serde_json::from_str(json);
+        assert!(
+            parsed.is_err(),
+            "unknown LookAt field must fail: {:?}",
+            parsed
+        );
+    }
+
+    #[test]
+    fn shot_result_and_hit_event_round_trip() {
+        let shooter_id = Uuid::new_v4();
+        let target_id = Uuid::new_v4();
+        let shot = ShotResult {
+            shooter_id,
+            shooter: "A".into(),
+            hit: true,
+            target_id: Some(target_id),
+            target: Some("B".into()),
+            damage: 25,
+            target_hp_after: Some(75),
+        };
+        let snap = Snapshot {
+            tick: 1,
+            players: vec![],
+            round_state: None,
+            round_time_left: None,
+            frag_limit: None,
+            shot_results: vec![shot.clone()],
+        };
+        let v = serde_json::to_value(&snap).unwrap();
+        assert_eq!(v["shot_results"][0]["hit"], true);
+        assert_eq!(v["shot_results"][0]["damage"], 25);
+        let back: Snapshot = serde_json::from_value(v).unwrap();
+        assert_eq!(back.shot_results, vec![shot]);
+
+        let hit = GameEvent::Hit {
+            shooter: "A".into(),
+            shooter_id,
+            target: "B".into(),
+            target_id,
+            damage: 25,
+            target_hp_after: 75,
+        };
+        let ev = serde_json::to_value(&hit).unwrap();
+        assert_eq!(ev["event"], "hit");
+        assert_eq!(ev["target_hp_after"], 75);
+        let back: GameEvent = serde_json::from_value(ev).unwrap();
+        match back {
+            GameEvent::Hit {
+                damage,
+                target_hp_after,
+                ..
+            } => {
+                assert_eq!(damage, 25);
+                assert_eq!(target_hp_after, 75);
+            }
+            other => panic!("expected Hit, got {:?}", other),
         }
     }
 }

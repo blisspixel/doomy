@@ -54,7 +54,10 @@ const ACT_ALLOWED_KEYS: &[&str] = &[
     "turn_right",
     "fire",
     "weapon_swap",
+    "look_at",
 ];
+
+const LOOK_AT_ALLOWED_KEYS: &[&str] = &["x", "z", "player_id"];
 
 /// Validate MCP `act` arguments. Empty/missing args are OK (all defaults).
 /// Unknown keys and bad weapon_swap values are schema errors (do not coerce).
@@ -112,6 +115,64 @@ pub fn validate_act_arguments(arguments: &Value) -> Result<Action, String> {
     let bool_field =
         |key: &str| -> bool { obj.get(key).and_then(|v| v.as_bool()).unwrap_or(false) };
 
+    let look_at = if let Some(v) = obj.get("look_at") {
+        if v.is_null() {
+            None
+        } else {
+            let look_obj = v
+                .as_object()
+                .ok_or_else(|| "schema error: look_at must be an object".to_string())?;
+            let mut unknowns: Vec<&str> = look_obj
+                .keys()
+                .filter(|k| !LOOK_AT_ALLOWED_KEYS.contains(&k.as_str()))
+                .map(|k| k.as_str())
+                .collect();
+            unknowns.sort();
+            if !unknowns.is_empty() {
+                let listed = unknowns
+                    .iter()
+                    .map(|k| format!("'{}'", k))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                return Err(format!("schema error: unknown look_at field(s) {}", listed));
+            }
+
+            let num_field = |key: &str| -> Result<Option<f32>, String> {
+                match look_obj.get(key) {
+                    None => Ok(None),
+                    Some(val) if val.is_null() => Ok(None),
+                    Some(val) => val
+                        .as_f64()
+                        .map(|n| Some(n as f32))
+                        .ok_or_else(|| format!("schema error: look_at.{} must be a number", key)),
+                }
+            };
+            let player_id = match look_obj.get("player_id") {
+                None => None,
+                Some(val) if val.is_null() => None,
+                Some(val) => {
+                    let s = val.as_str().ok_or_else(|| {
+                        "schema error: look_at.player_id must be a uuid string".to_string()
+                    })?;
+                    Some(Uuid::parse_str(s).map_err(|_| {
+                        format!(
+                            "schema error: look_at.player_id must be a valid uuid, got '{}'",
+                            s
+                        )
+                    })?)
+                }
+            };
+            let x = num_field("x")?;
+            let z = num_field("z")?;
+            if player_id.is_none() && (x.is_none() || z.is_none()) {
+                return Err("schema error: look_at requires player_id or both x and z".to_string());
+            }
+            Some(protocol::LookAt { x, z, player_id })
+        }
+    } else {
+        None
+    };
+
     Ok(Action {
         forward: bool_field("forward"),
         back: bool_field("back"),
@@ -121,6 +182,7 @@ pub fn validate_act_arguments(arguments: &Value) -> Result<Action, String> {
         turn_right: bool_field("turn_right"),
         fire: bool_field("fire"),
         weapon_swap,
+        look_at,
     })
 }
 
@@ -167,7 +229,7 @@ fn tools_list_result() -> Value {
         "tools": [
             {
                 "name": "observe",
-                "description": "Get current game state observation including self_player_id and recent events. Returns connecting state until first snapshot arrives.",
+                "description": "Get current game state observation including self_player_id, recent events, and shot_results (hit-confirm). Returns connecting state until first snapshot arrives.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {},
@@ -176,7 +238,7 @@ fn tools_list_result() -> Value {
             },
             {
                 "name": "act",
-                "description": "Send action to the game server. Actions are level-held (sticky) within each tick window. Set true to activate, false to deactivate. Weapon swap changes loadout.",
+                "description": "Send action to the game server. Actions are level-held (sticky) within each tick window. Set true to activate, false to deactivate. Weapon swap changes loadout. look_at aims (server applies yaw).",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -187,7 +249,17 @@ fn tools_list_result() -> Value {
                         "turn_left": {"type": "boolean", "default": false, "description": "Turn left"},
                         "turn_right": {"type": "boolean", "default": false, "description": "Turn right"},
                         "fire": {"type": "boolean", "default": false, "description": "Fire weapon"},
-                        "weapon_swap": {"type": "string", "enum": ["flechette", "rail", "scatter"], "description": "Switch to weapon type"}
+                        "weapon_swap": {"type": "string", "enum": ["flechette", "rail", "scatter"], "description": "Switch to weapon type"},
+                        "look_at": {
+                            "type": "object",
+                            "description": "Aim: server sets yaw toward player_id (preferred) or world x/z",
+                            "properties": {
+                                "player_id": {"type": "string", "description": "Target player UUID"},
+                                "x": {"type": "number", "description": "World X target"},
+                                "z": {"type": "number", "description": "World Z target"}
+                            },
+                            "additionalProperties": false
+                        }
                     },
                     "required": []
                 }
@@ -556,5 +628,39 @@ mod mcp_tests {
         let json = serde_json::to_string(&hello).unwrap();
         assert!(json.contains("ArenaFox"));
         assert!(!json.contains("MCP Agent"));
+    }
+
+    #[test]
+    fn look_at_player_id_ok() {
+        let id = Uuid::new_v4();
+        let args = serde_json::json!({"look_at": {"player_id": id.to_string()}, "fire": true});
+        let action = validate_act_arguments(&args).expect("valid look_at");
+        assert!(action.fire);
+        let look = action.look_at.expect("look_at");
+        assert_eq!(look.player_id, Some(id));
+    }
+
+    #[test]
+    fn look_at_xz_ok() {
+        let args = serde_json::json!({"look_at": {"x": 1.5, "z": -2.0}});
+        let action = validate_act_arguments(&args).expect("valid look_at xz");
+        let look = action.look_at.expect("look_at");
+        assert_eq!(look.x, Some(1.5));
+        assert_eq!(look.z, Some(-2.0));
+    }
+
+    #[test]
+    fn look_at_unknown_field_errors() {
+        let args = serde_json::json!({"look_at": {"x": 1.0, "z": 2.0, "laser": true}});
+        let err = validate_act_arguments(&args).unwrap_err();
+        assert!(err.contains("look_at"), "{err}");
+        assert!(err.contains("laser") || err.contains("unknown"), "{err}");
+    }
+
+    #[test]
+    fn look_at_incomplete_xz_errors() {
+        let args = serde_json::json!({"look_at": {"x": 1.0}});
+        let err = validate_act_arguments(&args).unwrap_err();
+        assert!(err.contains("look_at"), "{err}");
     }
 }
