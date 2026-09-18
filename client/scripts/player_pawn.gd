@@ -79,14 +79,31 @@ func _ready():
 	cyanex_texture = load("res://assets/characters/64/cyanex_idle_strip.png")
 	kragge_texture = load("res://assets/characters/64/kragge_idle_strip.png")
 
+var fire_streams = {}
+var hit_streams = {}
+
 func _load_audio_streams():
 	var audio_dir = "res://assets/audio/"
+	var fallback_fire = audio_dir + "fire.wav"
+	var fallback_hit = audio_dir + "hit.wav"
 	
-	if fire_sound and ResourceLoader.exists(audio_dir + "fire.wav"):
-		fire_sound.stream = load(audio_dir + "fire.wav")
+	for w in ["Flechette", "Rail", "Scatter"]:
+		var key = w.to_lower()
+		var fire_path = audio_dir + "fire_" + key + ".wav"
+		var hit_path = audio_dir + "hit_" + key + ".wav"
+		if ResourceLoader.exists(fire_path):
+			fire_streams[w] = load(fire_path)
+		elif ResourceLoader.exists(fallback_fire):
+			fire_streams[w] = load(fallback_fire)
+		if ResourceLoader.exists(hit_path):
+			hit_streams[w] = load(hit_path)
+		elif ResourceLoader.exists(fallback_hit):
+			hit_streams[w] = load(fallback_hit)
 	
-	if hit_sound and ResourceLoader.exists(audio_dir + "hit.wav"):
-		hit_sound.stream = load(audio_dir + "hit.wav")
+	if fire_sound and ResourceLoader.exists(fallback_fire):
+		fire_sound.stream = load(fallback_fire)
+	if hit_sound and ResourceLoader.exists(fallback_hit):
+		hit_sound.stream = load(fallback_hit)
 
 func _process(delta):
 	position = position.lerp(target_position, INTERP_SPEED * delta)
@@ -210,41 +227,61 @@ func _update_body_color(hit: bool):
 	_apply_body_scale(hit)
 
 func show_muzzle_flash(weapon: String):
-	if fire_sound and fire_sound.stream:
-		fire_sound.play()
+	if fire_sound:
+		if fire_streams.has(weapon):
+			fire_sound.stream = fire_streams[weapon]
+		if fire_sound.stream:
+			fire_sound.play()
 	
 	if not muzzle:
 		return
 	
+	var flash_time = 0.06
 	if weapon == "Rail":
 		muzzle.texture = rail_beam_texture
-		muzzle.modulate = Color(1.8, 1.8, 2.5)
-		muzzle.scale = Vector3.ONE * 2.5
+		# Gunmetal / cold bone, not neon.
+		muzzle.modulate = Color(0.72, 0.78, 0.82)
+		muzzle.scale = Vector3.ONE * 2.8
+		flash_time = 0.10
 		if muzzle_glow:
-			muzzle_glow.light_color = Color(0.35, 0.58, 0.65)
-			muzzle_glow.light_energy = 4.0
-			muzzle_glow.omni_range = 5.0
-	else:
+			muzzle_glow.light_color = Color(0.45, 0.52, 0.55)
+			muzzle_glow.light_energy = 4.2
+			muzzle_glow.omni_range = 5.5
+	elif weapon == "Scatter":
 		muzzle.texture = muzzle_flash_texture
-		muzzle.modulate = Color(1.9, 1.35, 0.7)
-		muzzle.scale = Vector3.ONE * 2.0
+		muzzle.modulate = Color(0.95, 0.55, 0.28)
+		muzzle.scale = Vector3.ONE * 2.6
+		flash_time = 0.08
 		if muzzle_glow:
-			muzzle_glow.light_color = Color(0.85, 0.45, 0.18)
-			muzzle_glow.light_energy = 3.5
-			muzzle_glow.omni_range = 4.0
+			muzzle_glow.light_color = Color(0.85, 0.42, 0.16)
+			muzzle_glow.light_energy = 4.0
+			muzzle_glow.omni_range = 4.5
+	else:
+		# Flechette: tight ember needle.
+		muzzle.texture = muzzle_flash_texture
+		muzzle.modulate = Color(0.92, 0.78, 0.55)
+		muzzle.scale = Vector3.ONE * 1.7
+		if muzzle_glow:
+			muzzle_glow.light_color = Color(0.78, 0.55, 0.28)
+			muzzle_glow.light_energy = 2.8
+			muzzle_glow.omni_range = 3.2
 	
 	muzzle.visible = true
 	
-	await get_tree().create_timer(0.06).timeout
+	await get_tree().create_timer(flash_time).timeout
 	if is_instance_valid(muzzle):
 		muzzle.visible = false
 		muzzle.scale = Vector3.ONE
 		if muzzle_glow:
 			muzzle_glow.light_energy = 0.0
 
-func show_hit_feedback():
-	if hit_sound and hit_sound.stream:
-		hit_sound.play()
+func show_hit_feedback(weapon: String = ""):
+	if hit_sound:
+		var w = weapon if weapon != "" else current_weapon
+		if hit_streams.has(w):
+			hit_sound.stream = hit_streams[w]
+		if hit_sound.stream:
+			hit_sound.play()
 	
 	hit_flash_timer = 0.25
 	_update_body_color(true)

@@ -14,8 +14,14 @@ Full license: https://creativecommons.org/publicdomain/zero/1.0/
 
 ## Files
 
-- `fire.wav` - Weapon fire sound (kick + snap + crack, snappy arcade punch, 0.06s)
-- `hit.wav` - Hit confirmation sound (thwack + ding + thump, satisfying feedback, 0.08s)
+- `fire.wav` - Legacy / fallback weapon fire (kick + snap + crack, snappy arcade punch)
+- `hit.wav` - Legacy / fallback hit confirm (thwack + ding + thump)
+- `fire_flechette.wav` - Flechette fire (needle chatter)
+- `fire_rail.wav` - Rail fire (heavy charge crack + cold ring)
+- `fire_scatter.wav` - Scatter fire (chunky noise blast)
+- `hit_flechette.wav` - Flechette hit (needle thwack)
+- `hit_rail.wav` - Rail hit (deep thump + cold ding)
+- `hit_scatter.wav` - Scatter hit (chunky splat)
 - `frag.wav` - Frag/elimination sound (massive bass + explosion + rising sweep + sparkle cascade, sells the moment, 0.30s)
 - `round_start.wav` - Round start cue (charge-up + impact beep + punch, arcade excitement, 0.20s)
 - `round_end.wav` - Round end sound (victorious chord + bass thump, dramatic fanfare, 0.35s)
