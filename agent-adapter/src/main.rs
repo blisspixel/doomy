@@ -113,25 +113,62 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
 
     tokio::spawn(async move {
         while let Some(msg) = ws_stream.next().await {
-            if let Ok(Message::Text(text)) = msg {
-                match serde_json::from_str::<ServerMessage>(&text) {
-                    Ok(ServerMessage::Snapshot(snapshot)) => {
-                        let snapshot_value = serde_json::to_value(snapshot).unwrap();
-                        *last_snapshot_clone.lock().await = Some(snapshot_value);
+            match msg {
+                Ok(Message::Text(text)) => {
+                    if text.len() > 1_000_000 {
+                        tracing::warn!(
+                            "Oversized message received ({} bytes), ignoring",
+                            text.len()
+                        );
+                        continue;
                     }
-                    Ok(ServerMessage::Event(event)) => {
-                        let event_value = serde_json::to_value(event).unwrap();
-                        let mut events = recent_events_clone.lock().await;
-                        events.push(event_value);
-                        if events.len() > 50 {
-                            events.remove(0);
+
+                    match serde_json::from_str::<ServerMessage>(&text) {
+                        Ok(ServerMessage::Snapshot(snapshot)) => {
+                            match serde_json::to_value(snapshot) {
+                                Ok(snapshot_value) => {
+                                    *last_snapshot_clone.lock().await = Some(snapshot_value);
+                                }
+                                Err(e) => {
+                                    tracing::error!("Failed to serialize snapshot: {}", e);
+                                }
+                            }
                         }
-                        tracing::info!("Game event received: {}", text);
+                        Ok(ServerMessage::Event(event)) => match serde_json::to_value(event) {
+                            Ok(event_value) => {
+                                let mut events = recent_events_clone.lock().await;
+                                events.push(event_value);
+                                if events.len() > 50 {
+                                    events.remove(0);
+                                }
+                                tracing::info!("Game event received: {}", text);
+                            }
+                            Err(e) => {
+                                tracing::error!("Failed to serialize event: {}", e);
+                            }
+                        },
+                        Ok(ServerMessage::Welcome { .. }) => {}
+                        Err(e) => {
+                            tracing::warn!(
+                                "Failed to parse server message: {} - error: {}",
+                                text,
+                                e
+                            );
+                        }
                     }
-                    Ok(ServerMessage::Welcome { .. }) => {}
-                    Err(e) => {
-                        tracing::warn!("Failed to parse server message: {} - error: {}", text, e);
-                    }
+                }
+                Ok(Message::Close(_)) => {
+                    tracing::info!("Server closed connection");
+                    break;
+                }
+                Ok(Message::Ping(_)) | Ok(Message::Pong(_)) => {}
+                Ok(Message::Binary(_)) => {
+                    tracing::warn!("Unexpected binary message, ignoring");
+                }
+                Ok(Message::Frame(_)) => {}
+                Err(e) => {
+                    tracing::error!("WebSocket error: {}", e);
+                    break;
                 }
             }
         }
@@ -142,9 +179,31 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
 
     for line in stdin.lock().lines() {
         let line = line?;
+
+        if line.len() > 100_000 {
+            tracing::warn!("Oversized MCP request ({} bytes), ignoring", line.len());
+            continue;
+        }
+
         let request: McpRequest = match serde_json::from_str(&line) {
             Ok(r) => r,
-            Err(_) => continue,
+            Err(e) => {
+                tracing::warn!("Malformed MCP request: {} - error: {}", line, e);
+                let error_response = McpResponse {
+                    jsonrpc: "2.0".to_string(),
+                    id: Value::Null,
+                    result: None,
+                    error: Some(McpError {
+                        code: -32700,
+                        message: "Parse error".to_string(),
+                    }),
+                };
+                if let Ok(response_json) = serde_json::to_string(&error_response) {
+                    let _ = writeln!(stdout, "{}", response_json);
+                    let _ = stdout.flush();
+                }
+                continue;
+            }
         };
 
         let response = match request.method.as_str() {
@@ -568,5 +627,121 @@ mod tests {
             }
             _ => panic!("Expected Welcome"),
         }
+    }
+
+    #[test]
+    fn test_event_buffer_rotation() {
+        let mut buffer = Vec::new();
+
+        for i in 0..60 {
+            let event = serde_json::json!({"event": "test", "index": i});
+            buffer.push(event);
+            if buffer.len() > 50 {
+                buffer.remove(0);
+            }
+        }
+
+        assert_eq!(buffer.len(), 50);
+        assert_eq!(buffer.first().unwrap()["index"], 10);
+        assert_eq!(buffer.last().unwrap()["index"], 59);
+    }
+
+    #[test]
+    fn test_action_defaults() {
+        let action = protocol::Action::default();
+        assert!(!action.forward);
+        assert!(!action.back);
+        assert!(!action.left);
+        assert!(!action.right);
+        assert!(!action.turn_left);
+        assert!(!action.turn_right);
+        assert!(!action.fire);
+    }
+
+    #[test]
+    fn test_action_serialization() {
+        let action = protocol::Action {
+            forward: true,
+            fire: true,
+            ..Default::default()
+        };
+
+        let serialized = serde_json::to_string(&ClientMessage::Action(action)).unwrap();
+        assert!(serialized.contains(r#""forward":true"#));
+        assert!(serialized.contains(r#""fire":true"#));
+        assert!(serialized.contains(r#""back":false"#));
+    }
+
+    #[test]
+    fn test_malformed_event_handling() {
+        let bad_json = r#"{"type":"event","event":"invalid_event_type"}"#;
+        let parsed: Result<protocol::ServerMessage, _> = serde_json::from_str(bad_json);
+        assert!(parsed.is_err());
+    }
+
+    #[test]
+    fn test_snapshot_with_players() {
+        let snapshot = protocol::Snapshot {
+            tick: 100,
+            players: vec![protocol::PlayerState {
+                id: uuid::Uuid::new_v4(),
+                name: "TestBot".to_string(),
+                x: 10.0,
+                y: 1.5,
+                z: -5.0,
+                yaw: 1.57,
+                hp: 75,
+                just_fired: false,
+            }],
+        };
+
+        let json = serde_json::to_value(&snapshot).unwrap();
+        assert_eq!(json["tick"], 100);
+        assert_eq!(json["players"][0]["name"], "TestBot");
+        assert_eq!(json["players"][0]["hp"], 75);
+        assert_eq!(json["players"][0]["x"], 10.0);
+    }
+
+    #[test]
+    fn test_mcp_request_parsing() {
+        let valid_req = r#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#;
+        let parsed: Result<McpRequest, _> = serde_json::from_str(valid_req);
+        assert!(parsed.is_ok());
+        let req = parsed.unwrap();
+        assert_eq!(req.jsonrpc, "2.0");
+        assert_eq!(req.method, "tools/list");
+    }
+
+    #[test]
+    fn test_mcp_error_response() {
+        let error = McpError {
+            code: -32700,
+            message: "Parse error".to_string(),
+        };
+        let response = McpResponse {
+            jsonrpc: "2.0".to_string(),
+            id: Value::Null,
+            result: None,
+            error: Some(error),
+        };
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("-32700"));
+        assert!(json.contains("Parse error"));
+    }
+
+    #[test]
+    fn test_client_action_message_structure() {
+        let hello = ClientMessage::Hello {
+            role: protocol::Role::Agent,
+            name: "TestAgent".to_string(),
+        };
+        let json = serde_json::to_string(&hello).unwrap();
+        assert!(json.contains(r#""type":"hello""#));
+        assert!(json.contains(r#""role":"agent""#));
+        assert!(json.contains("TestAgent"));
+
+        let action = ClientMessage::Action(protocol::Action::default());
+        let json = serde_json::to_string(&action).unwrap();
+        assert!(json.contains(r#""type":"action""#));
     }
 }
