@@ -17,10 +17,10 @@ Guidance for coding agents working in this repository. Humans: start with `READM
 
 ## Truth ranking
 
-1. Source, tests, manifests, lockfiles, `git` history  
-2. `docs/protocol.md` for on-wire shapes once implemented  
-3. `docs/ARCHITECTURE.md` and `docs/SLICE-1.md` for intent and slice bars  
-4. This file for agent operating rules  
+1. Source, tests, manifests, lockfiles, `git` history 
+2. `docs/protocol.md` for on-wire shapes once implemented 
+3. `docs/ARCHITECTURE.md` and `docs/SLICE-1.md` for intent and slice bars 
+4. This file for agent operating rules 
 
 If prose and code disagree, **code wins**. Update the prose in the same change when behavior materially moves.
 
@@ -76,9 +76,9 @@ Godot may exit `0` even when the log contains `SCRIPT ERROR` / `Parse Error`. Tr
 
 **Playable smoke (Slice 1 bar):**
 
-1. `cargo run -p doomy-server` (or `cd server && cargo run`) listens on `127.0.0.1:7777` with no cloud env.  
-2. Bots fight; damage/frag within ~30s in server logs.  
-3. Godot spectator shows the match (presentation only).  
+1. `cargo run -p doomy-server` (or `cd server && cargo run`) listens on `127.0.0.1:7777` with no cloud env. 
+2. Bots fight; damage/frag within ~30s in server logs. 
+3. Godot spectator shows the match (presentation only). 
 4. Optional: human join + leave-to-spectate; adapter `observe`/`act` for at least one pawn.
 
 Evidence beats assertion. Prefer a real smoke run over “should work.”
