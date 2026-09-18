@@ -271,9 +271,15 @@ impl WeaponType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ClientMessage {
-    Hello { role: Role, name: String },
+    Hello {
+        role: Role,
+        name: String,
+    },
     Action(Action),
     Speak(Speak),
+    /// Agent-only display label echoed into Snapshot PlayerState.behavior.
+    /// Never trusted for combat. Rule-bot behaviors still come from BotController.
+    SetDisplayBehavior(SetDisplayBehavior),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -321,6 +327,13 @@ pub struct LookAt {
 #[serde(deny_unknown_fields)]
 pub struct Speak {
     pub text: String,
+}
+
+/// Observe-only stance / tactics chip for Agent clients (control plane).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct SetDisplayBehavior {
+    pub behavior: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -699,6 +712,24 @@ mod protocol_tests {
         let bad: Result<ClientMessage, _> =
             serde_json::from_str(r#"{"type":"speak","text":"x","laser":true}"#);
         assert!(bad.is_err(), "unknown Speak field must fail: {:?}", bad);
+    }
+
+    #[test]
+    fn set_display_behavior_deserializes_and_deny_unknown() {
+        let ok: ClientMessage =
+            serde_json::from_str(r#"{"type":"set_display_behavior","behavior":"push_enemy"}"#)
+                .expect("set_display_behavior");
+        match ok {
+            ClientMessage::SetDisplayBehavior(s) => assert_eq!(s.behavior, "push_enemy"),
+            other => panic!("expected SetDisplayBehavior, got {:?}", other),
+        }
+        let bad: Result<ClientMessage, _> =
+            serde_json::from_str(r#"{"type":"set_display_behavior","behavior":"x","laser":true}"#);
+        assert!(
+            bad.is_err(),
+            "unknown SetDisplayBehavior field must fail: {:?}",
+            bad
+        );
     }
 
     #[test]
