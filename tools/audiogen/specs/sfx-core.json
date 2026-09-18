@@ -4,6 +4,7 @@
     {
       "kind": "sfx",
       "name": "fire_flechette",
+      "title": "Flechette fire",
       "prompt": "rapid needle gun burst, sharp metallic chatter with a short mechanical clack, retro arcade shooter, dry and punchy, no reverb",
       "seconds": 0.5,
       "influence": 0.6
@@ -11,6 +12,7 @@
     {
       "kind": "sfx",
       "name": "fire_rail",
+      "title": "Rail fire",
       "prompt": "heavy railgun shot, electric charge crack followed by a cold metallic ring, retro arcade shooter, dry and punchy",
       "seconds": 0.9,
       "influence": 0.6
@@ -18,6 +20,7 @@
     {
       "kind": "sfx",
       "name": "fire_scatter",
+      "title": "Scatter fire",
       "prompt": "chunky pump shotgun blast, deep boom with gritty noise tail and a pump rack, retro arcade shooter, dry",
       "seconds": 0.8,
       "influence": 0.6
@@ -25,6 +28,7 @@
     {
       "kind": "sfx",
       "name": "hit_flechette",
+      "title": "Flechette hit",
       "prompt": "small metal dart impact on armor plate, quick thwack with a faint ping, retro arcade shooter, dry",
       "seconds": 0.5,
       "influence": 0.6
@@ -32,6 +36,7 @@
     {
       "kind": "sfx",
       "name": "hit_rail",
+      "title": "Rail hit",
       "prompt": "deep armored impact thump with a cold electric ding, retro arcade shooter, dry",
       "seconds": 0.6,
       "influence": 0.6
@@ -39,6 +44,7 @@
     {
       "kind": "sfx",
       "name": "hit_scatter",
+      "title": "Scatter hit",
       "prompt": "multiple pellet impacts on metal and flesh, chunky splat with debris, retro arcade shooter, dry",
       "seconds": 0.6,
       "influence": 0.6
@@ -46,6 +52,7 @@
     {
       "kind": "sfx",
       "name": "fire",
+      "title": "Fallback fire",
       "prompt": "generic arcade energy pistol shot, snappy kick and crack, retro shooter, dry",
       "seconds": 0.5,
       "influence": 0.5
@@ -53,6 +60,7 @@
     {
       "kind": "sfx",
       "name": "hit",
+      "title": "Fallback hit",
       "prompt": "generic hit confirm, short thwack with a bright ding, retro arcade shooter, dry",
       "seconds": 0.5,
       "influence": 0.5
@@ -60,6 +68,7 @@
     {
       "kind": "sfx",
       "name": "frag",
+      "title": "Frag stinger",
       "prompt": "elimination stinger, massive sub bass hit with an explosion and a rising sparkle sweep, arcade victory punch, short",
       "seconds": 1.0,
       "influence": 0.5
@@ -67,6 +76,7 @@
     {
       "kind": "sfx",
       "name": "round_start",
+      "title": "Round start",
       "prompt": "round start cue, quick charge up into a hard impact and a two-note beep, arcade excitement, short",
       "seconds": 1.0,
       "influence": 0.5
@@ -74,30 +84,10 @@
     {
       "kind": "sfx",
       "name": "round_end",
+      "title": "Round end",
       "prompt": "round end fanfare, victorious three-note chord with a bass thump and tape stop, arcade, short",
       "seconds": 1.5,
       "influence": 0.5
-    },
-    {
-      "kind": "music",
-      "name": "music/menu",
-      "prompt": "dark ambient synth bed for a retro arena shooter menu, slow pulse, distant AM radio static, gunmetal mood, loopable, no vocals",
-      "length_ms": 60000,
-      "instrumental": true
-    },
-    {
-      "kind": "music",
-      "name": "music/match_01",
-      "prompt": "driving industrial synth-metal for a 90s arena shooter deathmatch, 140 bpm, chugging guitars, analog synth stabs, relentless energy, loopable, no vocals",
-      "length_ms": 90000,
-      "instrumental": true
-    },
-    {
-      "kind": "music",
-      "name": "music/round_end_sting",
-      "prompt": "short triumphant sting for a round end podium in a retro arena shooter, brass and synth hit with a decaying reverb tail, no vocals",
-      "length_ms": 6000,
-      "instrumental": true
     }
   ]
 }
