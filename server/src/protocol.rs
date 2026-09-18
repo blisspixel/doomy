@@ -46,6 +46,12 @@ pub struct Action {
 pub struct Snapshot {
     pub tick: u64,
     pub players: Vec<PlayerState>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub round_state: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub round_time_left: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub frag_limit: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,11 +66,26 @@ pub struct PlayerState {
     pub just_fired: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub behavior: Option<String>,
+    pub score: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "event", rename_all = "snake_case")]
 pub enum GameEvent {
-    Frag { killer: String, victim: String },
-    Respawn { player: String },
+    Frag {
+        killer: String,
+        victim: String,
+    },
+    Respawn {
+        player: String,
+    },
+    RoundStart {
+        round_number: u32,
+        frag_limit: Option<u32>,
+        time_limit: Option<u32>,
+    },
+    RoundEnd {
+        winner: Option<String>,
+        reason: String,
+    },
 }

@@ -71,9 +71,13 @@ func _on_disconnected():
 func _on_snapshot_received(data):
 	var tick = data.get("tick", 0)
 	var player_list = data.get("players", [])
+	var round_state = data.get("round_state", "")
+	var round_time_left = data.get("round_time_left", 0)
+	var frag_limit = data.get("frag_limit", 0)
 	
 	hud.set_tick(tick)
 	hud.set_player_count(len(player_list))
+	hud.set_round_info(round_state, round_time_left, frag_limit)
 	
 	var current_ids = {}
 	
@@ -84,7 +88,6 @@ func _on_snapshot_received(data):
 		if not players.has(id):
 			var pawn = player_scene.instantiate()
 			arena.add_child(pawn)
-			# Set initial position before setting player data to avoid snap
 			pawn.position = Vector3(player_data.x, player_data.y, player_data.z)
 			pawn.rotation.y = player_data.yaw
 			pawn.set_player_data(id, player_data.name)
@@ -110,3 +113,7 @@ func _on_event_received(data):
 	var event_type = data.get("event", "")
 	if event_type == "frag":
 		hud.show_frag(data.get("killer", "?"), data.get("victim", "?"))
+	elif event_type == "round_start":
+		hud.show_round_start(data.get("round_number", 0))
+	elif event_type == "round_end":
+		hud.show_round_end(data.get("winner", ""), data.get("reason", ""))
