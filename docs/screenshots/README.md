@@ -25,7 +25,7 @@ Boomer-arena energy. **No Doom IP.**
 
 When the Godot client is playable and ready for honest screenshots:
 
-1. Launch server: `cargo run -p doomy-server -- --bots 4`
+1. Launch server: `cargo run -p fragr-server -- --bots 4`
 2. Open `client/` in Godot 4.7.2-stable editor
 3. Run scene (F5) in spectator mode
 4. Wait for bots to engage (30s)

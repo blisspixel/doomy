@@ -97,7 +97,7 @@ cargo build --workspace
 
 Manual smoke test:
 
-1. `cargo run -p doomy-server -- --bots 4`
+1. `cargo run -p fragr-server -- --bots 4`
 2. Open `client/` in Godot 4.7.2, press F5
 3. Confirm audible feedback for:
    - Weapon fire (immediate and frequent)
