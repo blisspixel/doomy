@@ -6,11 +6,17 @@ Working name **fragr** (may change). Do **not** brand as Doom or a Doom clone in
 
 **Meet your vibe.** Chill. Play. Laugh. Live laugh frag.
 
-**Feel blend (protect this):** Rock & Roll Racing carnival scrap energy, late-night conspiracy seasoning, and the rush of the first online LAN nights (feeling, not IP). Agents and humans scrap in the same fight under the same rules. No Doom branding, names, or lookalikes in user-facing copy.
+**Feel blend (protect this):** **Unreal + Counter-Strike arena energy** for how it plays (3D FPS, readable fights, LAN scrap), with Rock & Roll Racing carnival scrap and late-night conspiracy as seasoning. Agents and humans scrap under the same rules. No Doom / id IP in user-facing copy (Doom-weight grit is OK as a feeling analogy only).
 
-Early LAN energy: a shooter you hang out in with other people on a network. Maps to learn, guns that matter, upgrades later. Arena joy from Quake / Unreal / Halo deathmatch, but the tone stays light: funny bones, meme seasoning, theatrical chaos. Visual language: **old-school retro pixel art**, readable silhouettes, loud feedback. Not a photoreal TAC shooter. Not a lecture.
+**Look lock:** the world and camera are **3D** (Godot arena FPS), not a flat 2D game. Surfaces, sprites, and HUD stay **retro pixel / chunky grit** and theatrical. Not photoreal. Not milsim TAC. Not flat 2D. Not Doom branding or lookalikes.
 
-The new piece is **agentic let's-play**: many agents play the match; humans watch like a spectator hangout or join the same fight. Whichever is fun that minute. Same scrap, not a sequence of spectate-then-play.
+**Single-player is first-class:** solo boot-and-scrap like classic arena SP (feeling, not IP). Local rule bots, arcade-or-campaign loop, offline-capable boot-and-play. Same Action path and feel as MP where possible. Not "MP with an empty lobby."
+
+**Multiplayer still stands:** watch-or-join, agents in the same fight, public **6767** for strangers/agents when hosted. SP is alongside MP, not instead of it.
+
+Early LAN energy: maps to learn, guns that matter, upgrades later. Tone stays light: funny bones, meme seasoning, theatrical chaos. Readable silhouettes, loud feedback.
+
+The multiplayer hook is **agentic let's-play**: many agents play; humans watch or join the same fight. Whichever is fun that minute.
 
 Optional backstory flavor in `LORE.md` (late-night radio vibes, black-budget arenas, Host voice between rounds). Seasoning only. Never a blocker for the gunfight loop.
 
@@ -20,12 +26,12 @@ Optional backstory flavor in `LORE.md` (late-night radio vibes, black-budget are
 
 ## Non-negotiables
 
-1. **Solo AND multiplayer, both first-class.** Instant fun solo (you + named bots on one machine), and self-host for peers (LAN or Tailscale). Not a LAN-only demo or a solo-only campaign. Both paths work from Slice 1. Bots persist when humans leave.
+1. **Solo AND multiplayer, both first-class.** Solo boot-and-scrap with local rule bots (arcade/campaign loop, offline-capable). Self-host / public **6767** for peers and agents. Same Action path where possible. Not a LAN-only demo, not SP-only, not "MP with an empty lobby." Bots persist when humans leave.
 2. **Many agents can play.** Same input pipeline as humans. Not grandpa bots; not fake AGI theater. Rule bots first with named intent; BYO agents raise the ceiling. Watching must feel like players, not props.
 3. **Watch or play.** Meet your vibe. Spectator-default hangout, soft join anytime, leave back to spectate. Match stays loud when humans leave (agents keep the server alive).
 4. **Guns and maps matter.** Distinct weapon roles, readable arenas / choke points, continuous momentum. Anti-slop: polish feel as you go.
 5. **Progression exists in the long game.** Levels / maps to beat, unlocks, upgrades (Halo / Doom-campaign DNA) as later slices. Slice 1 proves the live arena + agents + spectate loop first.
-6. **Retro pixel art direction.** Graybox is OK until art lands; target aesthetic is retro pixels, not modern milsim.
+6. **Pixel-3D look.** 3D arena camera/world; retro pixel / chunky grit on surfaces, sprites, HUD. Graybox OK until art lands. Not photoreal, not milsim TAC, not flat 2D, no Doom/id IP.
 
 
 ## Agents are not grandpa bots
@@ -39,13 +45,13 @@ This is **not** a promise of "level 5" AGI teammates that pass as esports humans
 
 ## Hosting model
 
-LAN / Tailscale / loopback are **dev and buddy options**, not the only story.
+Solo offline / loopback boot-and-play is first-class. LAN / Tailscale are **dev and buddy options**, not the only MP story.
 
-Product posture is **Minecraft-shaped ops**:
-1. **Run your own server** at home or on a box you control (authoritative Rust binary; documented bind, ports, clients).
-2. **Native IaC on GCP** for cheap cloud hosting that can scale: real Terraform (or equivalent) in `infra/`, not a slideshow. Apply only after Nick/Chief spend approval. Prefer small cheap shapes first; design for scale (stateless-ish game processes, clear capacity knobs) without burning money by default.
+Product posture is **Minecraft-shaped ops** for the hosted path:
+1. **Run your own server** at home or on a box you control (authoritative Rust binary; documented bind, ports, clients). Public TCP+UDP **6767** for strangers/agents when you open the front door.
+2. **Native IaC on GCP** for cheap cloud hosting that can scale: real Terraform (or equivalent) in `infra/`, not a slideshow. Apply only after Nick/Chief spend approval. Prefer small cheap shapes first; never Cloud Run as the combat tick.
 
-Spectators and agents connect to whatever host you point at. $0-first locally; cloud is opt-in and gated.
+Spectators and agents connect to whatever host you point at. $0-first locally (including SP); cloud is opt-in and gated.
 
 ## Architecture (unchanged spine)
 

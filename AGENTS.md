@@ -4,7 +4,7 @@ Guidance for coding agents working in this repository. Humans: start with `READM
 
 ## What this is
 
-**fragr** (working name) is an agentic-first FPS arena. Do not brand as Doom. Monorepo:
+**fragr** (working name) is an agentic-first **3D** FPS arena (pixel surfaces, not photoreal) with **single-player boot-and-scrap** and watch-or-join multiplayer both first-class. Do not brand as Doom/id. Monorepo:
 
 - `client/` - Godot **4.7.2-stable**, GDScript only. Thin presenter (render, audio, spectator UI, input). Not sim authority.
 - `server/` - Rust authoritative game server (tokio). Owns tick, combat, spawns, scoring, server-side rule bots.

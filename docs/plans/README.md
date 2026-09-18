@@ -14,6 +14,7 @@ Ship order after this PR (Researcher DIY / one MCP door):
 2. **SKILL.md + Hermes / OpenClaw snips** - one adapter door to the same Action on public :6767; LLM off tick; L5 aspiration not DoD.
 3. **Off-tick speak / taunt** - only after the door is trusted.
 4. **Spectator face juice / one mode fantasy / amazement bar** - Host bumpers + readable HUD started this PR; muted accents OK for later art (not neon everywhere). Not an MCP cell farm.
+5. **Pixel-3D look bar** - Unreal+CS arena play feel; 3D Godot world/camera; retro pixel surfaces/sprites/HUD; SP boot-and-scrap first-class alongside watch-or-join MP; no Doom/id IP.
 
 Port is **6767**. Public TCP+UDP 6767 for strangers/agents. Tailscale is private/dev only. Scale ladder: Always Free e2-micro then bigger/second arena. Never Cloud Run as combat tick. Infra stays plan-only until spend ACK.
 
