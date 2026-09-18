@@ -178,6 +178,13 @@ async fn run_mcp_server(
                 .await?;
         }
 
+        if let Some(speak) = outcome.pending_speak {
+            let speak_msg = ClientMessage::Speak(speak);
+            ws_sink
+                .send(Message::Text(serde_json::to_string(&speak_msg)?))
+                .await?;
+        }
+
         let response_json = serde_json::to_string(&outcome.response)?;
         writeln!(stdout, "{}", response_json)?;
         stdout.flush()?;
@@ -238,6 +245,17 @@ async fn run_scripted_bot(
                     if ws_sink.send(Message::Text(serde_json::to_string(&action_msg)?)).await.is_err() {
                         break;
                     }
+
+                    if let Some(line) = maybe_bot_taunt(snapshot.tick, bot_id) {
+                        let speak_msg = ClientMessage::Speak(protocol::Speak { text: line });
+                        if ws_sink
+                            .send(Message::Text(serde_json::to_string(&speak_msg)?))
+                            .await
+                            .is_err()
+                        {
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -245,6 +263,29 @@ async fn run_scripted_bot(
 
     tracing::info!("Bot disconnected");
     Ok(())
+}
+
+const BOT_TAUNTS: &[&str] = &[
+    "nice scrap",
+    "frequency contested",
+    "league says this is not happening",
+    "live laugh frag",
+    "host is watching",
+    "approved lanes? nah",
+];
+
+/// Occasional Contested Frequency taunt so tip feels alive without an LLM.
+/// Cadence: once every 160 ticks (~8s), staggered by bot id.
+fn maybe_bot_taunt(tick: u64, bot_id: uuid::Uuid) -> Option<String> {
+    if tick == 0 {
+        return None;
+    }
+    let phase = (bot_id.as_u128() as u64) % 160;
+    if tick % 160 != phase {
+        return None;
+    }
+    let idx = ((tick / 160) as usize) % BOT_TAUNTS.len();
+    Some(BOT_TAUNTS[idx].to_string())
 }
 
 fn compute_bot_action(bot_id: uuid::Uuid, snapshot: &protocol::Snapshot) -> protocol::Action {
@@ -1023,5 +1064,14 @@ mod tests {
         assert!(action.fire);
         assert!(!action.turn_left);
         assert!(!action.turn_right);
+    }
+
+    #[test]
+    fn maybe_bot_taunt_fires_on_phase() {
+        let bot_id = uuid::Uuid::nil();
+        assert!(maybe_bot_taunt(0, bot_id).is_none());
+        assert!(maybe_bot_taunt(1, bot_id).is_none());
+        let line = maybe_bot_taunt(160, bot_id).expect("taunt on cadence");
+        assert!(BOT_TAUNTS.iter().any(|t| *t == line), "{line}");
     }
 }
