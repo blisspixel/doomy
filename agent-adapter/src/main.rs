@@ -22,14 +22,19 @@ enum Commands {
     Mcp {
         #[arg(long, default_value = "ws://127.0.0.1:6767")]
         server: String,
+
+        /// Display name sent in Hello. Falls back to FRAGR_AGENT_NAME, then "MCP Agent".
+        #[arg(long)]
+        name: Option<String>,
     },
 
     ScriptedBot {
         #[arg(long, default_value = "ws://127.0.0.1:6767")]
         server: String,
 
-        #[arg(long, default_value = "ScriptedBot")]
-        name: String,
+        /// Display name sent in Hello. Falls back to FRAGR_AGENT_NAME, then "ScriptedBot".
+        #[arg(long)]
+        name: Option<String>,
     },
 }
 
@@ -70,22 +75,49 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     match args.command {
-        Commands::Mcp { server } => run_mcp_server(server).await?,
-        Commands::ScriptedBot { server, name } => run_scripted_bot(server, name).await?,
+        Commands::Mcp { server, name } => {
+            run_mcp_server(server, resolve_agent_name(name.as_deref(), "MCP Agent")).await?
+        }
+        Commands::ScriptedBot { server, name } => {
+            run_scripted_bot(server, resolve_agent_name(name.as_deref(), "ScriptedBot")).await?
+        }
     }
 
     Ok(())
 }
 
-async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Error>> {
-    tracing::info!("Starting MCP server mode, connecting to {}", server_url);
+fn resolve_agent_name(cli_name: Option<&str>, default: &str) -> String {
+    if let Some(raw) = cli_name {
+        let trimmed = raw.trim();
+        if !trimmed.is_empty() {
+            return trimmed.to_string();
+        }
+    }
+    if let Ok(env_name) = std::env::var("FRAGR_AGENT_NAME") {
+        let env_trimmed = env_name.trim();
+        if !env_trimmed.is_empty() {
+            return env_trimmed.to_string();
+        }
+    }
+    default.to_string()
+}
+
+async fn run_mcp_server(
+    server_url: String,
+    name: String,
+) -> Result<(), Box<dyn std::error::Error>> {
+    tracing::info!(
+        "Starting MCP server mode as '{}', connecting to {}",
+        name,
+        server_url
+    );
 
     let (ws_stream, _) = connect_async(&server_url).await?;
     let (mut ws_sink, mut ws_stream) = ws_stream.split();
 
     let hello = ClientMessage::Hello {
         role: Role::Agent,
-        name: "MCP Agent".to_string(),
+        name,
     };
     ws_sink
         .send(Message::Text(serde_json::to_string(&hello)?))
@@ -154,6 +186,19 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
                                 text,
                                 e
                             );
+                            // Soft prison: never silently drop round/frag events on schema drift.
+                            if let Ok(raw) = serde_json::from_str::<Value>(&text) {
+                                if raw.get("type").and_then(|v| v.as_str()) == Some("event") {
+                                    let mut events = recent_events_clone.lock().await;
+                                    events.push(raw);
+                                    if events.len() > 50 {
+                                        events.remove(0);
+                                    }
+                                    tracing::warn!(
+                                        "Buffered unparsed event JSON into recent_events"
+                                    );
+                                }
+                            }
                         }
                     }
                 }
@@ -1201,5 +1246,81 @@ mod tests {
     fn test_validate_act_arguments_empty_ok() {
         assert!(validate_act_arguments(&Value::Null).is_ok());
         assert!(validate_act_arguments(&serde_json::json!({})).is_ok());
+    }
+    #[test]
+    fn test_resolve_agent_name_trims_and_defaults() {
+        std::env::remove_var("FRAGR_AGENT_NAME");
+        assert_eq!(
+            resolve_agent_name(Some("  Clawbot  "), "MCP Agent"),
+            "Clawbot"
+        );
+        assert_eq!(resolve_agent_name(Some(""), "MCP Agent"), "MCP Agent");
+        assert_eq!(resolve_agent_name(None, "MCP Agent"), "MCP Agent");
+        assert_eq!(resolve_agent_name(None, "ScriptedBot"), "ScriptedBot");
+
+        std::env::set_var("FRAGR_AGENT_NAME", "EnvFox");
+        assert_eq!(resolve_agent_name(None, "MCP Agent"), "EnvFox");
+        assert_eq!(
+            resolve_agent_name(Some("Explicit"), "MCP Agent"),
+            "Explicit"
+        );
+        std::env::remove_var("FRAGR_AGENT_NAME");
+    }
+
+    #[test]
+    fn test_hello_uses_resolved_name() {
+        std::env::remove_var("FRAGR_AGENT_NAME");
+        let name = resolve_agent_name(Some("ArenaFox"), "MCP Agent");
+        let hello = ClientMessage::Hello {
+            role: Role::Agent,
+            name: name.clone(),
+        };
+        let json = serde_json::to_string(&hello).unwrap();
+        assert!(json.contains("ArenaFox"), "json={}", json);
+        assert!(!json.contains("MCP Agent"), "json={}", json);
+    }
+
+    #[test]
+    fn test_adapter_parses_server_round_event_wire() {
+        // Exact shape produced by fragr-server ServerMessage::Event(RoundStart/End).
+        let start = r#"{"type":"event","event":"round_start","round_number":2,"frag_limit":10,"time_limit":180,"players":["Alpha","Bravo"],"previous_winner":"Alpha"}"#;
+        let parsed: ServerMessage = serde_json::from_str(start).expect("round_start wire");
+        match parsed {
+            ServerMessage::Event(protocol::GameEvent::RoundStart {
+                round_number,
+                previous_winner,
+                ..
+            }) => {
+                assert_eq!(round_number, 2);
+                assert_eq!(previous_winner.as_deref(), Some("Alpha"));
+            }
+            other => panic!("expected RoundStart, got {:?}", other),
+        }
+
+        let end = r#"{"type":"event","event":"round_end","winner":"Alpha","reason":"Frag limit reached","final_scores":[{"name":"Alpha","score":10},{"name":"Bravo","score":3}],"winner_score":10}"#;
+        let parsed: ServerMessage = serde_json::from_str(end).expect("round_end wire");
+        match parsed {
+            ServerMessage::Event(protocol::GameEvent::RoundEnd {
+                winner,
+                winner_score,
+                ..
+            }) => {
+                assert_eq!(winner.as_deref(), Some("Alpha"));
+                assert_eq!(winner_score, Some(10));
+            }
+            other => panic!("expected RoundEnd, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_unparsed_event_json_still_buffers() {
+        let raw: Value = serde_json::from_str(
+            r#"{"type":"event","event":"round_start","round_number":1,"frag_limit":10,"time_limit":180,"players":[],"previous_winner":null}"#,
+        )
+        .unwrap();
+        assert_eq!(raw["type"], "event");
+        assert_eq!(raw["event"], "round_start");
+        let buf = [raw];
+        assert_eq!(buf[0]["event"], "round_start");
     }
 }
