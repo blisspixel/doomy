@@ -1,4 +1,6 @@
-use crate::protocol::{Action, GameEvent, PlayerScore, PlayerState, Role, Snapshot, WeaponType};
+use crate::protocol::{
+    Action, GameEvent, PlayerScore, PlayerState, Role, ShotResult, Snapshot, WeaponType,
+};
 use std::collections::HashMap;
 use std::f32::consts::PI;
 use uuid::Uuid;
@@ -46,6 +48,8 @@ pub struct GameState {
     pub round_ticks: u32,
     pub round_number: u32,
     pub config: MatchConfig,
+    /// Cleared each tick; filled when weapons fire this tick.
+    pub shot_results: Vec<ShotResult>,
 }
 
 pub struct Player {
@@ -196,6 +200,7 @@ impl GameState {
 
     pub fn tick(&mut self, dt: f32) {
         self.tick += 1;
+        self.shot_results.clear();
         // Do not clear events here. Join/leave are pushed from the net loop between
         // ticks; clearing would drop them before main broadcasts take_events().
         // take_events() in the game loop is the drain.
@@ -311,6 +316,43 @@ impl GameState {
             }
         }
 
+        // Authoritative look_at: snap yaw toward player_id (preferred) or world x/z.
+        // Applied after movement/turn so agents can still strafe while locking aim.
+        let look_intents: Vec<(Uuid, crate::protocol::LookAt)> = self
+            .players
+            .iter()
+            .filter(|p| p.respawn_timer.is_none())
+            .filter_map(|p| p.pending_action.look_at.clone().map(|look| (p.id, look)))
+            .collect();
+        for (aimer_id, look) in look_intents {
+            let target_xz: Option<(f32, f32)> = if let Some(pid) = look.player_id {
+                self.players
+                    .iter()
+                    .find(|p| p.id == pid && p.respawn_timer.is_none())
+                    .map(|p| (p.x, p.z))
+            } else if let (Some(x), Some(z)) = (look.x, look.z) {
+                Some((x, z))
+            } else {
+                None
+            };
+            if let Some((tx, tz)) = target_xz {
+                if let Some(aimer) = self.players.iter_mut().find(|p| p.id == aimer_id) {
+                    let dx = tx - aimer.x;
+                    let dz = tz - aimer.z;
+                    if dx * dx + dz * dz > 1e-8 {
+                        let mut yaw = dz.atan2(dx);
+                        while yaw < 0.0 {
+                            yaw += 2.0 * PI;
+                        }
+                        while yaw >= 2.0 * PI {
+                            yaw -= 2.0 * PI;
+                        }
+                        aimer.yaw = yaw;
+                    }
+                }
+            }
+        }
+
         let mut hits = Vec::new();
         for i in 0..self.players.len() {
             let player = &self.players[i];
@@ -326,18 +368,42 @@ impl GameState {
 
         for (shooter_idx, maybe_victim_idx) in hits {
             let weapon = self.players[shooter_idx].weapon;
-            let shooter = &mut self.players[shooter_idx];
-            shooter.fire_cooldown = weapon.cooldown_ticks();
-            shooter.just_fired = true;
+            let damage = weapon.damage();
+            let shooter_name = self.players[shooter_idx].name.clone();
+            let shooter_id = self.players[shooter_idx].id;
+
+            {
+                let shooter = &mut self.players[shooter_idx];
+                shooter.fire_cooldown = weapon.cooldown_ticks();
+                shooter.just_fired = true;
+            }
 
             if let Some(victim_idx) = maybe_victim_idx {
-                let shooter_name = self.players[shooter_idx].name.clone();
-                let shooter_id = self.players[shooter_idx].id;
                 let victim = &mut self.players[victim_idx];
+                let target_id = victim.id;
+                let target_name = victim.name.clone();
+                victim.hp -= damage;
+                let target_hp_after = victim.hp;
 
-                victim.hp -= weapon.damage();
+                self.shot_results.push(ShotResult {
+                    shooter_id,
+                    shooter: shooter_name.clone(),
+                    hit: true,
+                    target_id: Some(target_id),
+                    target: Some(target_name.clone()),
+                    damage,
+                    target_hp_after: Some(target_hp_after),
+                });
+                self.events.push(GameEvent::Hit {
+                    shooter: shooter_name.clone(),
+                    shooter_id,
+                    target: target_name.clone(),
+                    target_id,
+                    damage,
+                    target_hp_after,
+                });
+
                 if victim.hp <= 0 {
-                    let victim_name = victim.name.clone();
                     victim.respawn_timer = Some(RESPAWN_DELAY_TICKS);
 
                     *self.scores.entry(shooter_id).or_insert(0) += 1;
@@ -345,16 +411,26 @@ impl GameState {
 
                     self.events.push(GameEvent::Frag {
                         killer: shooter_name.clone(),
-                        victim: victim_name.clone(),
+                        victim: target_name.clone(),
                         killer_score,
                     });
                     tracing::info!(
-                        "FRAG: {} → {} (score: {})",
+                        "FRAG: {} -> {} (score: {})",
                         shooter_name,
-                        victim_name,
+                        target_name,
                         killer_score
                     );
                 }
+            } else {
+                self.shot_results.push(ShotResult {
+                    shooter_id,
+                    shooter: shooter_name,
+                    hit: false,
+                    target_id: None,
+                    target: None,
+                    damage: 0,
+                    target_hp_after: None,
+                });
             }
         }
 
@@ -474,6 +550,7 @@ impl GameState {
             round_state: Some(format!("{:?}", self.round_state)),
             round_time_left,
             frag_limit: self.config.frag_limit,
+            shot_results: self.shot_results.clone(),
         }
     }
 
@@ -498,6 +575,7 @@ impl Default for GameState {
             round_ticks: 0,
             round_number: 0,
             config: MatchConfig::default(),
+            shot_results: Vec::new(),
         }
     }
 }

@@ -8,11 +8,11 @@ Do not treat chat as the plan of record.
 
 ## Tip priorities (after v0.5.0)
 
-Named agents / SKILL.md shipped in **v0.5.0**. Ship order from tip:
+Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Ship order from tip:
 
-1. **Honest coverage lock** - unfiltered llvm-cov >=80%; no production-crate carve-outs (KAPU). See [`honest-coverage-lock.md`](./honest-coverage-lock.md).
+1. **Agent aim + hit-confirm** - `look_at` on Action + structured shot/hit feedback on observe/events so MCP agents stop being farm fodder. See [`agent-aim-hit-confirm.md`](./agent-aim-hit-confirm.md).
 2. **Tip screenshots** - replace mood README embeds with live Godot captures; clear MOOD-ART-ONLY banner when stills are real. See [`tip-screenshots.md`](./tip-screenshots.md).
-3. **Mode fantasy / spectator face juice** - Host bumpers + readable HUD started earlier; muted accents OK for later art (not neon everywhere). Not an MCP cell farm.
+3. **Mode fantasy / spectator face juice** - Host bumpers + readable HUD started earlier; muted accents OK for later art (not neon everywhere). Not an MCP cell farm. Only after aim works.
 4. **Off-tick speak / taunt** - only after the adapter door stays trusted.
 5. **Pixel-3D look bar** - Unreal+CS arena play feel; 3D Godot world/camera; retro pixel surfaces/sprites/HUD; SP boot-and-scrap first-class alongside watch-or-join MP; no Doom/id IP.
 

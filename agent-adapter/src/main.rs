@@ -256,8 +256,6 @@ async fn run_scripted_bot(
 }
 
 fn compute_bot_action(bot_id: uuid::Uuid, snapshot: &protocol::Snapshot) -> protocol::Action {
-    use std::f32::consts::PI;
-
     let bot = snapshot.players.iter().find(|p| p.id == bot_id);
 
     let Some(bot) = bot else {
@@ -286,37 +284,17 @@ fn compute_bot_action(bot_id: uuid::Uuid, snapshot: &protocol::Snapshot) -> prot
         return protocol::Action::default();
     };
 
-    let dx = target.x - bot.x;
-    let dz = target.z - bot.z;
-    let target_angle = dz.atan2(dx);
-
-    let mut angle_diff = target_angle - bot.yaw;
-    while angle_diff > PI {
-        angle_diff -= 2.0 * PI;
+    protocol::Action {
+        look_at: Some(protocol::LookAt {
+            player_id: Some(target.id),
+            x: None,
+            z: None,
+        }),
+        forward: nearest_dist > 3.0,
+        // With look_at, yaw is authoritative on the next tick; fire when close enough.
+        fire: nearest_dist < 20.0,
+        ..Default::default()
     }
-    while angle_diff < -PI {
-        angle_diff += 2.0 * PI;
-    }
-
-    let mut action = protocol::Action::default();
-
-    if angle_diff.abs() > 0.3 {
-        if angle_diff > 0.0 {
-            action.turn_right = true;
-        } else {
-            action.turn_left = true;
-        }
-    }
-
-    if nearest_dist > 3.0 {
-        action.forward = true;
-    }
-
-    if angle_diff.abs() < 0.5 && nearest_dist < 20.0 {
-        action.fire = true;
-    }
-
-    action
 }
 
 #[cfg(test)]
@@ -581,6 +559,7 @@ mod tests {
         assert!(!action.turn_right);
         assert!(!action.fire);
         assert!(action.weapon_swap.is_none());
+        assert!(action.look_at.is_none());
     }
 
     #[test]
@@ -678,6 +657,7 @@ mod tests {
             round_state: Some("Active".to_string()),
             round_time_left: Some(120),
             frag_limit: Some(10),
+            shot_results: vec![],
         };
 
         let json = serde_json::to_value(&snapshot).unwrap();
@@ -728,6 +708,7 @@ mod tests {
             round_state: Some("Active".to_string()),
             round_time_left: Some(90),
             frag_limit: Some(10),
+            shot_results: vec![],
         };
 
         let json = serde_json::to_value(&snapshot).unwrap();
@@ -986,5 +967,52 @@ mod tests {
         assert_eq!(raw["event"], "round_start");
         let buf = [raw];
         assert_eq!(buf[0]["event"], "round_start");
+    }
+
+    #[test]
+    fn compute_bot_action_uses_look_at() {
+        let bot_id = uuid::Uuid::new_v4();
+        let target_id = uuid::Uuid::new_v4();
+        let snapshot = protocol::Snapshot {
+            tick: 1,
+            players: vec![
+                protocol::PlayerState {
+                    id: bot_id,
+                    name: "Bot".into(),
+                    x: 0.0,
+                    y: 1.5,
+                    z: 0.0,
+                    yaw: 0.0,
+                    hp: 100,
+                    just_fired: false,
+                    behavior: None,
+                    score: 0,
+                    weapon: "Flechette".into(),
+                },
+                protocol::PlayerState {
+                    id: target_id,
+                    name: "T".into(),
+                    x: 5.0,
+                    y: 1.5,
+                    z: 0.0,
+                    yaw: 0.0,
+                    hp: 100,
+                    just_fired: false,
+                    behavior: None,
+                    score: 0,
+                    weapon: "Flechette".into(),
+                },
+            ],
+            round_state: Some("Active".into()),
+            round_time_left: Some(60),
+            frag_limit: Some(10),
+            shot_results: vec![],
+        };
+        let action = compute_bot_action(bot_id, &snapshot);
+        let look = action.look_at.expect("look_at toward nearest");
+        assert_eq!(look.player_id, Some(target_id));
+        assert!(action.fire);
+        assert!(!action.turn_left);
+        assert!(!action.turn_right);
     }
 }

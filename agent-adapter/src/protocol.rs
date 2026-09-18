@@ -33,6 +33,17 @@ pub enum Role {
     Agent,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct LookAt {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub x: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub z: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub player_id: Option<Uuid>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct Action {
@@ -52,6 +63,22 @@ pub struct Action {
     pub fire: bool,
     #[serde(default)]
     pub weapon_swap: Option<WeaponType>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub look_at: Option<LookAt>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ShotResult {
+    pub shooter_id: Uuid,
+    pub shooter: String,
+    pub hit: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target: Option<String>,
+    pub damage: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_hp_after: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -64,6 +91,8 @@ pub struct Snapshot {
     pub round_time_left: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub frag_limit: Option<u32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub shot_results: Vec<ShotResult>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -95,6 +124,14 @@ pub enum GameEvent {
         killer: String,
         victim: String,
         killer_score: u32,
+    },
+    Hit {
+        shooter: String,
+        shooter_id: Uuid,
+        target: String,
+        target_id: Uuid,
+        damage: i32,
+        target_hp_after: i32,
     },
     Respawn {
         player: String,
