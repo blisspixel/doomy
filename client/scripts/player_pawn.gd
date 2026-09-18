@@ -7,12 +7,14 @@ var player_color: Color = Color.WHITE
 var hit_flash_timer: float = 0.0
 var idle_anim_timer: float = 0.0
 var current_weapon: String = ""
+var is_highlighted: bool = false
 
 var target_position: Vector3 = Vector3.ZERO
 var target_yaw: float = 0.0
 const INTERP_SPEED: float = 10.0
 
 @onready var label: Label3D = $Label3D
+@onready var highlight: MeshInstance3D = $Highlight
 @onready var body: Sprite3D = $Body
 @onready var weapon_sprite: Sprite3D = $Body/WeaponSprite
 @onready var muzzle: Sprite3D = $Body/Muzzle
@@ -48,6 +50,8 @@ func _ready():
 		muzzle.visible = false
 	if muzzle_glow:
 		muzzle_glow.light_energy = 0.0
+	if highlight:
+		highlight.visible = false
 	
 	_load_audio_streams()
 	
@@ -208,3 +212,16 @@ func show_hit_feedback():
 
 func get_weapon_name() -> String:
 	return current_weapon
+
+func show_winner_glow():
+	var tween = create_tween()
+	tween.set_parallel(true)
+	
+	if body:
+		tween.tween_property(body, "modulate", Color(2.0, 2.0, 2.0), 0.1)
+		tween.tween_property(body, "modulate", Color.WHITE, 0.9).set_delay(0.1)
+
+func set_highlighted(highlighted: bool):
+	is_highlighted = highlighted
+	if highlight:
+		highlight.visible = highlighted
