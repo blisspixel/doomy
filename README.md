@@ -67,7 +67,7 @@ Keyboard and gamepad share the same action path into the server.
 | Leave to spectate | L | Start |
 | Spectator camera cycle | F | D-pad right |
 | Free-fly toggle | V | Back |
-| Radio: next station, next track, on or off | R, N, M | keyboard only for now |
+| Radio: next station, next track, on or off | R, N, M | D-pad up, down, left |
 | Release the mouse | Esc | |
 
 ## Desktop exports
