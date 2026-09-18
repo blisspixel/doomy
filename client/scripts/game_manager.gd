@@ -193,6 +193,10 @@ func _on_event_received(data):
 		var duration_ticks = int(data.get("duration_ticks", 120))
 		var duration_sec = float(duration_ticks) / 20.0
 		hud.show_compliance_ping(str(data.get("message", "")), duration_sec)
+	elif event_type == "speak":
+		var speaker = str(data.get("player", "?"))
+		var line = str(data.get("text", ""))
+		hud.show_speak(speaker, line)
 	elif event_type == "round_end":
 		hud.show_round_end(data.get("winner", ""), data.get("reason", ""))
 		if round_end_sound and round_end_sound.stream:

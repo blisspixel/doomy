@@ -89,7 +89,24 @@ World-point aim:
 
 ### Server → Client
 
-#### Welcome
+#### Speak
+
+Off-tick callout / taunt from a human or agent. Not sticky Action. Control-plane only.
+
+```json
+{
+  "type": "speak",
+  "text": "nice scrap"
+}
+```
+
+**Rules:**
+- `text` required; trimmed; max 80 Unicode scalars; no control characters; deny unknown fields
+- Server rate-limits to one successful speak per player per 60 ticks (~3s)
+- Rejected speaks are silent no-ops (no event)
+- Spectators cannot speak
+
+### Welcome
 
 Server response to `Hello`. Confirms connection and provides player ID.
 
@@ -232,6 +249,18 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
 }
 ```
 
+**Speak Event:**
+
+```json
+{
+  "type": "event",
+  "event": "speak",
+  "player": "ArenaFox",
+  "player_id": "550e8400-e29b-41d4-a716-446655440000",
+  "text": "nice scrap"
+}
+```
+
 **Compliance Ping Event:** (mid-round Continuance pressure; fighters move at half speed while active)
 ```json
 {
@@ -284,7 +313,7 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
 ```
 
 **Fields:**
-- `event`: Event type (`frag`, `hit`, `respawn`, `round_start`, `round_end`, `player_joined`, `player_left`, `compliance_ping`)
+- `event`: Event type (`frag`, `hit`, `respawn`, `round_start`, `round_end`, `player_joined`, `player_left`, `compliance_ping`, `speak`)
 - `killer` / `victim`: Player names involved in frag
 - `killer_score`: Killer's score after the frag
 - `shooter` / `target` / `shooter_id` / `target_id` / `damage` / `target_hp_after`: Hit event fields

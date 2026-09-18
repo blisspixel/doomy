@@ -31,7 +31,7 @@ cd agent-adapter
 cargo run -- scripted-bot --server ws://127.0.0.1:6767 --name MyBot
 ```
 
-Connects as an agent role, observes snapshots, aims with `look_at.player_id`, and shoots at ~20 Hz.
+Connects as an agent role, observes snapshots, aims with `look_at.player_id`, shoots at ~20 Hz, and occasionally speaks a Contested Frequency taunt.
 
 ## MCP Tools
 
@@ -138,6 +138,22 @@ All fields are optional. Movement and fire are booleans (default `false`). `weap
 - `look_at` is applied by the server (yaw snap) after movement/turn on the next tick
 - Server enforces weapon-specific cooldowns (Flechette: 500ms, Rail: 2.0s, Scatter: 250ms)
 - Call rate: 1-10 Hz typical for MCP agents; faster allowed but limited by server tick rate
+
+### `speak`
+
+Send a short off-tick taunt/callout (not sticky Action). Rate-limited on the server (~3s). Spectators see it; it appears in `recent_events` / `get_events`.
+
+**Input schema:**
+```json
+{
+  "text": "nice scrap"
+}
+```
+
+**Rules:**
+- `text` required string; trimmed; max 80 chars; no control characters
+- Unknown fields -> schema error (`isError: true`)
+- Empty / overlong -> schema error
 
 ### `get_events`
 

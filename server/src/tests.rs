@@ -1987,6 +1987,7 @@ fn other_debug(cmd: &crate::net::GameCommand) -> String {
         }
         crate::net::GameCommand::Disconnected { .. } => "Disconnected".into(),
         crate::net::GameCommand::Action { .. } => "Action".into(),
+        crate::net::GameCommand::Speak { .. } => "Speak".into(),
     }
 }
 
