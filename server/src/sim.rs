@@ -15,6 +15,8 @@ const TURN_SPEED: f32 = 2.0;
 const ARENA_SIZE: f32 = 50.0;
 const PLAYER_RADIUS: f32 = 0.5;
 const RESPAWN_DELAY_TICKS: u32 = 60;
+/// Ticks after a respawn during which a fighter cannot be hit (one second).
+pub const SPAWN_SHIELD_TICKS: u32 = 20;
 const HITSCAN_RANGE: f32 = 100.0;
 const PLAYER_MAX_HP: i32 = 100;
 /// Max Unicode scalars in a speak/taunt line (after trim).
@@ -554,6 +556,8 @@ pub struct GameState {
     pub map: MapKind,
     /// When true, alternate map each start_round.
     pub map_rotate: bool,
+    /// Fighters that just respawned and their remaining shield ticks.
+    pub spawn_shields: HashMap<Uuid, u32>,
 }
 
 pub struct Player {
@@ -762,6 +766,10 @@ impl GameState {
     pub fn tick(&mut self, dt: f32) {
         self.tick += 1;
         self.shot_results.clear();
+        self.spawn_shields.retain(|_, ticks| {
+            *ticks = ticks.saturating_sub(1);
+            *ticks > 0
+        });
         // Do not clear events here. Join/leave are pushed from the net loop between
         // ticks; clearing would drop them before main broadcasts take_events().
         // take_events() in the game loop is the drain.
@@ -1113,6 +1121,9 @@ impl GameState {
             if i == shooter_idx || target.respawn_timer.is_some() {
                 continue;
             }
+            if self.spawn_shields.get(&target.id).is_some_and(|t| *t > 0) {
+                continue;
+            }
 
             let dx = target.x - shooter.x;
             let dz = target.z - shooter.z;
@@ -1155,9 +1166,37 @@ impl GameState {
         closest_idx
     }
 
+    /// Ring slot farthest from every living fighter, so a respawn never lands in a fight.
+    fn farthest_spawn_angle(&self, player_id: Uuid) -> f32 {
+        let others: Vec<(f32, f32)> = self
+            .players
+            .iter()
+            .filter(|p| p.id != player_id && p.respawn_timer.is_none())
+            .map(|p| (p.x, p.z))
+            .collect();
+        if others.is_empty() {
+            return rand::random::<f32>() * 2.0 * PI;
+        }
+        let mut best_angle = 0.0;
+        let mut best_gap = f32::MIN;
+        for slot in 0..16 {
+            let angle = slot as f32 * (PI / 8.0);
+            let (sx, sz, _) = spawn_on_ring(self.map, angle);
+            let nearest = others
+                .iter()
+                .map(|(ox, oz)| ((ox - sx).powi(2) + (oz - sz).powi(2)).sqrt())
+                .fold(f32::MAX, f32::min);
+            if nearest > best_gap {
+                best_gap = nearest;
+                best_angle = angle;
+            }
+        }
+        best_angle
+    }
+
     fn do_respawn(&mut self, player_id: Uuid) {
+        let angle = self.farthest_spawn_angle(player_id);
         if let Some(player) = self.players.iter_mut().find(|p| p.id == player_id) {
-            let angle = rand::random::<f32>() * 2.0 * PI;
             let (sx, sz, yaw) = spawn_on_ring(self.map, angle);
 
             player.x = sx;
@@ -1172,6 +1211,7 @@ impl GameState {
             self.events.push(GameEvent::Respawn {
                 player: player.name.clone(),
             });
+            self.spawn_shields.insert(player_id, SPAWN_SHIELD_TICKS);
         }
     }
 
@@ -1622,6 +1662,7 @@ impl Default for GameState {
             roster_names: Vec::new(),
             map: MapKind::ArenaDuel,
             map_rotate: false,
+            spawn_shields: HashMap::new(),
         }
     }
 }
