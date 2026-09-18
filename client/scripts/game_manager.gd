@@ -86,6 +86,7 @@ func _on_connected():
 
 func _on_disconnected():
 	hud.set_status("Disconnected")
+	hud.reset_host_chrome()
 
 func _on_snapshot_received(data):
 	var tick = data.get("tick", 0)
@@ -103,9 +104,13 @@ func _on_snapshot_received(data):
 		hud.set_pressure("")
 	else:
 		hud.set_pressure(str(pressure))
-	# Sticky Host chrome for mid-join / mid-round observe (flash once on first Snapshot).
+	# Sticky Host chrome always. Flash once only on mid-round join (Active/Ended),
+	# so Warmup still waits for RoundStart Host bumper instead of double-flashing.
 	if host_line != "":
-		hud.set_host_line(host_line, true)
+		var flash = round_state == "Active" or round_state == "Ended"
+		if hud.set_host_line(host_line, flash):
+			if round_start_sound and round_start_sound.stream:
+				round_start_sound.play()
 	hud.set_tick(tick)
 	hud.set_player_count(len(player_list))
 	hud.sync_scores_from_players(player_list)
