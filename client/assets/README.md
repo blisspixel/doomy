@@ -2,6 +2,16 @@
 
 RGBA pixel sprites. Import: **Nearest**, mipmaps **off**. Use base sizes (32/64/16).
 
+## Import settings
+
+All PNG assets are configured with `.import` files for pixel-perfect rendering:
+- Filter mode: Nearest (0) - no blurring/smoothing
+- Mipmaps: disabled - prevents mipmap blurring at distance
+- Compression: mode 0 (lossless or uncompressed)
+- detect_3d/compress_to: 0 - preserves quality for 3D billboard sprites
+
+When adding new assets, ensure import settings match existing .import files.
+
 ## weapons/32
 - `flechette.png` `rail.png` `scatter.png` — WeaponType v1
 - `weapons_atlas_flechette_rail_scatter.png`
