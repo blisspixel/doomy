@@ -1,4 +1,4 @@
-use crate::protocol::{Action, GameEvent, PlayerState, Role, Snapshot};
+use crate::protocol::{Action, GameEvent, PlayerState, Role, Snapshot, WeaponType};
 use std::collections::HashMap;
 use std::f32::consts::PI;
 use uuid::Uuid;
@@ -7,10 +7,8 @@ const MOVE_SPEED: f32 = 5.0;
 const TURN_SPEED: f32 = 2.0;
 const ARENA_SIZE: f32 = 50.0;
 const PLAYER_RADIUS: f32 = 0.5;
-const FIRE_COOLDOWN_TICKS: u32 = 10;
 const RESPAWN_DELAY_TICKS: u32 = 60;
 const HITSCAN_RANGE: f32 = 100.0;
-const HITSCAN_DAMAGE: i32 = 25;
 const PLAYER_MAX_HP: i32 = 100;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -63,6 +61,7 @@ pub struct Player {
     pub respawn_timer: Option<u32>,
     pub just_fired: bool,
     pub role: Role,
+    pub weapon: WeaponType,
 }
 
 impl GameState {
@@ -144,6 +143,7 @@ impl GameState {
             respawn_timer: None,
             just_fired: false,
             role,
+            weapon: WeaponType::default(),
         });
 
         self.scores.entry(id).or_insert(0);
@@ -224,6 +224,10 @@ impl GameState {
 
             let action = &player.pending_action;
 
+            if let Some(new_weapon) = action.weapon_swap {
+                player.weapon = new_weapon;
+            }
+
             let mut dx = 0.0;
             let mut dz = 0.0;
             if action.forward {
@@ -290,8 +294,9 @@ impl GameState {
         }
 
         for (shooter_idx, maybe_victim_idx) in hits {
+            let weapon = self.players[shooter_idx].weapon;
             let shooter = &mut self.players[shooter_idx];
-            shooter.fire_cooldown = FIRE_COOLDOWN_TICKS;
+            shooter.fire_cooldown = weapon.cooldown_ticks();
             shooter.just_fired = true;
 
             if let Some(victim_idx) = maybe_victim_idx {
@@ -299,7 +304,7 @@ impl GameState {
                 let shooter_id = self.players[shooter_idx].id;
                 let victim = &mut self.players[victim_idx];
 
-                victim.hp -= HITSCAN_DAMAGE;
+                victim.hp -= weapon.damage();
                 if victim.hp <= 0 {
                     let victim_name = victim.name.clone();
                     victim.respawn_timer = Some(RESPAWN_DELAY_TICKS);
@@ -327,6 +332,7 @@ impl GameState {
 
     fn check_hitscan(&self, shooter_idx: usize) -> Option<usize> {
         let shooter = &self.players[shooter_idx];
+        let spread = shooter.weapon.spread_radians();
         let ray_dx = shooter.yaw.cos();
         let ray_dz = shooter.yaw.sin();
 
@@ -351,14 +357,25 @@ impl GameState {
                 continue;
             }
 
-            let proj_dist = dot;
-            let perp_x = dx - ray_dx * proj_dist;
-            let perp_z = dz - ray_dz * proj_dist;
-            let perp_dist = (perp_x * perp_x + perp_z * perp_z).sqrt();
+            let target_angle = dz.atan2(dx);
+            let mut angle_diff = target_angle - shooter.yaw;
+            while angle_diff > PI {
+                angle_diff -= 2.0 * PI;
+            }
+            while angle_diff < -PI {
+                angle_diff += 2.0 * PI;
+            }
 
-            if perp_dist <= PLAYER_RADIUS * 2.0 {
-                closest_dist = dist;
-                closest_idx = Some(i);
+            if angle_diff.abs() <= spread {
+                let proj_dist = dot;
+                let perp_x = dx - ray_dx * proj_dist;
+                let perp_z = dz - ray_dz * proj_dist;
+                let perp_dist = (perp_x * perp_x + perp_z * perp_z).sqrt();
+
+                if perp_dist <= PLAYER_RADIUS * 2.0 {
+                    closest_dist = dist;
+                    closest_idx = Some(i);
+                }
             }
         }
 
@@ -417,6 +434,7 @@ impl GameState {
                         just_fired: p.just_fired,
                         behavior,
                         score: *self.scores.get(&p.id).unwrap_or(&0),
+                        weapon: p.weapon.name().to_string(),
                     }
                 })
                 .collect(),
