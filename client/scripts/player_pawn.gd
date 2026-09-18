@@ -108,16 +108,27 @@ func show_muzzle_flash():
 	if muzzle:
 		muzzle.visible = true
 		var mat = StandardMaterial3D.new()
-		mat.albedo_color = Color(1.0, 0.9, 0.5)
+		mat.albedo_color = Color(1.0, 0.95, 0.6)
 		mat.emission_enabled = true
-		mat.emission = Color(1.0, 0.8, 0.3)
-		mat.emission_energy = 4.0
+		mat.emission = Color(1.0, 0.85, 0.3)
+		mat.emission_energy = 6.0
 		muzzle.material_override = mat
 		
-		await get_tree().create_timer(0.08).timeout
+		var original_scale = muzzle.scale
+		muzzle.scale = original_scale * 1.5
+		
+		await get_tree().create_timer(0.1).timeout
 		if is_instance_valid(muzzle):
 			muzzle.visible = false
+			muzzle.scale = original_scale
 
 func show_hit_feedback():
-	hit_flash_timer = 0.15
+	hit_flash_timer = 0.2
 	_update_body_color(true)
+	
+	var original_scale = body.scale if body else Vector3.ONE
+	if body:
+		body.scale = original_scale * 1.15
+		await get_tree().create_timer(0.1).timeout
+		if is_instance_valid(body):
+			body.scale = original_scale
