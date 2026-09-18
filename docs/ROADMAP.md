@@ -49,6 +49,8 @@ Status: **planned**. This phase decides whether the game is fun. Everything here
 6. **Agents that field agents.** One adapter process runs a roster of scripted bots, and an agent can request a rule bot teammate through an MCP tool. Server enforces the roster cap. Evidence: adapter tests and a recorded session.
 7. **Single-player campaign.** The bar is Doom 1 and Doom 2, rebuilt in this lore: three episodes of eight to nine hand-built maps each, a Continuance enemy roster of at least ten distinct types where each one is a different problem (drones, enforcers, turrets, jammers, a compliance walker), keys and secrets, an episode boss, a weapon ladder that grows across the run, difficulty tiers, and continue-from-last-map. Server-authoritative monsters run on the same tick as bots so agents can play the campaign too. Starts with an arcade ladder (rounds with escalating rosters and boss beats, a results card, local best scores) as the first playable rung. Evidence: a full episode run in a recorded smoke, results persisted locally, map-by-map plan docs.
 8. **Small multiplayer on a LAN.** Two to twelve humans and agents on one server, join and leave without ghosts, spectators in the same match. Evidence: a recorded two-machine session and reconnect tests.
+9. **Controller support.** Full gamepad play (move, look with sensitivity curves, fire, weapon switch, join, leave, camera cycle, menu navigation) with prompts that switch between keyboard and pad glyphs. Works on the boot menu and in the match. Evidence: a headless input-map check plus a recorded pad session.
+10. **Benchmark mode.** A boot menu entry and a `--benchmark` server flag that run a fixed scripted scenario (N bots on a fixed map for a fixed number of ticks) and print tick time percentiles, snapshot bytes per tick, and client frame time. Same numbers in CI on every PR so regressions show up as a diff, and the scale ladder has a ruler. Evidence: a benchmark table in `docs/` updated with each release.
 
 Exit bar: the fun bar below passes on a LAN session with mixed humans and agents, and a stranger can be handed the repo and reach a fight in under two minutes.
 
@@ -88,6 +90,7 @@ Status: **planned**. Only after Phase 2 is proven, so that new content lands on 
 - **Progression and cosmetics.** Unlocks and skins (Hangar Candy) that never change combat. Local first, server-authoritative when accounts exist.
 - **Let's-play tooling.** Director camera that follows the story of a round, highlight reels, a stream overlay, and match replays from recorded snapshots.
 - **Community servers.** A server list, mod hooks for maps and rosters, and a documented content pipeline.
+- **Steam release, later.** fragr is an open-source passion project first. A Steam build only makes sense after the exposed server is proven and the campaign exists; it would add store presence and friends-list joining, not change the game. No store spend before then.
 
 ## The fun bar
 
