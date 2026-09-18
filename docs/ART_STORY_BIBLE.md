@@ -30,7 +30,7 @@ Working name **fragr** (may change). Never brand as Doom / a Doom clone.
 - Fighter seed brands: **Cyanex** / **Kragge** (screenshot crumbs; keep unless Nick kills)
 - Match: FRAG, frag_limit, SPECTATING HUD
 
-**Scrub when convenient:** leftover `doomy-*` / “Doomy” crate & doc titles → fragr.
+**Scrub complete:** Rename from doomy to fragr completed. All crates, binaries, documentation, and client title now use fragr.
 
 **Not invented yet:** named maps in sim (graybox ~50); full weapon enum on main (icons exist; flechette / rail / scatter are art + Buildy PR spine).
 
