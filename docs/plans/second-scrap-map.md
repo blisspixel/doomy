@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `cursor/second-scrap-map`
 **Spend:** $0. Loopback. No GCP apply, no ElevenLabs, no look_at/hit reopen.
-**Status:** Ready to merge. Tip face: second scrap map (Compliance Yard).
+**Status:** Shipped (#80 / `e8f79b5`).
 
 ## Goal
 
@@ -13,7 +13,7 @@ Product locks: Contested Frequency; Unreal+CS + pixel grit; port 6767; fail-unde
 
 ## Tip priorities
 
-MVP / podium Host drama shipped (#79 / `986af60`). **Second scrap map is the NOW tip.**
+Shipped (#80 / `e8f79b5`). Tip NOW: Ended linger + MVP rehydrate. See [`ended-linger-mvp-rehydrate.md`](./ended-linger-mvp-rehydrate.md).
 
 ## Non-goals
 

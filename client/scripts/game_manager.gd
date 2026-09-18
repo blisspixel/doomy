@@ -20,6 +20,8 @@ var is_human_player = false
 var local_fp_pawn_id = ""
 var local_hp_seen = -1
 var fp_spawn_flashed = false
+# Mid-join Ended podium shown once per Ended phase.
+var ended_podium_shown = false
 var action_state = {
 	"forward": false,
 	"back": false,
@@ -148,6 +150,7 @@ func _on_connected():
 func _on_disconnected():
 	hud.set_status("Disconnected")
 	hud.reset_host_chrome()
+	ended_podium_shown = false
 	_clear_world()
 
 func _clear_world() -> void:
@@ -192,6 +195,7 @@ func _on_snapshot_received(data):
 	hud.set_player_count(len(player_list))
 	hud.sync_scores_from_players(player_list)
 	hud.set_round_info(round_state, round_time_left, frag_limit)
+	_maybe_rehydrate_ended_mvp(data, round_state)
 	_maybe_assign_ghost_rival(player_list)
 	
 	var current_ids = {}
@@ -278,6 +282,7 @@ func _on_event_received(data):
 		if not is_human_player and killer_id != "" and camera:
 			camera.lock_on_frag(killer_id, 2.0)
 	elif event_type == "round_start":
+		ended_podium_shown = false
 		var mode_name = str(data.get("mode_name", "Contested Frequency"))
 		var playlist = str(data.get("playlist", "Arena Duel"))
 		hud.set_league_identity(mode_name, playlist)
@@ -333,6 +338,7 @@ func _on_event_received(data):
 		var line = str(data.get("text", ""))
 		hud.show_speak(speaker, line)
 	elif event_type == "round_end":
+		ended_podium_shown = true
 		var mvp_name = str(data.get("mvp", data.get("winner", "")))
 		var mvp_frags = int(data.get("mvp_frags", data.get("winner_score", 0)))
 		var host_line = str(data.get("host_line", ""))
@@ -342,6 +348,32 @@ func _on_event_received(data):
 		if round_end_sound and round_end_sound.stream:
 			round_end_sound.play()
 
+
+
+func _maybe_rehydrate_ended_mvp(data, round_state) -> void:
+	# Mid-join during Ended: structured Snapshot mvp/mvp_frags/host_line sell podium.
+	if round_state != "Ended" or ended_podium_shown:
+		return
+	var mvp_raw = data.get("mvp", null)
+	var frags_raw = data.get("mvp_frags", null)
+	var host_line = str(data.get("host_line", ""))
+	# Need at least one structured Ended field (or sticky Host bumper).
+	if mvp_raw == null and frags_raw == null and host_line == "":
+		return
+	var mvp_name = str(mvp_raw) if mvp_raw != null else ""
+	var mvp_frags = int(frags_raw) if frags_raw != null else 0
+	# Light podium from live player scores when final_scores absent on Snapshot.
+	var podium = []
+	var player_list = data.get("players", [])
+	if typeof(player_list) == TYPE_ARRAY:
+		var rows = []
+		for p in player_list:
+			rows.append({"name": str(p.get("name", "?")), "score": int(p.get("score", 0))})
+		rows.sort_custom(func(a, b): return a.score > b.score)
+		podium = rows
+	ended_podium_shown = true
+	if hud and hud.has_method("show_round_end"):
+		hud.show_round_end(mvp_name, "MID-JOIN // ROUND ENDED", mvp_frags, host_line, podium)
 
 func _sync_pickups(pickup_list):
 	var seen = {}
