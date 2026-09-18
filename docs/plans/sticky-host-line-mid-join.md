@@ -34,7 +34,7 @@ Make `host_line` sticky so late joiners and mid-round observers always see Conte
 Snapshot adds:
 
 ```json
-"host_line": "HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE. ARENA DUEL IS LIVE."
+"host_line": "HOST: CONTESTED FREQUENCY. PLAY VS COMPLIANCE. ARENA DUEL IS LIVE."
 ```
 
 While `pressure` is `"compliance"`:

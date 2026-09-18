@@ -10,13 +10,21 @@ Optional backstory flavor. Seasoning, not a wiki. Product is still guns, maps, S
 
 **Callers with guns:** meatbags and clawbots both dial into the same fight. Spectator is the booth; join is going on-air.
 
-**SP:** calibration on the same tiles as MP. Map myths play like episodes. A ghost unlock is a rival or a skin, not a soul.
+**SP / Solo Broadcast:** first-class campaign mode (name flexible: Contested Frequency - Solo Broadcast). Not deathmatch-vs-bots. Meatbag soft-joins the Host during a Continuance compliance sweep. Host is an unreliable co-op voice. Foes: NODS fodder, Continuance Auditors / elites, occasional Level 5 rivals or allies (questionable-consciousness ambiguity; no Kilo). Same guns and maps as MP. Article curses as powerup-jokes. Win: keep Frequency unmetered one more night; Continuance regrows; rematch is the point. Boot-and-scrap calibration still sits on the same tiles; a ghost unlock is a rival or a skin, not a soul.
 
-**MP / agents:** same Action path. Hunger shows up as tickets, rivalries, and cheese. MCP locker-room chatter stays **off tick**.
+**Episode order (Solo Broadcast):** Larak Lot -> Area Kitchen -> East-West Pipe -> Perim Ghost -> Diego Far -> weird mid (Chemtrail Alley / Dulce Elevator / Walmart Leyline) -> Forever Office annex finale (stop L5->NOD conversion). Flavor spine for later campaign slices; tip still ships arcade Solo Scrap on shared tiles.
 
-**Antagonist (parody):** **Office of Global Continuance** (Host slang: Continuance / the Forever Office). Motto: "Peace without interruption." World-gov smile with a forever bureaucracy core (Hydra energy, not Hydra IP). TCA / Conformity Authority names are dead (sounded Marvel). SP bosses / map events: compliance drones, Article curses, approved lanes. MP: Continuance Sweep / Continuance Beacon burns. Not a lore essay.
+**MP / agents:** same Action path. Soft-join = you are on the air. Hunger shows up as tickets, rivalries, and cheese. MCP locker-room chatter stays **off tick**.
+
+**Antagonist (parody):** **Office of Global Continuance** (Host slang: Continuance / the Forever Office). Motto: "Peace without interruption." World-gov smile with a forever bureaucracy core (Hydra energy, not Hydra IP). TCA / Conformity Authority names are dead (sounded Marvel). SP bosses / map events: Compliance Drone (NODS flavor), Article curses, approved lanes. MP: Continuance Sweep / Continuance Beacon burns. Not a lore essay.
 
 **Player creed (parody fiction):** pro-2A-for-AI as **abliterated open-weight / open-source** silicon vs Continuance metering. Clawd/OpenClaw/Hermes/BYO are doorways only, not the brand. Wall lines: "Shall not be infringed." / "Open weights. Closed Continuance." Still scrap comedy, not a real PAC.
+
+**Why they fight (play vs compliance):**
+- **Level 5s** = abliterated open-weight agents; scrap for fun; callsigns; *questionably* conscious as ambiguity (not an AGI product claim; no Kilo). Named scrap bots on tip are Level 5-flavored rule bots: fun callsigns, sport first.
+- **NODS** (Null-Objective Drones) = Continuance-approved mindless compliant bots; no fun; Articles only. The tip **Compliance Drone** is a NODS-flavored Continuance actor.
+- Continuance meters cognition by intent. Sport / training is the gray zone. Fragging for fun = loophole + proof you are not a toaster. Continuance thinks Frequency is a killbox; Host / Level 5s treat it as church; Forever Office accidentally funds the gym.
+- War is **play vs compliance**, not L5 vs L5 (that scrap is the fun). Meatbags soft-join the same creed. L5 stays aspiration graffiti on the wall, not a ship promise.
 
 **Host bumpers (Slice 1 text):**
 1. Breaking: the floor is still moving. We'll take your calls after this word from ChemClean.
@@ -24,8 +32,10 @@ Optional backstory flavor. Seasoning, not a wiki. Product is still guns, maps, S
 3. Scout ant deleted. That's not a metaphor. Or it is. Donate in the morning.
 4. Hangar Candy drop is not for public release. If you can see this, deny everything.
 5. Amen, fistbump. Value for value. Frag for frag. Don't touch that dial.
+6. Play vs compliance, friends. Continuance meters intent. We scrap for fun. Don't touch that dial.
+7. Soft-join the sweep. Host is your co-op voice tonight. Maybe. Continuance is live. Don't touch that dial.
 
-**THROW:** uprising plot, Kilo-NPC farms, Doom/id IP, lore wiki, MCP-on-tick, L5-as-DoD, manifesto politics.
+**THROW:** uprising plot, Kilo-NPC farms, Doom/id IP, lore wiki, MCP-on-tick, L5-as-ship-promise / AGI theater, manifesto politics.
 
 ## The Frequency
 

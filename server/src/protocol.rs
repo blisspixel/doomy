@@ -15,7 +15,7 @@ pub fn default_playlist() -> String {
 }
 
 pub fn default_host_line() -> String {
-    "HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE. ARENA DUEL IS LIVE.".to_string()
+    "HOST: CONTESTED FREQUENCY. PLAY VS COMPLIANCE. ARENA DUEL IS LIVE.".to_string()
 }
 
 pub const MAP_ID_ARENA_DUEL: u32 = 1;
@@ -34,7 +34,7 @@ pub fn compliance_host_line() -> String {
     "HOST: CONTINUANCE COMPLIANCE PING. APPROVED LANES ONLY.".to_string()
 }
 
-/// Host line while the Continuance Compliance Drone is on the floor.
+/// Host line while the Continuance Compliance Drone (NODS flavor) is on the floor.
 pub fn boss_host_line() -> String {
     "HOST: CONTINUANCE COMPLIANCE DRONE ON DECK. ARTICLE 7 ENFORCEMENT.".to_string()
 }
@@ -189,7 +189,7 @@ pub fn rule_bot_taunt_line(name: &str, kind: BotTauntKind, salt: u64) -> String 
     pool[idx].to_string()
 }
 
-/// Display name for the mid-round Continuance boss NPC.
+/// Display name for the mid-round Continuance boss NPC (NODS-flavored Compliance Drone).
 pub const BOSS_NAME: &str = "COMPLIANCE-DRONE";
 
 pub fn default_pickup_kind() -> String {
