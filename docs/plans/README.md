@@ -18,6 +18,7 @@ Status words: **planned**, **in flight**, **shipped** (merged to `main`, PR numb
 | Plan | Status | One-liner |
 |---|---|---|
 | [`radio-stations.md`](./radio-stations.md) | **in flight** | Contested Frequency radio: eight stations, generated library, client player with ducking. |
+| [`arty-gold-face-pack.md`](./arty-gold-face-pack.md) | **shipped** (#86) | Gold face pack: Cyanex and Kragge gold idle billboards plus broadcast HUD chrome. |
 | [`rule-bot-taunts.md`](./rule-bot-taunts.md) | **shipped** (#85) | Named rule bots speak Contested Frequency scrap-radio taunts. |
 | [`public-or-local-join.md`](./public-or-local-join.md) | **shipped** (#84) | Docs scrub: public OR local join; Tailscale private only; spend honesty. |
 | [`warmup-host-drama.md`](./warmup-host-drama.md) | **shipped** (#83) | Warmup and pre-round Host countdown drama (roster, map, bumper). |

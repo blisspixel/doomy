@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://bc0b236c0fe8fa6f"
-path="res://.godot/imported/fire_scatter.wav-c0b236c0fe8fa6f73df483a2eedee830.sample"
+uid="uid://dyya5tgp3o5el"
+path="res://.godot/imported/fire_scatter.wav-6c9230c99cfa2f89b38e8c3b5535621d.sample"
 
 [deps]
 
 source_file="res://assets/audio/fire_scatter.wav"
-dest_files=["res://.godot/imported/fire_scatter.wav-c0b236c0fe8fa6f73df483a2eedee830.sample"]
+dest_files=["res://.godot/imported/fire_scatter.wav-6c9230c99cfa2f89b38e8c3b5535621d.sample"]
 
 [params]
 

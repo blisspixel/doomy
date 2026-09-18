@@ -18,6 +18,10 @@ signal host_spoke(seconds: float)
 @onready var spawn_flash = $SpawnFlash
 @onready var streak_flash = $StreakFlash
 @onready var fp_weapon = $FpWeapon
+@onready var chrome_strip = $ChromeStrip
+@onready var on_air_badge = $OnAirBadge
+@onready var contested_frequency_badge = $ContestedFrequencyBadge
+@onready var hangar_candy_badge = $HangarCandyBadge
 var crosshair_hbar = null
 var crosshair_vbar = null
 var crosshair_dot = null
@@ -37,6 +41,7 @@ var pressure_id = ""
 var sticky_host_line = ""
 var host_line_seen = false
 var client_mode = "SPECTATING"
+var round_chrome_state = "Warmup"
 
 const HOST_BUMPERS = [
 	"HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE.",
@@ -98,6 +103,7 @@ func _ready():
 		fp_weapon.visible = false
 		fp_weapon_base_pos = fp_weapon.position
 		fp_weapon_scene_base = fp_weapon.position
+	_update_broadcast_chrome("Warmup")
 
 func set_status(text: String):
 	if status_label:
@@ -150,6 +156,8 @@ func set_tick(tick: int):
 		tick_label.text = "Time: " + str(seconds) + "s"
 
 func set_round_info(state: String, time_left: int, frag_limit: int):
+	round_chrome_state = state
+	_update_broadcast_chrome(state)
 	if not round_label:
 		return
 	var text = "Round: " + state
@@ -277,6 +285,46 @@ func reset_host_chrome():
 	host_line_seen = false
 	_refresh_mode_label()
 
+
+func _update_broadcast_chrome(state: String) -> void:
+	# Contested Frequency / ON AIR / Hangar Candy grit. Dull, not neon.
+	var warm = state == "Warmup"
+	var live = state == "Active"
+	var ended = state == "Ended"
+	if chrome_strip:
+		chrome_strip.visible = true
+		var a = 0.92 if live else (0.88 if warm else 0.7)
+		chrome_strip.modulate = Color(1, 1, 1, a)
+	if on_air_badge:
+		on_air_badge.visible = live
+		if live:
+			on_air_badge.modulate = Color(1, 1, 1, 0.95)
+	if contested_frequency_badge:
+		# Warm on Warmup / Host face; quieter while live so ON AIR owns the scrap.
+		contested_frequency_badge.visible = true
+		var ca = 0.95 if warm else (0.72 if live else 0.8)
+		contested_frequency_badge.modulate = Color(0.95, 0.95, 0.98, ca)
+	if hangar_candy_badge:
+		hangar_candy_badge.visible = true
+		var ha = 0.85 if (warm or ended) else 0.75
+		hangar_candy_badge.modulate = Color(1, 1, 1, ha)
+
+func flash_broadcast_chrome(kind: String = "host") -> void:
+	# Brief badge lift on Host / Warmup bumper without neon wash.
+	var badge = contested_frequency_badge
+	if kind == "on_air":
+		badge = on_air_badge
+		if on_air_badge:
+			on_air_badge.visible = true
+	elif kind == "hangar":
+		badge = hangar_candy_badge
+	if badge == null:
+		return
+	var base_a = badge.modulate.a
+	badge.modulate.a = minf(base_a + 0.15, 1.0)
+	var tween = create_tween()
+	tween.tween_property(badge, "modulate:a", base_a, 0.45)
+
 func set_host_line(line: String, flash_on_first: bool = false) -> bool:
 	# Returns true when this call triggered the one-shot mid-join Host flash.
 	if line == "":
@@ -292,6 +340,7 @@ func set_host_line(line: String, flash_on_first: bool = false) -> bool:
 func show_host_join(host_line: String):
 	host_spoke.emit(3.0)
 	# Mid-join Host bumper: same energy as RoundStart Host chrome, without waiting for RoundStart.
+	flash_broadcast_chrome("host")
 	if round_message:
 		var line = host_line
 		if line == "":
@@ -308,6 +357,7 @@ func show_host_join(host_line: String):
 func show_warmup_bumper(host_line: String, secs_left: int = 0):
 	host_spoke.emit(3.0)
 	# Warmup / pre-round Host drama: roster + map bumper readable before RoundStart.
+	flash_broadcast_chrome("host")
 	if round_message:
 		var line = host_line
 		if line == "":
@@ -326,6 +376,7 @@ func show_warmup_bumper(host_line: String, secs_left: int = 0):
 
 func show_round_start(round_number: int, host_line: String = ""):
 	host_spoke.emit(3.0)
+	flash_broadcast_chrome("on_air")
 	if round_message:
 		var line = host_line
 		if line == "":

@@ -28,4 +28,9 @@ When adding new assets, ensure import settings match existing .import files.
 ## vfx/32
 - `muzzle_flash.png` `rail_beam_tip.png`
 
+## ui
+- `on_air.png` `contested_frequency.png` `hangar_candy.png` `chrome-strip.png` - full plates
+- `on_air_badge.png` `contested_frequency_badge.png` `hangar_candy_badge.png` `chrome_strip_hud.png` - HUD crops (nearest)
+- Contested Frequency / Hangar Candy / ON AIR broadcast grit. Dull, not neon.
+
 Boomer-arena. No Doom IP.

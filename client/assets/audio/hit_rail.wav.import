@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://be6569505b5b1cea"
-path="res://.godot/imported/hit_rail.wav-e6569505b5b1ceacb5600f5d795cff7e.sample"
+uid="uid://b4bq3rmgy2e7i"
+path="res://.godot/imported/hit_rail.wav-74f9b66c617f76be7554f81d562a0c50.sample"
 
 [deps]
 
 source_file="res://assets/audio/hit_rail.wav"
-dest_files=["res://.godot/imported/hit_rail.wav-e6569505b5b1ceacb5600f5d795cff7e.sample"]
+dest_files=["res://.godot/imported/hit_rail.wav-74f9b66c617f76be7554f81d562a0c50.sample"]
 
 [params]
 
