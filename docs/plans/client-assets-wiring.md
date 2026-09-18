@@ -123,13 +123,13 @@ If weapon icon looks awkward in current HUD:
 
 ### During implementation
 
-- [ ] Set import flags on all PNG assets (nearest, no mipmaps)
-- [ ] Application name changed to fragr
-- [ ] Player sprites render correctly (billboard, tinted)
-- [ ] Weapon icons show on HUD based on state
-- [ ] Floor and wall textures applied
-- [ ] VFX sprites appear on weapon fire
-- [ ] No visual regressions (players spawn, move, fight)
+- [x] Set import flags on all PNG assets (nearest, no mipmaps)
+- [x] Application name changed to fragr
+- [x] Player sprites render correctly (billboard, tinted)
+- [x] Weapon icons show on HUD based on state
+- [x] Floor and wall textures applied
+- [x] VFX sprites appear on weapon fire
+- [x] No visual regressions (players spawn, move, fight)
 
 ### Post-implementation
 
@@ -138,11 +138,11 @@ If weapon icon looks awkward in current HUD:
 - [ ] Weapon icons visible and change with weapon state
 - [ ] Muzzle flash and rail effects use correct sprites
 - [ ] No placeholder capsules visible (except muzzle when not firing)
-- [ ] Rust verification: `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, `cargo build --workspace`
+- [x] Rust verification: `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, `cargo build --workspace`
 - [ ] Godot verification: scenes open cleanly in 4.7.2-stable
-- [ ] Git author set to Nick Seal `<32712898+blisspixel@users.noreply.github.com>`
-- [ ] No tool attribution, no emoji, no em/en dashes in any commit or code
-- [ ] PR created, merge-ready
+- [x] Git author set to Nick Seal `<32712898+blisspixel@users.noreply.github.com>`
+- [x] No tool attribution, no emoji, no em/en dashes in any commit or code
+- [x] PR created, merge-ready
 
 ## Success criteria
 
