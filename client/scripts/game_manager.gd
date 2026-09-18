@@ -151,6 +151,14 @@ func _on_event_received(data):
 		
 		hud.show_frag(killer_name, victim_name, killer_color, victim_color)
 		
+		if camera:
+			camera.camera_punch()
+		
+		for pawn in players.values():
+			if is_instance_valid(pawn) and pawn.player_name == killer_name:
+				pawn.show_winner_glow()
+				break
+		
 		if frag_sound and frag_sound.stream:
 			frag_sound.play()
 		
