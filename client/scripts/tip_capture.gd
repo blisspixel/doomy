@@ -21,6 +21,9 @@ func _run_capture() -> void:
 	await create_timer(2.0).timeout
 	await RenderingServer.frame_post_draw
 
+	# Pull spectator cam to a scrap-league overview for the first still.
+	_pose_overview_camera()
+
 	# Seconds after scene load (warmup ~2s; compliance ~15s into Active).
 	# 12s lands mid-scrap for weapons / frags killfeed still.
 	var shot_waits: Array[float] = [4.0, 10.0, 12.0, 18.0]
@@ -38,6 +41,9 @@ func _run_capture() -> void:
 		if delay > 0.0:
 			await create_timer(delay).timeout
 		elapsed = target
+		# After overview still, return to follow cam for combat / HUD shots.
+		if i == 1:
+			_restore_follow_camera()
 		await RenderingServer.frame_post_draw
 		await RenderingServer.frame_post_draw
 
@@ -107,6 +113,33 @@ func _capture_midjoin_host_flash(out_dir: String) -> void:
 		quit(1)
 		return
 	print("tip_capture: wrote ", path, " size=", img.get_width(), "x", img.get_height())
+
+
+
+func _restore_follow_camera() -> void:
+	var gm: Node = _find_game_manager()
+	if gm == null:
+		return
+	var cam_root: Node = gm.get_node_or_null("SpectatorCamera")
+	if cam_root == null:
+		return
+	if "follow_mode" in cam_root:
+		cam_root.follow_mode = true
+
+func _pose_overview_camera() -> void:
+	var gm: Node = _find_game_manager()
+	if gm == null:
+		return
+	var cam_root: Node = gm.get_node_or_null("SpectatorCamera")
+	if cam_root == null:
+		return
+	# High corner overview so floor grit, scrap props, and billboards read together.
+	if cam_root is Node3D:
+		var n3: Node3D = cam_root
+		n3.global_position = Vector3(0, 22, 28)
+		n3.look_at(Vector3(0, 0, 0), Vector3.UP)
+		if "follow_mode" in n3:
+			n3.follow_mode = false
 
 func _find_game_manager() -> Node:
 	var root: Window = get_root()

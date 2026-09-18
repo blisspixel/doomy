@@ -10,8 +10,8 @@ Do not treat chat as the plan of record.
 
 Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Sticky host_line on Snapshot shipped (#63, Casino-cleared on MCP). Godot Host flash mid-join shipped (#64). Ship order from tip:
 
-1. **MCP session tools** - First-class `join` / `leave` / `round_state` (not lifecycle side effects only). See [`mcp-session-tools.md`](./mcp-session-tools.md).
-2. **Pixel-3D look bar** (NEXT after this PR) - Unreal+CS arena play feel; 3D Godot world/camera; retro pixel surfaces/sprites/HUD; SP boot-and-scrap first-class alongside watch-or-join MP; no Doom/id IP. Does not block MCP session tools.
+1. **Pixel-3D look bar** (NOW) - Unreal+CS arena play feel; 3D Godot world/camera; retro pixel surfaces/sprites/HUD; scrap-league Contested Frequency face; no Doom/id IP. See [`pixel-3d-look-bar.md`](./pixel-3d-look-bar.md).
+2. (Shipped) **MCP session tools** - First-class `join` / `leave` / `round_state`. See [`mcp-session-tools.md`](./mcp-session-tools.md).
 
 Shipped recently:
 
@@ -31,7 +31,8 @@ Port is **6767**. Public TCP+UDP 6767 for strangers/agents. Tailscale is private
 
 | Plan | Status | One-liner |
 |---|---|---|
-| [`mcp-session-tools.md`](./mcp-session-tools.md) | **in flight** (this tip) | First-class MCP join / leave / round_state tools + tip gallery stills. |
+| [`pixel-3d-look-bar.md`](./pixel-3d-look-bar.md) | **in flight** (this tip) | Pixel-3D scrap-league look bar: materials, billboards, lighting, tip stills. |
+| [`mcp-session-tools.md`](./mcp-session-tools.md) | **shipped** (#65) | First-class MCP join / leave / round_state tools + tip gallery stills. |
 | [`godot-host-flash-mid-join.md`](./godot-host-flash-mid-join.md) | **shipped** (#64) | Godot Host bumper flash on first mid-round Snapshot. |
 | [`sticky-host-line-mid-join.md`](./sticky-host-line-mid-join.md) | **shipped** (#63) | Sticky Snapshot host_line for mid-join Host chrome. |
 | [`offtick-speak-taunt.md`](./offtick-speak-taunt.md) | **shipped** | Off-tick speak/taunt for agents; spectators + MCP events. |

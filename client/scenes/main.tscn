@@ -7,12 +7,12 @@
 [ext_resource type="Script" path="res://scripts/hud.gd" id="5_hud"]
 
 [sub_resource type="StyleBoxFlat" id="PanelStyleBox_Weapon"]
-bg_color = Color(0.1, 0.1, 0.15, 0.9)
+bg_color = Color(0.039, 0.039, 0.047, 0.92)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.3, 0.3, 0.4, 1)
+border_color = Color(0.353, 0.333, 0.31, 1)
 
 [node name="GameManager" type="Node"]
 script = ExtResource("1_main")
@@ -65,12 +65,12 @@ text = "Fighters: 0"
 [node name="ModeLabel" type="Label" parent="HUD/Panel/VBoxContainer"]
 layout_mode = 2
 text = "CONTESTED FREQUENCY // ARENA DUEL\nSPECTATING (J: Join, F: Cycle Cam, ESC: Mouse)"
-theme_override_colors/font_color = Color(0.7, 0.9, 1, 1)
+theme_override_colors/font_color = Color(0.55, 0.7, 0.72, 1)
 
 [node name="RoundLabel" type="Label" parent="HUD/Panel/VBoxContainer"]
 layout_mode = 2
 text = "Round: Warmup"
-theme_override_colors/font_color = Color(1, 0.7, 0.3, 1)
+theme_override_colors/font_color = Color(0.82, 0.55, 0.28, 1)
 
 [node name="WeaponLabel" type="Label" parent="HUD/Panel/VBoxContainer"]
 layout_mode = 2
@@ -82,7 +82,7 @@ layout_mode = 2
 text = "SCRAP LEAGUE
 CONTESTED FREQUENCY
 (waiting for scrap)"
-theme_override_colors/font_color = Color(1, 0.9, 0.5, 1)
+theme_override_colors/font_color = Color(0.91, 0.886, 0.839, 1)
 
 [node name="FragLabel" type="Label" parent="HUD"]
 anchors_preset = 8
@@ -96,7 +96,7 @@ offset_right = 300.0
 offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(1, 0.3, 0.1, 1)
+theme_override_colors/font_color = Color(0.75, 0.22, 0.18, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 28
@@ -116,7 +116,7 @@ offset_right = 600.0
 offset_bottom = -40.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_colors/font_color = Color(1, 0.9, 0.2, 1)
+theme_override_colors/font_color = Color(0.91, 0.78, 0.45, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 28
