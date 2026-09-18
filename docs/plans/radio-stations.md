@@ -1,6 +1,6 @@
 # Plan: Contested Frequency radio
 
-**Status:** in flight (2026-09-18)
+**Status:** shipped (2026-09-18): music library and effects landed; news voices still to cast
 **Branch:** `feat/radio-stations`
 **Spend:** ElevenLabs credits from Nick's monthly plan, developer-side only. No runtime API calls. No other spend.
 
@@ -64,7 +64,7 @@ Music costs about 900 credits per minute. One hundred forty tracks averaging fou
 - Shuffle: no repeat within the last twelve plays (or the pool size minus one when smaller), a fresh random seed per session, play history kept per station for the session.
 - Keys: `radio_next_station` (R), `radio_next_track` (N), `radio_toggle` (M). Gamepad: D-pad up, down, and left.
 - Volume states: spectating 0 dB relative; playing as human minus 6 dB; Host callouts duck a further 9 dB for three seconds with a short recovery; LOCK IN never ducks for combat. The Dead Air Bell mutes the radio for its duration (round-end wiring in a follow-up).
-- HUD: a small label bottom right shows the station name on switch and the track title on each new track, then fades. Never in the killfeed corner.
+- HUD: a station card (badge, name, tagline, colour per station from `stations.json`) appears bottom right on every switch and toggle, and a small label under it shows the track title on each new track; both fade. Never in the killfeed corner.
 - Missing assets are fine: with no tracks the radio stays silent and the HUD says the station is off the air.
 
 ## Verification
@@ -76,7 +76,7 @@ Music costs about 900 credits per minute. One hundred forty tracks averaging fou
 
 ## Success criteria
 
-- [ ] Seven music stations with at least twenty tracks each, two to six minutes, mostly with lyrics on theme, committed with provenance.
+- [x] Seven music stations with at least twenty tracks each, two to six minutes, mostly with lyrics on theme, committed with provenance.
 - [ ] News station with a sting, an underscore bed, a sung ID, and at least twenty spoken bulletins in the five classes.
-- [ ] Radio plays in Solo Scrap and spectate, switches stations and tracks with the keys, ducks under Host lines, and never repeats within twelve plays.
+- [x] Radio plays in Solo Scrap and spectate, switches stations and tracks with the keys, ducks under Host lines, and never repeats within twelve plays.
 - [ ] Docs updated: `client/assets/audio/README.md`, `README.md` controls, this plan marked shipped, roadmap item ticked.

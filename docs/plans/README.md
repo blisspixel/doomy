@@ -17,7 +17,7 @@ Status words: **planned**, **in flight**, **shipped** (merged to `main`, PR numb
 
 | Plan | Status | One-liner |
 |---|---|---|
-| [`radio-stations.md`](./radio-stations.md) | **in flight** | Contested Frequency radio: eight stations, generated library, client player with ducking. |
+| [`radio-stations.md`](./radio-stations.md) | **shipped** (library) | Contested Frequency radio: eight stations, generated library, client player with ducking. |
 | [`warmup-tv-bumper.md`](./warmup-tv-bumper.md) | **shipped** (#89) | Full-frame Warmup TV bumper: map title, roster chips, countdown, Host flash lingering into Active. |
 | [`controller-and-desktop-platforms.md`](./controller-and-desktop-platforms.md) | **shipped** (#88) | Gamepad join, solo, and match input on the same action path; Windows, macOS, and Linux export presets. |
 | [`bug-hunt-polish-pass.md`](./bug-hunt-polish-pass.md) | **shipped** (#90) | Tip feel polish: boss down round-end wipe, layout null guard, spectator cam validity, net send hardening. |

@@ -69,11 +69,11 @@ cargo run -p fragr-audiogen -- tts --name radio/news/generic-01-count --voice <v
 
 `voices` prints the account's default voices with ids for casting. Default voices retire at the end of 2026, so cast from that list rather than from ids copied out of old docs. Spec items of kind `tts` take `text`, `voice`, optional `model`, `stability`, `format`, `title`. The scripts for the news station live in `specs/radio-news-scripts.json` and become `tts` items once voices are cast.
 
-Everything in a spec file (see `specs/fragr-core.json`):
+Everything in a spec file (see `specs/sfx-core.json`):
 
 ```bash
-cargo run -p fragr-audiogen -- batch --spec tools/audiogen/specs/fragr-core.json
-cargo run -p fragr-audiogen -- batch --spec tools/audiogen/specs/fragr-core.json --only frag
+cargo run -p fragr-audiogen -- batch --spec tools/audiogen/specs/sfx-core.json
+cargo run -p fragr-audiogen -- batch --spec tools/audiogen/specs/sfx-core.json --only frag
 ```
 
 Useful flags on every command: `--dry-run` prints the exact request and the credit estimate and writes nothing, `--overwrite` replaces existing files (the default is to skip them), `--out-dir` changes the destination, `--max-credits N` refuses to start a run whose estimate exceeds N.
