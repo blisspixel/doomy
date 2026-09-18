@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `cursor/weapon-roles`
 **Spend:** $0. No ElevenLabs, no GCP apply, no renet, no look_at/hit reopen.
-**Status:** Plan of record for weapon roles that read in the hand.
+**Status:** Shipped (#76 / `9734faf`). Tip stills recapture is NOW; see [`tip-stills-recapture.md`](./tip-stills-recapture.md).
 
 ## Goal
 
@@ -11,7 +11,7 @@ Flechette / Rail / Scatter must feel distinct in Join FP and on bots: not samey 
 
 ## Tip priorities
 
-Killstreak Host juice shipped (#75 / `979f263`). **Weapon roles excellence is the NOW tip.** Hit markers land as part of FP feel when the local (or followed) player scores a hit from Snapshot `shot_results` / `hit` observe. look_at / hit HOLD. Port 6767. Coverage fail-under 80.
+Killstreak Host juice shipped (#75 / `979f263`). **Weapon roles excellence shipped. Tip stills recapture is the NOW tip.** Hit markers land as part of FP feel when the local (or followed) player scores a hit from Snapshot `shot_results` / `hit` observe. look_at / hit HOLD. Port 6767. Coverage fail-under 80.
 
 ## Non-goals
 
