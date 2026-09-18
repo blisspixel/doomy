@@ -6,7 +6,7 @@ Agent adapter for Doomy - provides both MCP server and scripted bot modes.
 
 ### 1. MCP Server Mode
 
-Exposes MCP stdio tools for external agents (Cursor, Claude, clawbots) to control a player.
+Exposes MCP stdio tools for external agents and clawbots to control a player.
 
 ```bash
 cargo run -- mcp --server ws://127.0.0.1:7777
@@ -16,7 +16,7 @@ cargo run -- mcp --server ws://127.0.0.1:7777
 
 - **observe**: Get current game state observation
   - Returns: JSON snapshot with tick, players (id, name, x, y, z, yaw, hp, just_fired)
-  
+
 - **act**: Send action to game server
   - Parameters (all optional booleans):
     - `forward`, `back`, `left`, `right`: Movement
