@@ -50,7 +50,7 @@ Update `client/assets/README.md` to document import settings if not already clea
 
 ### 2. Application name
 
-Change `config/name` in `client/project.godot` from `"Doomy Client"` to `"fragr"`.
+Client application name has been changed to "fragr Client" in `client/project.godot`.
 
 ### 3. Weapon icons on HUD
 
