@@ -9,6 +9,7 @@ var idle_anim_timer: float = 0.0
 var current_weapon: String = ""
 var behavior: String = ""
 var is_highlighted: bool = false
+var is_local_fp: bool = false
 
 var target_position: Vector3 = Vector3.ZERO
 var target_yaw: float = 0.0
@@ -291,3 +292,15 @@ func _apply_body_scale(hit: bool) -> void:
 	if hit:
 		mult *= HIT_SCALE_BOOST
 	body.scale = Vector3.ONE * mult
+
+func set_local_fp(enabled: bool) -> void:
+	# Hide local billboard in FP so the HUD viewmodel owns the scrap face.
+	is_local_fp = enabled
+	if body:
+		body.visible = not enabled
+	if label:
+		label.visible = not enabled
+	if highlight:
+		highlight.visible = false if enabled else is_highlighted
+	if weapon_sprite and enabled:
+		weapon_sprite.visible = false
