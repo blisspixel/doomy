@@ -694,3 +694,39 @@ fn test_join_leave_event_serialization() {
     assert!(leave_json.contains(r#""round_number":2"#));
     assert!(leave_json.contains(r#""player_count":4"#));
 }
+
+#[test]
+fn join_leave_events_survive_tick() {
+    use crate::protocol::GameEvent;
+    let mut state = GameState::new(GameConfig::default());
+    state.push_event(GameEvent::PlayerJoined {
+        player: "AgentA".to_string(),
+        role: "agent".to_string(),
+        round_number: state.round_number,
+        player_count: 1,
+    });
+    state.tick(0.05);
+    state.push_event(GameEvent::PlayerLeft {
+        player: "AgentA".to_string(),
+        score: 0,
+        round_number: state.round_number,
+        player_count: 0,
+    });
+    state.tick(0.05);
+    let events = state.take_events();
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, GameEvent::PlayerJoined { .. })),
+        "PlayerJoined must survive tick() and remain until take_events: {:?}",
+        events
+    );
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, GameEvent::PlayerLeft { .. })),
+        "PlayerLeft must survive tick() and remain until take_events: {:?}",
+        events
+    );
+}
+
