@@ -18,6 +18,9 @@ Status words: **planned**, **in flight**, **shipped** (merged to `main`, PR numb
 | Plan | Status | One-liner |
 |---|---|---|
 | [`radio-stations.md`](./radio-stations.md) | **shipped** (library) | Contested Frequency radio: eight stations, generated library, client player with ducking. |
+| [`look-pass-boomer.md`](./look-pass-boomer.md) | **planned** | Boomer shooter look pass: low-res render target, dither, atlas, eight-direction sprites, weapon view models, HUD grid. |
+| [`campaign-continuance.md`](./campaign-continuance.md) | **planned** | Single-player campaign at the Doom 1 and 2 bar: arcade ladder, ten-type enemy roster, map format, three episodes. |
+| [`agent-playtest-loop.md`](./agent-playtest-loop.md) | **planned** | Playtest harness: scripted agents play rounds and file a metrics report; thresholds run in CI. |
 | [`warmup-tv-bumper.md`](./warmup-tv-bumper.md) | **shipped** (#89) | Full-frame Warmup TV bumper: map title, roster chips, countdown, Host flash lingering into Active. |
 | [`controller-and-desktop-platforms.md`](./controller-and-desktop-platforms.md) | **shipped** (#88) | Gamepad join, solo, and match input on the same action path; Windows, macOS, and Linux export presets. |
 | [`bug-hunt-polish-pass.md`](./bug-hunt-polish-pass.md) | **shipped** (#90) | Tip feel polish: boss down round-end wipe, layout null guard, spectator cam validity, net send hardening. |
