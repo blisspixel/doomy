@@ -3947,3 +3947,116 @@ fn test_warmup_host_drama_roster_map_countdown() {
     );
     assert!(start.contains("FIGHT!"));
 }
+
+#[test]
+fn rule_bot_taunt_emits_speak_and_respects_cooldown() {
+    use crate::protocol::BotTauntKind;
+    use crate::sim::{SpeakOutcome, SPEAK_COOLDOWN_TICKS};
+
+    let mut state = GameState::new();
+    let bot_id = Uuid::new_v4();
+    state.add_player(bot_id, "Dead Air Dan".to_string(), Role::Agent);
+    state
+        .bots
+        .push(BotController::new(bot_id, BotBehavior::Aggressive));
+
+    assert_eq!(
+        state.try_rule_bot_taunt(bot_id, BotTauntKind::Frag),
+        SpeakOutcome::Sent
+    );
+    let speaks: Vec<_> = state
+        .take_events()
+        .into_iter()
+        .filter_map(|e| match e {
+            GameEvent::Speak { player, text, .. } => Some((player, text)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(speaks.len(), 1);
+    assert_eq!(speaks[0].0, "Dead Air Dan");
+    assert!(!speaks[0].1.is_empty());
+    assert!(speaks[0].1.chars().count() <= 80);
+
+    assert_eq!(
+        state.try_rule_bot_taunt(bot_id, BotTauntKind::Death),
+        SpeakOutcome::RateLimited
+    );
+    assert!(
+        state
+            .take_events()
+            .iter()
+            .all(|e| !matches!(e, GameEvent::Speak { .. })),
+        "rate-limited taunt must not emit Speak"
+    );
+
+    state.tick += SPEAK_COOLDOWN_TICKS;
+    assert_eq!(
+        state.try_rule_bot_taunt(bot_id, BotTauntKind::Killstreak),
+        SpeakOutcome::Sent
+    );
+    assert!(state
+        .take_events()
+        .iter()
+        .any(|e| matches!(e, GameEvent::Speak { .. })));
+}
+
+#[test]
+fn compliance_boss_does_not_get_scrap_radio_taunts() {
+    use crate::protocol::BotTauntKind;
+    use crate::sim::SpeakOutcome;
+
+    let mut state = GameState::new();
+    let boss_id = Uuid::new_v4();
+    state.add_player(boss_id, "COMPLIANCE-DRONE".to_string(), Role::Agent);
+    state
+        .bots
+        .push(BotController::new(boss_id, BotBehavior::Compliance));
+
+    assert!(!state.is_named_rule_bot(boss_id));
+    assert_eq!(
+        state.try_rule_bot_taunt(boss_id, BotTauntKind::Frag),
+        SpeakOutcome::Rejected
+    );
+    assert!(state
+        .take_events()
+        .iter()
+        .all(|e| !matches!(e, GameEvent::Speak { .. })));
+}
+
+#[test]
+fn warmup_rule_bot_taunt_path_can_emit_speak() {
+    use crate::protocol::BotTauntKind;
+    use crate::sim::SpeakOutcome;
+
+    let mut state = GameState::new();
+    state.config.warmup_ticks = 200;
+    let bot_id = Uuid::new_v4();
+    state.add_player(bot_id, "Static Kid".to_string(), Role::Agent);
+    state
+        .bots
+        .push(BotController::new(bot_id, BotBehavior::Flanker));
+    assert_eq!(state.round_state, RoundState::Warmup);
+
+    assert_eq!(
+        state.try_rule_bot_taunt(bot_id, BotTauntKind::Warmup),
+        SpeakOutcome::Sent
+    );
+    let line = state
+        .take_events()
+        .into_iter()
+        .find_map(|e| match e {
+            GameEvent::Speak { text, .. } => Some(text),
+            _ => None,
+        })
+        .expect("Warmup Speak");
+    assert!(
+        line.contains("glitch") || line.contains("static") || line.contains("tuning"),
+        "{line}"
+    );
+
+    state.tick += 1;
+    assert_eq!(
+        state.try_rule_bot_taunt(bot_id, BotTauntKind::Warmup),
+        SpeakOutcome::RateLimited
+    );
+}

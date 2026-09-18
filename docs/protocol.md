@@ -110,6 +110,7 @@ Off-tick callout / taunt from a human or agent. Not sticky Action. Control-plane
 - Rejected speaks emit no Speak event; the speaker receives a unicast `error` (`speak_rate_limited` or `speak_rejected`)
 - MCP adapter mirrors the cooldown and returns tool `isError` (never a success toast on a no-op)
 - Spectators cannot speak
+- Named server rule bots may emit occasional Contested Frequency Speak events on frag/death/Warmup/killstreak via the same `try_speak` path (SPEAK_COOLDOWN applies; silent drop on rate-limit; Compliance boss excluded)
 
 ### Welcome
 

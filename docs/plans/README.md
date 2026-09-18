@@ -8,20 +8,22 @@ Do not treat chat as the plan of record.
 
 ## Tip priorities (after v0.5.0)
 
-Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Sticky host_line on Snapshot shipped (#63, Casino-cleared on MCP). Godot Host flash mid-join shipped (#64). MCP session tools shipped (#65). Pixel-3D look bar sealed on tip (`5d16f32`, #66). Far-cam fighter scale shipped (#67). Solo boot-and-scrap shipped (#68). Continuance SP boss shipped (#69). Weapon pickups shipped (#70). Health pads shipped (#71). Arena choke geometry shipped (#72). Reconnect + Godot null shipped (#73). Human join FP juice shipped (#74). Killstreak Host juice shipped (#75). Weapon roles excellence shipped (#76). Tip stills recapture shipped (#77). Coverage climb main shipped (#78). Round-end MVP drama shipped (#79). Second scrap map / Compliance Yard shipped (#80). Ended linger + MVP rehydrate shipped (#81). Named scrap bots shipped (#82). Warmup Host drama shipped (#83). Ship order from tip:
+Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Sticky host_line on Snapshot shipped (#63, Casino-cleared on MCP). Godot Host flash mid-join shipped (#64). MCP session tools shipped (#65). Pixel-3D look bar sealed on tip (`5d16f32`, #66). Far-cam fighter scale shipped (#67). Solo boot-and-scrap shipped (#68). Continuance SP boss shipped (#69). Weapon pickups shipped (#70). Health pads shipped (#71). Arena choke geometry shipped (#72). Reconnect + Godot null shipped (#73). Human join FP juice shipped (#74). Killstreak Host juice shipped (#75). Weapon roles excellence shipped (#76). Tip stills recapture shipped (#77). Coverage climb main shipped (#78). Round-end MVP drama shipped (#79). Second scrap map / Compliance Yard shipped (#80). Ended linger + MVP rehydrate shipped (#81). Named scrap bots shipped (#82). Warmup Host drama shipped (#83). Public or local join shipped (#84). Ship order from tip:
 
-1. **Public or local join** (NOW) - Docs scrub: product path is public servers OR local play; Tailscale private/dev smoke only; spend honesty (local $0; public under $50 with ACK, plan-only). See [`public-or-local-join.md`](./public-or-local-join.md).
-2. (Shipped) **Warmup Host drama** - Warmup / pre-round countdown Host drama (roster + map + Contested Frequency bumper). See [`warmup-host-drama.md`](./warmup-host-drama.md).
-3. (Shipped) **Named scrap bots** - Contested Frequency callsign roster + Host roster intros; MCP round_state map soft. See [`named-scrap-bots.md`](./named-scrap-bots.md).
-4. (Shipped) **Ended linger + MVP rehydrate** - Longer Ended phase + mid-join structured mvp on Snapshot / round_state. See [`ended-linger-mvp-rehydrate.md`](./ended-linger-mvp-rehydrate.md).
-5. (Shipped) **Second scrap map** - Contested Frequency map 2 (Compliance Yard). See [`second-scrap-map.md`](./second-scrap-map.md).
-6. (Shipped) **Round-end MVP drama** - Round-end MVP / podium Host bumper. See [`round-end-mvp-drama.md`](./round-end-mvp-drama.md).
-7. (Shipped) **Coverage climb main** - Climb unfiltered llvm-cov by testing server/adapter `main.rs` shells (CLI, startup, WS handshake). See [`coverage-climb-main.md`](./coverage-climb-main.md).
-8. (Shipped) **Tip stills recapture** - Refresh live Godot tip embeds so choke + FP + killstreak + weapon-roles face match tip. See [`tip-stills-recapture.md`](./tip-stills-recapture.md).
-9. (Shipped) **Weapon roles excellence** - Flechette / Rail / Scatter read in the hand. See [`weapon-roles-excellence.md`](./weapon-roles-excellence.md).
+1. **Rule-bot Contested Frequency taunts** (NOW) - Named rule bots occasionally speak scrap-radio callouts on frag/death/Warmup/killstreak. See [`rule-bot-taunts.md`](./rule-bot-taunts.md).
+2. (Shipped) **Public or local join** - Docs scrub: product path is public servers OR local play; Tailscale private/dev smoke only; spend honesty (local $0; public under $50 with ACK, plan-only). See [`public-or-local-join.md`](./public-or-local-join.md).
+3. (Shipped) **Warmup Host drama** - Warmup / pre-round countdown Host drama (roster + map + Contested Frequency bumper). See [`warmup-host-drama.md`](./warmup-host-drama.md).
+4. (Shipped) **Named scrap bots** - Contested Frequency callsign roster + Host roster intros; MCP round_state map soft. See [`named-scrap-bots.md`](./named-scrap-bots.md).
+5. (Shipped) **Ended linger + MVP rehydrate** - Longer Ended phase + mid-join structured mvp on Snapshot / round_state. See [`ended-linger-mvp-rehydrate.md`](./ended-linger-mvp-rehydrate.md).
+6. (Shipped) **Second scrap map** - Contested Frequency map 2 (Compliance Yard). See [`second-scrap-map.md`](./second-scrap-map.md).
+7. (Shipped) **Round-end MVP drama** - Round-end MVP / podium Host bumper. See [`round-end-mvp-drama.md`](./round-end-mvp-drama.md).
+8. (Shipped) **Coverage climb main** - Climb unfiltered llvm-cov by testing server/adapter `main.rs` shells (CLI, startup, WS handshake). See [`coverage-climb-main.md`](./coverage-climb-main.md).
+9. (Shipped) **Tip stills recapture** - Refresh live Godot tip embeds so choke + FP + killstreak + weapon-roles face match tip. See [`tip-stills-recapture.md`](./tip-stills-recapture.md).
+10. (Shipped) **Weapon roles excellence** - Flechette / Rail / Scatter read in the hand. See [`weapon-roles-excellence.md`](./weapon-roles-excellence.md).
 
 Shipped recently:
 
+- **Public or local join** (#84) - Public OR local join docs; Tailscale private/dev only. See [`public-or-local-join.md`](./public-or-local-join.md).
 - **Warmup Host drama** (#83) - Warmup / pre-round Host countdown drama. See [`warmup-host-drama.md`](./warmup-host-drama.md).
 - **Named scrap bots** (#82) - Contested Frequency named rule-bot roster + Host intros. See [`named-scrap-bots.md`](./named-scrap-bots.md).
 - **Ended linger + MVP rehydrate** (#81) - Ended linger + mid-join mvp rehydrate. See [`ended-linger-mvp-rehydrate.md`](./ended-linger-mvp-rehydrate.md).
@@ -55,7 +57,8 @@ Port is **6767**. Public TCP+UDP 6767 for strangers/agents. Tailscale is private
 
 | Plan | Status | One-liner |
 |---|---|---|
-| [`public-or-local-join.md`](./public-or-local-join.md) | **in flight** (NOW) | Docs scrub: public OR local join; Tailscale private/dev only; spend honesty. |
+| [`rule-bot-taunts.md`](./rule-bot-taunts.md) | **in flight** (NOW) | Named rule bots speak Contested Frequency scrap-radio taunts. |
+| [`public-or-local-join.md`](./public-or-local-join.md) | **shipped** (#84) | Docs scrub: public OR local join; Tailscale private/dev only; spend honesty. |
 | [`warmup-host-drama.md`](./warmup-host-drama.md) | **shipped** (#83) | Warmup / pre-round Host countdown drama (roster + map + bumper). |
 | [`named-scrap-bots.md`](./named-scrap-bots.md) | **shipped** (#82) | Contested Frequency named rule-bot roster + Host intros. |
 | [`ended-linger-mvp-rehydrate.md`](./ended-linger-mvp-rehydrate.md) | **shipped** (#81) | Ended linger + mid-join structured mvp rehydrate. |

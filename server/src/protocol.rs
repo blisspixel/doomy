@@ -119,6 +119,76 @@ pub fn round_open_host_line(map_name: &str, names: &[String]) -> String {
     format!("HOST: CONTESTED FREQUENCY. {map}. {listed} ON THE SCRAP. FIGHT!")
 }
 
+/// Beat that triggers a Contested Frequency rule-bot speak line.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BotTauntKind {
+    Frag,
+    Death,
+    Killstreak,
+    Warmup,
+}
+
+/// Strip overflow refill suffix (`Dead Air Dan-2` -> `Dead Air Dan`).
+pub fn rule_bot_callsign_base(name: &str) -> &str {
+    if let Some((base, suffix)) = name.rsplit_once('-') {
+        if !suffix.is_empty() && suffix.chars().all(|c| c.is_ascii_digit()) {
+            return base;
+        }
+    }
+    name
+}
+
+/// Callsign-flavored Contested Frequency taunt for a named scrap rule bot.
+pub fn rule_bot_taunt_line(name: &str, kind: BotTauntKind, salt: u64) -> String {
+    let base = rule_bot_callsign_base(name);
+    let pool: &[&str] = match (base, kind) {
+        ("Dead Air Dan", BotTauntKind::Frag) => &["dead air cleared", "booth owns that frag"],
+        ("Dead Air Dan", BotTauntKind::Death) => &["booth cut out", "dead air for a sec"],
+        ("Dead Air Dan", BotTauntKind::Killstreak) => {
+            &["frequency owns this lane", "host keep the mic open"]
+        }
+        ("Dead Air Dan", BotTauntKind::Warmup) => &["booth is hot", "dead air dan dials in"],
+        ("Nightfall", BotTauntKind::Frag) => &["grid marked", "night watch confirms"],
+        ("Nightfall", BotTauntKind::Death) => &["night watch resets", "rail resets"],
+        ("Nightfall", BotTauntKind::Killstreak) => {
+            &["rail holds the scrap", "approved lanes denied"]
+        }
+        ("Nightfall", BotTauntKind::Warmup) => &["night watch on station", "rail tuned"],
+        ("Static Kid", BotTauntKind::Frag) => &["static kids push", "glitch landed"],
+        ("Static Kid", BotTauntKind::Death) => &["glitch respawn", "static wiped"],
+        ("Static Kid", BotTauntKind::Killstreak) => &["scatter sings", "frequency glitches hard"],
+        ("Static Kid", BotTauntKind::Warmup) => &["tuning the glitch", "static kid on air"],
+        ("Aunt Linda", BotTauntKind::Frag) => &["value for value", "frag for frag"],
+        ("Aunt Linda", BotTauntKind::Death) => &["call back later", "hold the line"],
+        ("Aunt Linda", BotTauntKind::Killstreak) => {
+            &["league says keep dialing", "aunt linda stays live"]
+        }
+        ("Aunt Linda", BotTauntKind::Warmup) => &["aunt linda dials in", "live laugh frag"],
+        ("Scout Ant", BotTauntKind::Frag) => &["scout ant deleted you", "antenna got you"],
+        ("Scout Ant", BotTauntKind::Death) => &["not a metaphor", "scout ant wiped"],
+        ("Scout Ant", BotTauntKind::Killstreak) => &["antenna up", "scout owns the scrap"],
+        ("Scout Ant", BotTauntKind::Warmup) => &["scouting the scrap", "antenna warming"],
+        ("Crackpot", BotTauntKind::Frag) => &["they deny this frag", "conspiracy confirmed"],
+        ("Crackpot", BotTauntKind::Death) => &["continuance redacted me", "denied on air"],
+        ("Crackpot", BotTauntKind::Killstreak) => &["crackpot was right", "they lose count"],
+        ("Crackpot", BotTauntKind::Warmup) => &["crackpot on air", "redacted warmup"],
+        ("Buzzkill", BotTauntKind::Frag) => &["buzzkill closes", "close scrap done"],
+        ("Buzzkill", BotTauntKind::Death) => &["close scrap lost", "buzzkill reset"],
+        ("Buzzkill", BotTauntKind::Killstreak) => &["approved lanes? nah", "buzzkill rampage"],
+        ("Buzzkill", BotTauntKind::Warmup) => &["buzzkill warming", "scrap opens loud"],
+        ("Tin Foil Tina", BotTauntKind::Frag) => &["not for public release", "eyes only wipe"],
+        ("Tin Foil Tina", BotTauntKind::Death) => &["access restricted", "foil wiped"],
+        ("Tin Foil Tina", BotTauntKind::Killstreak) => &["hangar candy lane", "denied watermark"],
+        ("Tin Foil Tina", BotTauntKind::Warmup) => &["foil tuned in", "hangar candy warm"],
+        (_, BotTauntKind::Frag) => &["nice scrap", "frequency contested"],
+        (_, BotTauntKind::Death) => &["respawn the booth", "cut for now"],
+        (_, BotTauntKind::Killstreak) => &["host is watching", "league stays live"],
+        (_, BotTauntKind::Warmup) => &["tuning in", "frequency warming"],
+    };
+    let idx = (salt as usize) % pool.len();
+    pool[idx].to_string()
+}
+
 /// Display name for the mid-round Continuance boss NPC.
 pub const BOSS_NAME: &str = "COMPLIANCE-DRONE";
 
@@ -848,6 +918,31 @@ mod protocol_tests {
         let open_empty = round_open_host_line("Compliance Yard", &[]);
         assert!(open_empty.contains("IS LIVE"));
         assert!(open_empty.contains("FIGHT!"));
+    }
+
+    #[test]
+    fn rule_bot_taunt_lines_are_callsign_flavored() {
+        let frag = rule_bot_taunt_line("Dead Air Dan", BotTauntKind::Frag, 0);
+        assert!(
+            frag.contains("dead air") || frag.contains("booth"),
+            "{frag}"
+        );
+        let death = rule_bot_taunt_line("Nightfall-2", BotTauntKind::Death, 0);
+        assert!(
+            death.contains("night watch") || death.contains("rail"),
+            "{death}"
+        );
+        let warm = rule_bot_taunt_line("Static Kid", BotTauntKind::Warmup, 0);
+        assert!(warm.contains("glitch") || warm.contains("static"), "{warm}");
+        let streak = rule_bot_taunt_line("Buzzkill", BotTauntKind::Killstreak, 0);
+        assert!(!streak.is_empty());
+        assert!(streak.chars().count() <= 80);
+        assert_eq!(rule_bot_callsign_base("Tin Foil Tina-3"), "Tin Foil Tina");
+        let generic = rule_bot_taunt_line("Scrap Fox", BotTauntKind::Frag, 1);
+        assert!(
+            generic == "nice scrap" || generic == "frequency contested",
+            "{generic}"
+        );
     }
 
     #[test]

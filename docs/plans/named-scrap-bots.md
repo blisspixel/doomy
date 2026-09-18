@@ -13,7 +13,7 @@ Product locks: Contested Frequency parody; port 6767; fail-under 80 unfiltered; 
 
 ## Tip priorities
 
-Shipped. Tip NOW: Warmup Host drama. See [`warmup-host-drama.md`](./warmup-host-drama.md).
+Shipped. Tip NOW: rule-bot Contested Frequency taunts. See [`rule-bot-taunts.md`](./rule-bot-taunts.md).
 
 ## Non-goals
 
