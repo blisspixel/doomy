@@ -20,8 +20,8 @@ instance_name = "fragr-game-server"
 # Boot disk size in GB (must be <= 30 for Always Free)
 boot_disk_size_gb = 20
 
-# Game server port (default 7777)
-game_port = 7777
+# Game server port (default 6767)
+game_port = 6767
 
 # Enable Cloud Run HTTP adapter (optional, min_instances=0)
 enable_cloud_run_adapter = false
