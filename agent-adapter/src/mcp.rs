@@ -425,9 +425,10 @@ pub fn build_round_state_result(state: &ToolState) -> Value {
         other => other,
     };
     let host_line = match snap_field(snap, "host_line") {
-        Value::Null => last_round_start
+        Value::Null => last_round_end
             .get("host_line")
             .cloned()
+            .or_else(|| last_round_start.get("host_line").cloned())
             .unwrap_or(Value::Null),
         other => other,
     };
@@ -451,6 +452,8 @@ pub fn build_round_state_result(state: &ToolState) -> Value {
         "playlist": snap_field(snap, "playlist"),
         "host_line": host_line,
         "pressure": snap_field(snap, "pressure"),
+        "mvp": last_round_end.get("mvp").cloned().unwrap_or(Value::Null),
+        "mvp_frags": last_round_end.get("mvp_frags").cloned().unwrap_or(Value::Null),
         "last_round_start": last_round_start,
         "last_round_end": last_round_end
     })
@@ -1489,6 +1492,45 @@ mod mcp_tests {
         assert_eq!(result["pressure"], "compliance");
         assert_eq!(result["connected"], true);
         assert_eq!(result["last_round_start"]["round_number"], 3);
+        assert!(result["mvp"].is_null());
+        assert!(result["mvp_frags"].is_null());
+    }
+
+    #[test]
+    fn round_state_surfaces_mvp_from_round_end() {
+        let mut state = ToolState {
+            connected: true,
+            player_id: Some(Uuid::nil()),
+            last_snapshot: Some(serde_json::json!({
+                "tick": 99,
+                "round_state": "Ended",
+                "host_line": "HOST: ROUND MVP. Rusher WITH 10 FRAGS. CONTINUANCE DENIES THE PODIUM."
+            })),
+            recent_events: vec![serde_json::json!({
+                "event": "round_end",
+                "winner": "Rusher",
+                "reason": "Frag limit reached",
+                "mvp": "Rusher",
+                "mvp_frags": 10,
+                "host_line": "HOST: ROUND MVP. Rusher WITH 10 FRAGS. CONTINUANCE DENIES THE PODIUM.",
+                "final_scores": [{"name": "Rusher", "score": 10}]
+            })],
+            ..Default::default()
+        };
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({"name":"round_state","arguments":{}})),
+            ),
+            &mut state,
+        );
+        let result = out.response.result.unwrap();
+        assert_eq!(result["round_state"], "Ended");
+        assert_eq!(result["mvp"], "Rusher");
+        assert_eq!(result["mvp_frags"], 10);
+        assert!(result["host_line"].as_str().unwrap().contains("ROUND MVP"));
+        assert_eq!(result["last_round_end"]["mvp"], "Rusher");
+        assert_eq!(result["last_round_end"]["mvp_frags"], 10);
     }
 
     #[test]

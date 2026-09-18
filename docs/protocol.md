@@ -380,9 +380,14 @@ Health example:
     {"name": "Bot3", "score": 3},
     {"name": "Bot4", "score": 2}
   ],
-  "winner_score": 10
+  "winner_score": 10,
+  "mvp": "Bot1",
+  "mvp_frags": 10,
+  "host_line": "HOST: ROUND MVP. Bot1 WITH 10 FRAGS. CONTINUANCE DENIES THE PODIUM."
 }
 ```
+
+MVP is the top scorer (same selection as `winner`). `mvp` / `mvp_frags` / `host_line` sell Contested Frequency Host podium chrome. While the round is Ended, Snapshot sticky `host_line` carries the same MVP bumper for mid-join / observe.
 
 **Player Joined Event:**
 ```json
@@ -414,6 +419,7 @@ Health example:
 - `killer` / `victim`: Player names involved in frag
 - `killer_score`: Killer's score after the frag
 - `streak` / `tier` / `message`: Killstreak Host callout (tiers `double` / `triple` / `rampage`)
+- `mvp` / `mvp_frags` / `host_line`: Round-end MVP Host bumper (top score / frags; Contested Frequency voice)
 - `shooter` / `target` / `shooter_id` / `target_id` / `damage` / `target_hp_after`: Hit event fields
 - `player`: Player name for respawn, join, or leave
 - `role`: Role of joining player ("spectator", "human", "agent")

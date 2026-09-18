@@ -1,8 +1,8 @@
 use crate::protocol::{
     boss_down_host_line, boss_host_line, compliance_host_line, default_host_line,
-    default_mode_name, default_playlist, killstreak_host_line, Action, GameEvent, PickupState,
-    PlayerScore, PlayerState, Role, ShotResult, Snapshot, WeaponType, BOSS_NAME, MODE_NAME,
-    PLAYLIST_NAME,
+    default_mode_name, default_playlist, empty_mvp_host_line, killstreak_host_line, mvp_host_line,
+    Action, GameEvent, PickupState, PlayerScore, PlayerState, Role, ShotResult, Snapshot,
+    WeaponType, BOSS_NAME, MODE_NAME, PLAYLIST_NAME,
 };
 use std::collections::HashMap;
 use std::f32::consts::PI;
@@ -390,6 +390,8 @@ pub struct GameState {
     pub boss_spawned: bool,
     /// Mid-map pads: weapons, health, armor (Solo Scrap + MP).
     pub pickups: Vec<ArenaPickup>,
+    /// Sticky Host line while RoundState::Ended (MVP podium bumper for mid-join).
+    pub ended_host_line: Option<String>,
 }
 
 pub struct Player {
@@ -440,6 +442,7 @@ impl GameState {
         self.compliance_ticks_left = 0;
         self.clear_boss();
         self.reset_pickups();
+        self.ended_host_line = None;
 
         for player in &mut self.players {
             self.scores.insert(player.id, 0);
@@ -496,6 +499,15 @@ impl GameState {
 
         final_scores.sort_by_key(|a| std::cmp::Reverse(a.score));
 
+        // MVP is top score / frags (same selection as winner).
+        let mvp = winner.clone();
+        let mvp_frags = winner_score;
+        let host_line = match (&mvp, mvp_frags) {
+            (Some(name), Some(frags)) => mvp_host_line(name, frags),
+            _ => empty_mvp_host_line(),
+        };
+        self.ended_host_line = Some(host_line.clone());
+
         self.round_state = RoundState::Ended;
         self.round_ticks = 0;
         for player in &mut self.players {
@@ -507,14 +519,17 @@ impl GameState {
             reason: reason.clone(),
             final_scores,
             winner_score,
+            mvp: mvp.clone(),
+            mvp_frags,
+            host_line: host_line.clone(),
         });
 
         tracing::info!(
-            "Round {} ended: {} (winner: {:?}, score: {:?})",
+            "Round {} ended: {} (mvp: {:?}, frags: {:?})",
             self.round_number,
             reason,
-            winner,
-            winner_score
+            mvp,
+            mvp_frags
         );
     }
 
@@ -1007,7 +1022,11 @@ impl GameState {
             } else {
                 None
             },
-            host_line: if self.boss_id.is_some() {
+            host_line: if self.round_state == RoundState::Ended {
+                self.ended_host_line
+                    .clone()
+                    .unwrap_or_else(default_host_line)
+            } else if self.boss_id.is_some() {
                 boss_host_line()
             } else if self.compliance_ticks_left > 0 {
                 compliance_host_line()
@@ -1265,6 +1284,7 @@ impl Default for GameState {
             boss_id: None,
             boss_spawned: false,
             pickups: default_arena_pickups(),
+            ended_host_line: None,
         }
     }
 }

@@ -1,8 +1,8 @@
 #[cfg(test)]
 use crate::protocol::{
     boss_down_host_line, boss_host_line, compliance_host_line, default_host_line,
-    default_mode_name, default_playlist, Action, ClientMessage, GameEvent, PlayerScore,
-    PlayerState, Role, ServerMessage, Snapshot, WeaponType, BOSS_NAME,
+    default_mode_name, default_playlist, mvp_host_line, Action, ClientMessage, GameEvent,
+    PlayerScore, PlayerState, Role, ServerMessage, Snapshot, WeaponType, BOSS_NAME,
 };
 #[cfg(test)]
 use crate::sim::{
@@ -198,10 +198,16 @@ fn test_protocol_game_event_round_end() {
             score: 10,
         }],
         winner_score: Some(10),
+        mvp: Some("Bot1".to_string()),
+        mvp_frags: Some(10),
+        host_line: mvp_host_line("Bot1", 10),
     };
     let json = serde_json::to_value(&event).unwrap();
     assert_eq!(json["event"], "round_end");
     assert_eq!(json["winner"], "Bot1");
+    assert_eq!(json["mvp"], "Bot1");
+    assert_eq!(json["mvp_frags"], 10);
+    assert!(json["host_line"].as_str().unwrap().contains("ROUND MVP"));
 }
 
 #[test]
@@ -1905,10 +1911,15 @@ fn test_server_round_event_wire_json_shape() {
             },
         ],
         winner_score: Some(10),
+        mvp: Some("Alpha".into()),
+        mvp_frags: Some(10),
+        host_line: mvp_host_line("Alpha", 10),
     });
     let end_json = serde_json::to_string(&end).unwrap();
     assert!(end_json.contains(r#""event":"round_end""#), "{}", end_json);
     assert!(end_json.contains(r#""final_scores""#), "{}", end_json);
+    assert!(end_json.contains(r#""mvp":"Alpha""#), "{}", end_json);
+    assert!(end_json.contains("ROUND MVP"), "{}", end_json);
 
     // Round-trip on server protocol itself.
     let parsed: ServerMessage = serde_json::from_str(&start_json).unwrap();
@@ -3623,4 +3634,81 @@ fn test_bot_scatter_pushes_close() {
         action.forward,
         "Scatter aggressive bot should push toward close range"
     );
+}
+
+#[test]
+fn test_round_end_emits_mvp_host_line_and_sticky_snapshot() {
+    let mut state = GameState::new();
+    state.config.frag_limit = Some(2);
+    state.config.time_limit_ticks = None;
+    state.config.compliance_ping_ticks = None;
+    state.config.boss_spawn_ticks = None;
+    state.config.warmup_ticks = 1;
+    state.config.end_delay_ticks = 20 * 10;
+
+    let a = uuid::Uuid::new_v4();
+    let b = uuid::Uuid::new_v4();
+    state.add_player(a, "Rusher".to_string(), Role::Agent);
+    state.add_player(b, "Anchor".to_string(), Role::Agent);
+    // Leave warmup
+    state.tick(0.05);
+    assert_eq!(state.round_state, RoundState::Active);
+
+    *state.scores.get_mut(&a).unwrap() = 2;
+    *state.scores.get_mut(&b).unwrap() = 1;
+    state.end_round("Frag limit reached".to_string());
+
+    let events = state.take_events();
+    let end = events
+        .iter()
+        .find_map(|e| match e {
+            GameEvent::RoundEnd {
+                mvp,
+                mvp_frags,
+                host_line,
+                winner,
+                ..
+            } => Some((mvp.clone(), *mvp_frags, host_line.clone(), winner.clone())),
+            _ => None,
+        })
+        .expect("RoundEnd event");
+    assert_eq!(end.0.as_deref(), Some("Rusher"));
+    assert_eq!(end.1, Some(2));
+    assert!(end.2.contains("ROUND MVP"));
+    assert!(end.2.contains("Rusher"));
+    assert_eq!(end.3.as_deref(), Some("Rusher"));
+
+    assert_eq!(state.round_state, RoundState::Ended);
+    let snap = state.snapshot();
+    assert!(snap.host_line.contains("ROUND MVP"));
+    assert!(snap.host_line.contains("Rusher"));
+    assert_eq!(
+        state.ended_host_line.as_deref(),
+        Some(snap.host_line.as_str())
+    );
+
+    // Next round clears sticky MVP Host line.
+    state.start_round();
+    assert!(state.ended_host_line.is_none());
+    let warm = state.snapshot();
+    assert_eq!(warm.host_line, default_host_line());
+}
+
+#[test]
+fn test_round_end_empty_mvp_host_line() {
+    let mut state = GameState::new();
+    state.config.compliance_ping_ticks = None;
+    state.config.boss_spawn_ticks = None;
+    state.end_round("Time limit reached".to_string());
+    let events = state.take_events();
+    let host = events
+        .iter()
+        .find_map(|e| match e {
+            GameEvent::RoundEnd { mvp, host_line, .. } => Some((mvp.clone(), host_line.clone())),
+            _ => None,
+        })
+        .expect("RoundEnd");
+    assert!(host.0.is_none());
+    assert!(host.1.contains("NO MVP"));
+    assert!(state.snapshot().host_line.contains("NO MVP"));
 }
