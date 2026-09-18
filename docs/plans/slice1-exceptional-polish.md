@@ -95,7 +95,7 @@ $0 only. Fail closed on any paid dependency. Loopback only.
 
 Second peer must spectate the same match on LAN or Tailscale Personal ($0):
 
-- Server `--bind` supports non-loopback (document `0.0.0.0:7777` or LAN IP).
+- Server `--bind` supports non-loopback (document `0.0.0.0:6767` or LAN IP).
 - Client accepts server host/URL for a second machine.
 - README documents two-machine spectator via LAN and Tailscale Personal.
 - No paid VPS.

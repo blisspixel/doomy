@@ -14,11 +14,11 @@ This is the durable, multi-hour-playable path for running a fragr server on GCP 
 
 ### Networking
 
-- **Ports:** TCP+UDP 7777 (documented game socket; Slice 1 uses TCP/WS today, UDP later if renet)
+- **Ports:** TCP+UDP **6767** (documented game socket; fun default, not 7777. Slice 1 uses TCP/WS today, UDP later if renet)
 - **SSH:** IAP tunnel only (no public 0.0.0.0/0:22)
 - **Front door (Nick lock):**
-  - **Primary (strangers + agents):** public external IP with tight firewall opening **only** the game port(s) to `0.0.0.0/0` (TCP+UDP 7777). Randos and agents join the same fight with **no VPN**. This is the Minecraft-shaped self-host story.
-  - **Private/dev only:** Tailscale Personal ($0) as an optional overlay for Nick smoke tests and operator convenience. **Not** the spectator/agent join path. Do **not** close public 7777 and ship Tailscale-only.
+  - **Primary (strangers + agents):** public external IP with tight firewall opening **only** the game port(s) to `0.0.0.0/0` (TCP+UDP 6767). Randos and agents join the same fight with **no VPN**. This is the Minecraft-shaped self-host story.
+  - **Private/dev only:** Tailscale Personal ($0) as an optional overlay for Nick smoke tests and operator convenience. **Not** the spectator/agent join path. Do **not** close public 6767 and ship Tailscale-only.
   - Cost of the public path: see cost ceiling honesty below (external IP ESTIMATE).
 
 ### Systemd service
@@ -55,7 +55,7 @@ Rust dedicated authority is the spine. Keep it rock solid and able to grow. Comb
 
 **Ladder under the $50 hard cap (plan-only until spend ACK):**
 
-1. **Friends + agents:** public Always Free `e2-micro` with public TCP+UDP 7777 (this recipe).
+1. **Friends + agents:** public Always Free `e2-micro` with public TCP+UDP 6767 (this recipe).
 2. **When load proves it:** one bigger/cheaper VM, or a second arena instance. Do not invent day-zero MIG or LB.
 3. **HTTP agent-adapter (optional):** may be Cloud Run with `min_instances=0` only if it stays **off** the combat tick (private path + app auth to the VM). Never put the authoritative tick on scale-to-zero.
 
@@ -119,5 +119,5 @@ Do not deploy `e2-micro` outside these regions or you will be billed full price.
 
 1. Review this recipe vs the $50 hard cap.
 2. Get Nick/Chief approval before any `terraform apply`.
-3. If approved, stand up GCE with public TCP+UDP 7777 (IAP SSH only), optional Tailscale for private/dev smoke, validate systemd restart behavior.
+3. If approved, stand up GCE with public TCP+UDP 6767 (IAP SSH only), optional Tailscale for private/dev smoke, validate systemd restart behavior.
 4. Monitor actual costs in GCP Billing Console; adjust if ceiling approaches.

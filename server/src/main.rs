@@ -12,7 +12,7 @@ use uuid::Uuid;
 #[command(name = "fragr-server")]
 #[command(about = "fragr authoritative game server")]
 struct Args {
-    #[arg(long, default_value = "0.0.0.0:7777")]
+    #[arg(long, default_value = "0.0.0.0:6767")]
     bind: String,
 
     #[arg(long, default_value = "4")]

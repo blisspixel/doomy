@@ -63,7 +63,7 @@ variable "boot_disk_size_gb" {
 variable "game_port" {
   description = "Game server port (TCP for WebSocket, UDP for future renet)"
   type        = number
-  default     = 7777
+  default     = 6767
 
   validation {
     condition     = var.game_port > 1024 && var.game_port < 65536

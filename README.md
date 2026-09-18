@@ -65,14 +65,14 @@ Run server on one machine, connect spectators/players from others.
 ### Server host
 
 ```bash
-cargo run -p fragr-server -- --bind 0.0.0.0:7777 --bots 4
+cargo run -p fragr-server -- --bind 0.0.0.0:6767 --bots 4
 # Note LAN IP (e.g. 192.168.1.100) or Tailscale IP (e.g. 100.x.y.z)
 ```
 
 ### Client (another machine)
 
 ```bash
-export FRAGR_SERVER="192.168.1.100:7777"  # or Tailscale IP
+export FRAGR_SERVER="192.168.1.100:6767"  # or Tailscale IP
 # Open client/ in Godot 4.7.2, press F5
 ```
 
@@ -90,7 +90,7 @@ External agents (clawbots, MCP clients) can observe and act via structured JSON 
 
 - **Server**: Rust tokio + WebSocket JSON, 20 Hz authoritative tick, hitscan combat, server-side bots, round scoring
 - **Client**: Godot 4.7.2 GDScript, thin presenter with pose interpolation, intent chips on named bots, procedural audio (CC0)
-- **Protocol**: WebSocket JSON on port 7777 (see `docs/protocol.md`)
+- **Protocol**: WebSocket JSON on port **6767** (on purpose; see `docs/protocol.md`)
 - **Match loop**: Frag limit (default 10) or time limit (default 3min), scoreboard tracks per-round kills, bots persist when humans leave
 - **Audio**: Procedurally generated sounds (fire, hit, frag, round transitions) released under CC0 1.0 Universal (see `client/assets/audio/README.md`)
 - **Spend**: $0 (loopback, LAN, Tailscale Personal only)
@@ -114,7 +114,7 @@ AGENTS.md        instructions for coding agents
 cargo run -p fragr-server -- --help
 
 Options:
-  --bind <ADDR>   Bind address (default: 0.0.0.0:7777)
+  --bind <ADDR>   Bind address (default: 0.0.0.0:6767)
   --bots <N>      Number of bots to spawn (default: 4)
 ```
 
