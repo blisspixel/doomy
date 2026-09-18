@@ -39,7 +39,7 @@ Port is **6767**. Public TCP+UDP 6767 for strangers/agents. Tailscale is private
 
 | Plan | Status | One-liner |
 |---|---|---|
-| [`arena-choke-geometry.md`](./arena-choke-geometry.md) | **in flight** (this tip) | Scrap arena choke geometry: low walls, crates, pillar cover + server collision. |
+| [`arena-choke-geometry.md`](./arena-choke-geometry.md) | **in flight** (PR #72) | Scrap arena choke geometry: low walls, crates, pillar cover + server collision. |
 | [`health-pads.md`](./health-pads.md) | **shipped** (#71) | Mid-arena health and light armor pads for Quake chase sustain. |
 | [`weapon-pickups.md`](./weapon-pickups.md) | **shipped** (#70) | Mid-map weapon pickups for Quake/Unreal chase energy. |
 | [`continuance-sp-boss.md`](./continuance-sp-boss.md) | **shipped** (#69) | Mid-round Continuance Compliance Drone boss beat for Solo Scrap. |

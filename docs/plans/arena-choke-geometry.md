@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `cursor/arena-chokes`
 **Spend:** $0. Loopback. No GCP apply, no ElevenLabs, no look_at reopen.
-**Status:** In flight. Health pads shipped (#71); this is the NOW tip.
+**Status:** In flight (PR #72). Health pads shipped (#71); this is the NOW tip.
 
 ## Goal
 
@@ -121,7 +121,7 @@ $0. No secrets. No attribution, emoji, or em/en dashes in commits, PR text, or d
 - [x] Pads reachable; drone spawn OK; Solo Scrap unchanged on wire
 - [x] Godot arena has clear N/S/E/W scrap chokes + crate clusters
 - [x] Tests + unfiltered fail-under 80
-- [ ] PR open on `cursor/arena-chokes`
+- [x] PR open on `cursor/arena-chokes` (#72)
 
 ## Tip stills
 
