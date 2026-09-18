@@ -8,6 +8,12 @@
 
 Keep the MCP adapter on the current specification without breaking the clients people actually use, decide whether to adopt the official Rust SDK, and give agent teams a way to coordinate off the combat tick. The decision-brain agent ([`decision-brain.md`](./decision-brain.md)) is a separate client on the wire and is not affected.
 
+## Non-goals
+
+- Serving the old handshake forever. Legacy negotiation stays until the major clients drop it, then it goes, and this plan names the date when that happens.
+- Any model on the combat tick.
+- A2A before there is a cross-host recruitment case.
+
 ## What changed in MCP 2026-07-28
 
 - `initialize` and `notifications/initialized` are gone for modern clients. Every request carries `_meta` with `io.modelcontextprotocol/protocolVersion` and `io.modelcontextprotocol/clientCapabilities`; a missing `_meta` is rejected with `-32602`, an unsupported version with `-32022` and a `data.supported` list.
@@ -35,7 +41,7 @@ Game servers already exposed as MCP servers (a text adventure with ten tools, a 
 
 ## Rungs
 
-1. **Minimum compliance.** Keep `initialize` for legacy clients; add `server/discover`; accept modern requests without a handshake and validate `_meta`; add `resultType`, `ttlMs`, `cacheScope`, and `serverInfo`; echo the client's version when supported; stop depending on `ping` and logging notifications. Evidence: a compatibility test that drives the adapter as a 2024-11-05 client, a 2025-11-25 client, and a 2026-07-28 client.
+1. **Current revision first.** The adapter targets 2026-07-28 as its native era: `server/discover`, `_meta`-carrying stateless requests, `resultType`, `ttlMs`, `cacheScope`, and `serverInfo`; it keeps `initialize` only as a compatibility path for clients that still negotiate the old way, echoes the client's version when supported, and stops depending on `ping` and logging notifications. Evidence: a compatibility test that drives the adapter as a 2024-11-05 client, a 2025-11-25 client, and a 2026-07-28 client.
 2. **SDK spike.** The seven tools on `rmcp` stdio behind the existing tool trait, the conformance suite run, and a decision recorded here by test count and diff size.
 3. **Team blackboard.** `team/board`, `post_intent`, `read_board`, a scripted teammate on request, roster cap enforced server-side. Evidence: adapter tests and a recorded session of two agents coordinating a push.
 4. **A2A** only when cross-host recruitment becomes real.

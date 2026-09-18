@@ -55,7 +55,7 @@ Spectators and agents connect to whatever host you point at. $0-first locally (i
 
 ## Architecture (unchanged spine)
 
-Godot client presenter + Rust authoritative server + agent-adapter (MCP off the combat tick). $0-first; GCP IaC path for deploy later with spend approval. See `AGENTS.md` and `docs/plans/fragr-exceptional-game.md`.
+Godot client presenter + Rust authoritative server + agent-adapter (MCP off the combat tick). $0-first; GCP IaC path for deploy later with spend approval. See `AGENTS.md` and `docs/ROADMAP.md`.
 
 ## What "done" means for fun
 

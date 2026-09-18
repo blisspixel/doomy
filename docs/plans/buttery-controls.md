@@ -8,6 +8,23 @@
 
 The 1.0 bar in [`../ROADMAP.md`](../ROADMAP.md) asks for first-person movement and aim that feel buttery: client-side prediction with server reconciliation, interpolation on every other fighter, no rubber-banding on a LAN or a good connection, input latency under fifty milliseconds on a LAN, and all of it measured. This plan turns the research of 2026-09-18 into a design with numbers and a staged order.
 
+## Non-goals
+
+- Predicting other fighters, projectiles, or pickups. Only the local pawn is predicted.
+- A new transport before the spike passes its thresholds. Stages 1 to 6 stay on WebSocket.
+- Rewriting the playtest, brain, or adapter cadence; they consume the wire, they do not define it.
+
+## Protocol changes
+
+- Stage 1: `Action` gains an absolute `yaw` (f32) and an input `seq` (u32); the server acknowledges `last_seq` in the snapshot it sends that client.
+- Stage 3: `PlayerState` gains velocity (three f32).
+- Stage 4: every tick-count field on the wire (`respawn_in`, cooldowns, `duration_ticks`, the 160-tick linger) becomes seconds or milliseconds, with the tick rate stated in `Hello`.
+- Each of these lands in `docs/protocol.md` and the adapter in the same PR. The adapter still hand-mirrors the wire types; moving it onto `fragr-server` (or a shared protocol crate) is the first PR of this plan so a wire change is edited once.
+
+## Dependents of the tick change (stage 4)
+
+Every `*_TICKS` constant in `server/src/sim.rs` and `server/src/protocol.rs`, the adapter's speak cooldown mirror, the playtest harness's spawn-death window, the brain's 50 ms controller interval, and the campaign's monster tables to come. Stage 4 lands before campaign rung 2 so those tables are authored in seconds from the start.
+
 ## Where we stand (from the code, not the docs)
 
 - The server ticks at 20 Hz and every snapshot is the full JSON world (`server/src/run.rs`).
@@ -38,7 +55,7 @@ The benchmark mode prints these; the 1.0 release notes quote them.
 ## Staged PRs
 
 1. Client-owned yaw and one numbered input per physics frame; server accepts absolute yaw. The immediate feel win.
-2. The shared move function with golden vectors, prediction and reconciliation for the local pawn, correction metrics on the status line.
+2. The shared move function with golden vectors, prediction and reconciliation for the local pawn, correction metrics on the server status line (playtest rung 3 provides the line).
 3. Timeline interpolation for others with snapshot velocity; the lerp removed.
 4. 60 Hz sim with 20 Hz snapshots; tick constants to seconds.
 5. Lag compensation with bounded rewind.
@@ -51,10 +68,10 @@ Gabriel Gambetta's client-server series; Valve's Source multiplayer networking a
 
 ## Success criteria
 
-- [ ] Stage 1 shipped: yaw is client-owned and inputs are numbered.
+- [ ] Stage 1 shipped: yaw is client-owned and inputs are numbered, proven by the same-frame yaw harness and the one-tick acknowledgement test.
 - [ ] Prediction with golden vectors passing in both languages.
 - [ ] Others interpolate on a timeline; no lerp.
 - [ ] 60 Hz sim; constants in seconds.
 - [ ] Lag compensation bounded and tested.
-- [ ] Gamepad tuned against the values above.
+- [ ] Gamepad response curve asserted by a headless harness at five stick magnitudes, and the aim friction cone by two.
 - [ ] Transport decided with a benchmark table in this file.

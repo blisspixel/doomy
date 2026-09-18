@@ -36,9 +36,9 @@ Same Action path as humans and scripted bots. Keep LLM off the 20 Hz tick.
 
 Use `speak` for short Contested Frequency callouts. Keep LLM off the 20 Hz tick. Same spectators + events ring as frags. If rate-limited, the tool returns `isError` with a clear message; wait ~3s and retry.
 
-## Third tier: decision brain
+## Another way in: the decision-brain client
 
-The skill and MCP adapter remain the bring-your-own chat-agent door. A separate third rung sits beside them: `fragr-brain` (local rules for free, or a capped paid decision model). Same wire protocol, local 20 Hz controller, paid calls only with `--max-spend-usd`.
+The skill and MCP adapter remain the bring-your-own door for any model. Beside them sits `fragr-brain`, a reference agent that asks a decision model for its stance (local rules for free, or a capped paid model) while a local 20 Hz controller plays. Same wire protocol, same agent role, paid calls only with `--max-spend-usd`. An agent is one participant however it thinks; you can drive one fighter with a language model, other ML, and a decision model together.
 
 ```bash
 cargo run -p fragr-brain -- play --name Brain-1
@@ -47,8 +47,9 @@ cargo run -p fragr-brain -- --provider typesafe --max-spend-usd 5 play --name Je
 
 Details: [`agents/brain/README.md`](../../../agents/brain/README.md).
 
-### Three-rung agent ladder
+### Ways an agent can be driven (all the same agent on the wire)
 
-1. Server rule bots (Aggressive / Defensive / Flanker / Balanced)
-2. MCP BYO via agent-adapter (this skill)
-3. fragr-brain (Jev / local + 20 Hz controller; paid only with `--max-spend-usd`)
+- Server rule bots (Aggressive / Defensive / Flanker / Balanced)
+- Any MCP client through agent-adapter (this skill)
+- The decision-brain client (Jev or local rules plus a 20 Hz controller; paid only with `--max-spend-usd`)
+- Any mix of the above inside one agent

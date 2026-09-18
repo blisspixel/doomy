@@ -1,6 +1,6 @@
 # Plan: agent playtest loop
 
-**Status:** planned (2026-09-18)
+**Status:** in flight (rung 1 shipped in #95, 2026-09-18)
 **Branch:** `feat/playtest-harness`
 **Spend:** $0 for the scripted levels. An LLM-driven observer is optional and off by default.
 
@@ -15,18 +15,18 @@ Local agents play the game and file structured feedback so most iteration does n
 
 ## Shape
 
-- Crate: `tools/playtest` (`fragr-playtest`), Rust, workspace member, reuses the adapter's WebSocket client and the server's wire types (the shared protocol crate lands first if it is ready; otherwise the adapter's mirror).
-- Command: `fragr-playtest --agents 8 --rounds 3 --map 1 --tiers reflex,planner --report .agents/playtest/<stamp>.json`.
-- Agent tiers: `reflex` (chase nearest, fire when facing), `planner` (observe every few ticks, pick a pickup or a target, path by waypoints), later `llm` (off-tick, optional).
-- Report fields: time to first frag, frags per minute per agent, deaths per minute, weapon usage spread, pickup contention, idle ticks per agent, stuck detection (no movement for N ticks while alive), spawn deaths within two seconds, longest gap without a frag, Host beats per minute, snapshot bytes per tick, tick time percentiles from the server log.
+- Crate: `tools/playtest` (`fragr-playtest`), Rust, workspace member, takes wire types straight from `fragr-server` and boots the server in-process through `run_server`.
+- Command today: `fragr-playtest --agents 4 --rounds 1 --map 1 --frag-limit 3 --time-limit-seconds 45 --assert --report .agents/playtest/ci.json`. Planned: `--tiers reflex,planner,brain`.
+- Agent policies (all the same agent on the wire): `reflex` (chase nearest, fire when facing; shipped), `planner` (observe every few ticks, pick a pickup or a target, path by waypoints), and `brain` (the decision-brain client under a cap, from `plans/decision-brain.md`).
+- Report fields shipped: time to first frag, frags per minute per agent, deaths, longest gap without a frag, Host beats, spawn deaths within two seconds, stuck detection (no movement and no fire during an Active round), weapon usage, bytes per snapshot. Planned: pickup contention, idle ticks per agent, route metrics, tick time percentiles from the status line.
 - Frustration signals become assertions with thresholds in CI: no agent stuck for more than five seconds, no spawn death rate above ten percent, at least one frag per minute at four agents.
-- Output lands under gitignored `.agents/playtest/`; the summary table for a change under test goes into that change's plan doc.
+- Output lands under gitignored `.agents/playtest/`; the summary table for a change under test goes into that change's plan doc, except brain results, which stay in `.agents/` per TypeSafe's terms.
 
 ## Rungs
 
 1. Harness boots a server on a free loopback port, connects N reflex agents, runs R rounds, writes the JSON report. CI runs it with four agents and one round.
 2. Planner tier with waypoints read from the map data; pickup seeking; the report gains contention and route metrics.
-3. Server exposes tick time and bytes per tick on a status line so the report can read them without parsing logs (ties into the benchmark mode item).
+3. Server exposes tick time percentiles and bytes per tick on a status line, and `--bench N M` runs N scripted bots for M ticks and prints the same JSON. This rung owns the roadmap's benchmark mode; the hardening plan later serves the same JSON over HTTP, and the buttery-controls plan reads its correction metrics from this line.
 4. Optional observer: an off-tick process that reads the event stream and writes free-text notes, gated behind a flag and a key.
 
 ## Verification
@@ -37,7 +37,7 @@ Local agents play the game and file structured feedback so most iteration does n
 
 ## Success criteria
 
-- [ ] Rung 1 in CI.
+- [x] Rung 1 in CI (#95).
 - [ ] Planner tier with route metrics.
 - [ ] Status line metrics from the server.
 - [ ] Thresholds catch a deliberately introduced stuck bot in a test.
