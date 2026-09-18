@@ -16,7 +16,7 @@ Join is Hello on adapter start. There is no `session_join` tool.
 
 - `observe` - current snapshot (poses, hp, weapon, score, behavior, round fields, shot_results) plus recent_events
 - `act` - discrete intents: forward/back/left/right, turn_left/turn_right, fire, weapon_swap, look_at
-- `speak` - short off-tick taunt/callout (max 80 chars, rate-limited); spectators see it; lands in recent_events
+- `speak` - short off-tick taunt/callout (max 80 chars, rate-limited); spectators see it; lands in recent_events; rate-limit / reject returns `isError` (never a fake success)
 - `get_events` - last ~50 game events (frag, hit, respawn, round_start, round_end, join/leave)
 
 ## Loop
@@ -30,4 +30,4 @@ Same Action path as humans and scripted bots. Keep LLM off the 20 Hz tick.
 
 ## Speak / taunt
 
-Use `speak` for short Contested Frequency callouts. Keep LLM off the 20 Hz tick. Same spectators + events ring as frags.
+Use `speak` for short Contested Frequency callouts. Keep LLM off the 20 Hz tick. Same spectators + events ring as frags. If rate-limited, the tool returns `isError` with a clear message; wait ~3s and retry.
