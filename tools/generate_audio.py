@@ -112,73 +112,99 @@ def write_wav(filename, samples):
 
 
 def generate_fire_sound():
-    """Generate weapon fire sound."""
-    base = generate_square_wave(120, 0.08, 0.4)
-    noise = generate_noise(0.08, 0.15)
-    high = generate_sine_wave(800, 0.03, 0.2)
+    """Generate weapon fire sound - snappy arcade punch."""
+    kick = generate_sine_wave(80, 0.04, 0.6)
+    snap = generate_noise(0.06, 0.4)
+    high_crack = generate_square_wave(600, 0.04, 0.3)
     
-    samples = mix_samples(base, noise, high)
-    samples = apply_envelope(samples, attack=0.001, decay=0.02, sustain=0.4, release=0.05)
+    samples = mix_samples(kick, snap, high_crack)
+    samples = apply_envelope(samples, attack=0.0005, decay=0.015, sustain=0.3, release=0.03)
     return samples
 
 
 def generate_hit_sound():
-    """Generate hit confirmation sound."""
-    impact = generate_noise(0.02, 0.3)
-    ping = generate_sine_wave(1200, 0.06, 0.25)
+    """Generate hit confirmation sound - satisfying arcade feedback."""
+    thwack = generate_noise(0.015, 0.5)
+    ding = generate_sine_wave(1800, 0.08, 0.4)
+    sub_thump = generate_sine_wave(120, 0.03, 0.3)
     
-    samples = mix_samples(impact, ping)
-    samples = apply_envelope(samples, attack=0.001, decay=0.01, sustain=0.5, release=0.03)
+    samples = mix_samples(thwack, ding, sub_thump)
+    samples = apply_envelope(samples, attack=0.0005, decay=0.012, sustain=0.6, release=0.025)
     return samples
 
 
 def generate_frag_sound():
-    """Generate frag/elimination sound."""
-    low_thump = generate_sine_wave(80, 0.15, 0.5)
-    mid_crunch = generate_noise(0.10, 0.2)
-    high_sparkle = generate_sine_wave(2400, 0.20, 0.15)
+    """Generate frag/elimination sound - SELL THE MOMENT, arcade glory."""
+    massive_bass = generate_sine_wave(40, 0.25, 0.7)
+    explosion_noise = generate_noise(0.12, 0.5)
     
-    samples = mix_samples(low_thump, mid_crunch, high_sparkle)
-    samples = apply_envelope(samples, attack=0.002, decay=0.05, sustain=0.6, release=0.1)
+    rising_sweep = []
+    for i in range(int(SAMPLE_RATE * 0.15)):
+        t = i / SAMPLE_RATE
+        progress = i / (SAMPLE_RATE * 0.15)
+        freq = 800 + progress * 1600
+        value = 0.4 * math.sin(2 * math.pi * freq * t) * (1.0 - progress * 0.5)
+        rising_sweep.append(value)
+    
+    sparkle_cascade = []
+    for i in range(int(SAMPLE_RATE * 0.30)):
+        t = i / SAMPLE_RATE
+        progress = i / (SAMPLE_RATE * 0.30)
+        freq1 = 2400 * (1.0 - progress * 0.3)
+        freq2 = 3200 * (1.0 - progress * 0.4)
+        decay_env = (1.0 - progress) ** 1.5
+        value = decay_env * (0.25 * math.sin(2 * math.pi * freq1 * t) + 0.2 * math.sin(2 * math.pi * freq2 * t))
+        sparkle_cascade.append(value)
+    
+    samples = mix_samples(massive_bass, explosion_noise, rising_sweep, sparkle_cascade)
+    samples = apply_envelope(samples, attack=0.001, decay=0.08, sustain=0.7, release=0.15)
     return samples
 
 
 def generate_round_start_sound():
-    """Generate round start sound."""
-    beep1 = generate_sine_wave(800, 0.08, 0.4)
-    beep2 = generate_sine_wave(1000, 0.08, 0.4)
+    """Generate round start sound - arcade excitement, FIGHT!"""
+    charge_up = []
+    for i in range(int(SAMPLE_RATE * 0.10)):
+        t = i / SAMPLE_RATE
+        progress = i / (SAMPLE_RATE * 0.10)
+        freq = 400 + progress * 400
+        amp_env = progress ** 0.5
+        value = 0.5 * amp_env * math.sin(2 * math.pi * freq * t)
+        charge_up.append(value)
     
-    silence = [0.0] * int(SAMPLE_RATE * 0.02)
-    samples = beep1 + silence + beep2
-    samples = apply_envelope(samples, attack=0.01, decay=0.02, sustain=0.8, release=0.05)
+    impact_beep = generate_square_wave(1200, 0.10, 0.6)
+    punch_bass = generate_sine_wave(100, 0.08, 0.5)
+    
+    gap = [0.0] * int(SAMPLE_RATE * 0.02)
+    
+    samples = charge_up + gap + mix_samples(impact_beep, punch_bass)
+    samples = apply_envelope(samples, attack=0.005, decay=0.03, sustain=0.85, release=0.08)
     return samples
 
 
 def generate_round_end_sound():
-    """Generate round end sound."""
-    desc1 = []
-    desc2 = []
-    desc3 = []
+    """Generate round end sound - victorious fanfare or dramatic close."""
+    victory_chord = []
+    duration = 0.35
+    num_samples = int(SAMPLE_RATE * duration)
     
-    for freq_start, freq_end in [(600, 400), (500, 300), (400, 250)]:
-        duration = 0.12
-        num_samples = int(SAMPLE_RATE * duration)
-        chunk = []
-        for i in range(num_samples):
-            t = i / SAMPLE_RATE
-            progress = i / num_samples
-            freq = freq_start + (freq_end - freq_start) * progress
-            value = 0.3 * math.sin(2 * math.pi * freq * t)
-            chunk.append(value)
-        if freq_start == 600:
-            desc1 = chunk
-        elif freq_start == 500:
-            desc2 = chunk
-        else:
-            desc3 = chunk
+    for i in range(num_samples):
+        t = i / SAMPLE_RATE
+        progress = i / num_samples
+        
+        root = 0.35 * math.sin(2 * math.pi * 440 * t)
+        third = 0.28 * math.sin(2 * math.pi * 554 * t)
+        fifth = 0.28 * math.sin(2 * math.pi * 659 * t)
+        octave = 0.2 * math.sin(2 * math.pi * 880 * t)
+        
+        amp_env = (1.0 - progress) ** 0.6
+        value = amp_env * (root + third + fifth + octave)
+        victory_chord.append(value)
     
-    samples = desc1 + desc2 + desc3
-    samples = apply_fade_out(samples, 0.08)
+    bass_thump = generate_sine_wave(80, 0.15, 0.5)
+    
+    samples = mix_samples(victory_chord, bass_thump)
+    samples = apply_fade_out(samples, 0.12)
     return samples
 
 

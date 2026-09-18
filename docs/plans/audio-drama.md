@@ -7,7 +7,9 @@
 
 ## Goal
 
-Make fights feel better with free/local audio only. Give spectators and players instant auditory feedback for key combat events: weapon fire, hits, frags, and round transitions. Ship with only CC0-licensed or procedurally generated sounds (no unclear licenses, no paid assets).
+Make fights feel REALLY FUN with free/local audio only. Give spectators and players instant auditory feedback for key combat events: weapon fire, hits, frags, and round transitions. Ship with only CC0-licensed or procedurally generated sounds (no unclear licenses, no paid assets).
+
+**Nick priority: MAKE IT REALLY FUN. Audio should sell frags and round starts - snappy, arcade, readable. Not subtle corporate beeps.**
 
 ## Non-goals
 
@@ -46,14 +48,14 @@ Optional if time/simple: camera shake on frag (may already exist from polish pas
 
 Create directory `client/assets/audio/` with:
 
-- `fire.wav` - weapon fire sound (target: <50 KB, 0.1-0.2s duration)
-- `hit.wav` - hit confirmation (target: <30 KB, 0.05-0.1s duration)
-- `frag.wav` - frag/elimination (target: <50 KB, 0.2-0.3s duration)
-- `round_start.wav` - round begin cue (target: <30 KB, 0.1-0.2s duration)
-- `round_end.wav` - round complete (target: <50 KB, 0.2-0.3s duration)
+- `fire.wav` - weapon fire (snappy arcade punch: kick + snap + crack, 0.06s)
+- `hit.wav` - hit confirmation (satisfying feedback: thwack + ding + thump, 0.08s)
+- `frag.wav` - frag/elimination (SELL THE MOMENT: massive bass + explosion + rising sweep + sparkle cascade, 0.30s)
+- `round_start.wav` - round begin (arcade excitement: charge-up + impact beep + punch, 0.20s)
+- `round_end.wav` - round complete (victorious fanfare: chord + bass thump, 0.35s)
 - `README.md` - license attribution for each file
 
-Total target: <250 KB for all audio assets.
+Total target: <250 KB for all audio assets. Actual: ~45 KB.
 
 ### Godot integration (client/scripts/)
 
@@ -69,8 +71,14 @@ Total target: <250 KB for all audio assets.
 
 1. **Fire:** Play when local player shoots (immediate) OR when snapshot shows `just_fired` flag on remote fighters
 2. **Hit:** Play when snapshot includes hit events or local player receives damage
-3. **Frag:** Play when killfeed updates with new frag (game_manager.gd likely handles this)
-4. **Round start/end:** Play on round lifecycle events (likely in game_manager.gd round state machine)
+3. **Frag:** Play when killfeed updates with new frag (game_manager.gd) - HERO MOMENT, boosted volume
+4. **Round start/end:** Play on round lifecycle events (game_manager.gd round state machine)
+
+**Volume levels (arcade impact):**
+- Frag: -3 dB (loudest, sells the moment)
+- Hit: -2 dB (very readable feedback)
+- Fire: -4 dB (snappy, frequent)
+- Round start/end: -5 dB (clear but not overwhelming)
 
 ### Camera shake (optional)
 
