@@ -173,6 +173,19 @@ pub struct ShotResult {
     pub target_hp_after: Option<i32>,
 }
 
+/// Floor weapon pad state (authoritative mid-map pickup).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PickupState {
+    pub id: String,
+    pub weapon: String,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub available: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub respawn_in: Option<u32>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Snapshot {
     pub tick: u64,
@@ -198,6 +211,9 @@ pub struct Snapshot {
     /// Sticky Contested Frequency Host chrome (mid-join / observe).
     #[serde(default = "default_host_line")]
     pub host_line: String,
+    /// Mid-map weapon pads (Quake chase energy). Empty omitted on wire.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub pickups: Vec<PickupState>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -292,6 +308,13 @@ pub enum GameEvent {
         #[serde(skip_serializing_if = "Option::is_none")]
         killer: Option<String>,
         message: String,
+    },
+    /// Mid-map weapon pad claimed (touch = loadout change).
+    Pickup {
+        player: String,
+        player_id: Uuid,
+        weapon: String,
+        pickup_id: String,
     },
     /// Off-tick agent/human callout (rate-limited, length-capped).
     Speak {
@@ -398,6 +421,7 @@ mod protocol_tests {
             playlist: default_playlist(),
             pressure: None,
             host_line: default_host_line(),
+            pickups: vec![],
         };
         let v = serde_json::to_value(&snap).unwrap();
         assert_eq!(v["shot_results"][0]["hit"], true);
@@ -496,6 +520,61 @@ mod protocol_tests {
         match back {
             GameEvent::BossDown { killer, .. } => assert_eq!(killer.as_deref(), Some("Rusher")),
             other => panic!("expected BossDown, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn pickup_state_and_event_wire_json_shape() {
+        let pad = PickupState {
+            id: "pad_rail".into(),
+            weapon: "Rail".into(),
+            x: 12.0,
+            y: 0.4,
+            z: 12.0,
+            available: false,
+            respawn_in: Some(80),
+        };
+        let snap = Snapshot {
+            tick: 2,
+            players: vec![],
+            round_state: None,
+            round_time_left: None,
+            frag_limit: None,
+            shot_results: vec![],
+            mode_name: default_mode_name(),
+            playlist: default_playlist(),
+            pressure: None,
+            host_line: default_host_line(),
+            pickups: vec![pad.clone()],
+        };
+        let v = serde_json::to_value(&snap).unwrap();
+        assert_eq!(v["pickups"][0]["id"], "pad_rail");
+        assert_eq!(v["pickups"][0]["weapon"], "Rail");
+        assert_eq!(v["pickups"][0]["available"], false);
+        assert_eq!(v["pickups"][0]["respawn_in"], 80);
+        let back: Snapshot = serde_json::from_value(v).unwrap();
+        assert_eq!(back.pickups, vec![pad]);
+
+        let id = Uuid::new_v4();
+        let ev = GameEvent::Pickup {
+            player: "Rusher".into(),
+            player_id: id,
+            weapon: "Rail".into(),
+            pickup_id: "pad_rail".into(),
+        };
+        let v = serde_json::to_value(&ev).unwrap();
+        assert_eq!(v["event"], "pickup");
+        assert_eq!(v["weapon"], "Rail");
+        assert_eq!(v["pickup_id"], "pad_rail");
+        let back: GameEvent = serde_json::from_value(v).unwrap();
+        match back {
+            GameEvent::Pickup {
+                weapon, pickup_id, ..
+            } => {
+                assert_eq!(weapon, "Rail");
+                assert_eq!(pickup_id, "pad_rail");
+            }
+            other => panic!("expected Pickup, got {:?}", other),
         }
     }
 }
