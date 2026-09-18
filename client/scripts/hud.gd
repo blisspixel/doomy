@@ -56,7 +56,10 @@ func set_round_info(state: String, time_left: int, frag_limit: int):
 	var text = "Round: " + state
 	if state == "Active":
 		if time_left > 0:
-			text += " | Time: " + str(time_left) + "s"
+			var time_display = str(time_left) + "s"
+			if time_left == 67:
+				time_display = "67s (!)"
+			text += " | Time: " + time_display
 		if frag_limit > 0:
 			text += " | Frag limit: " + str(frag_limit)
 	

@@ -125,6 +125,11 @@ func _on_snapshot_received(data):
 			targets.append(pawn)
 	if camera:
 		camera.set_available_targets(targets)
+		
+		var followed = camera.get_followed_target()
+		for pawn in players.values():
+			if is_instance_valid(pawn):
+				pawn.set_highlighted(pawn == followed)
 	
 	_update_followed_weapon()
 

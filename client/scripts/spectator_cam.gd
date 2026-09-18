@@ -126,6 +126,16 @@ func set_available_targets(targets: Array):
 	if follow_mode and len(targets) > 0:
 		follow_target_index = follow_target_index % len(targets)
 
+func camera_punch():
+	camera_shake_intensity = 0.3
+	camera_zoom_offset = -1.5
+
+func get_followed_target():
+	if follow_mode and len(available_targets) > 0:
+		var idx = follow_target_index % len(available_targets)
+		return available_targets[idx]
+	return null
+
 func lock_on_frag(killer_id: String, duration: float = 1.5):
 	frag_follow_target_id = killer_id
 	frag_follow_timer = duration

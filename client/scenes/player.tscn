@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://c8vg5m2kuxl7r"]
+[gd_scene load_steps=5 format=3 uid="uid://c8vg5m2kuxl7r"]
 
 [ext_resource type="Script" path="res://scripts/player_pawn.gd" id="1_player"]
 [ext_resource type="Texture2D" uid="uid://d123456789012345" path="res://assets/characters/64/cyanex_idle_strip.png" id="2_sprite"]
@@ -10,6 +10,13 @@ albedo_color = Color(1, 1, 1, 1)
 billboard_mode = 2
 billboard_keep_scale = true
 disable_receive_shadows = true
+
+[sub_resource type="StandardMaterial3D" id="HighlightMaterial"]
+transparency = 1
+albedo_color = Color(1, 1, 0.2, 0.3)
+emission_enabled = true
+emission = Color(1, 1, 0, 1)
+emission_energy_multiplier = 0.5
 
 [node name="Player" type="Node3D"]
 script = ExtResource("1_player")
