@@ -91,7 +91,17 @@ func show_frag(killer: String, victim: String, killer_color: Color = Color.WHITE
 	update_scoreboard()
 	
 	if frag_label:
-		frag_label.text = killer + " FRAGGED " + victim + "!"
+		var message = killer + " FRAGGED " + victim + "!"
+		
+		if randf() < 0.067:
+			var quips = [
+				killer + " [67] " + victim,
+				killer + " > " + victim + " (skill issue)",
+				"so back (" + killer + " \u2192 " + victim + ")"
+			]
+			message = quips[randi() % quips.size()]
+		
+		frag_label.text = message
 		frag_label.modulate = killer_color.lightened(0.4)
 		frag_label.visible = true
 		
