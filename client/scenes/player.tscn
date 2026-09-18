@@ -9,6 +9,14 @@ height = 2.0
 [node name="Player" type="Node3D"]
 script = ExtResource("1_player")
 
+[node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+volume_db = -8.0
+max_distance = 50.0
+
+[node name="HitSound" type="AudioStreamPlayer3D" parent="."]
+volume_db = -8.0
+max_distance = 40.0
+
 [node name="Body" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 mesh = SubResource("CapsuleMesh_1")
