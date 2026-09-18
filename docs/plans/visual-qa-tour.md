@@ -51,7 +51,7 @@ These start as a report. Thresholds move into CI as `plans/buttery-controls.md` 
 ## The critique loop
 
 1. Run `tools/qa_tour.sh` (Windows: `tools/qa_tour.ps1` is not added; Git Bash runs the same script) against a local server with bots.
-2. The agent developer reads every still and the manifest, writes `.agents/qa/<stamp>/critique.md` with one line per finding (state, what is wrong, severity, the plan it belongs to), and promotes findings into the relevant plan as checklist items in the same session.
+2. The agent developer reads every still and the manifest, writes `.agents/qa/<stamp>/critique.md` with one line per finding (state, what is wrong, severity, the plan it belongs to), and promotes findings into the relevant plan as checklist items in the same session. Standing critique criteria: text density (sprites and icons over words, at most one line of HUD text outside menus and the killfeed), overlap, contrast against every map, readability at 480 by 270, and whether the weapon in hand is identifiable by silhouette.
 3. A finding is closed by a later tour whose still shows the fix; the plan links the stamp.
 
 ## Verification
