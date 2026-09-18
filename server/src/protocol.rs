@@ -52,6 +52,16 @@ pub fn killstreak_host_line(streak: u32, player: &str) -> Option<(String, String
     }
 }
 
+/// Host line for round-end MVP / podium (Contested Frequency voice).
+pub fn mvp_host_line(mvp: &str, frags: u32) -> String {
+    format!("HOST: ROUND MVP. {mvp} WITH {frags} FRAGS. CONTINUANCE DENIES THE PODIUM.")
+}
+
+/// Host line when a round ends with no scored MVP.
+pub fn empty_mvp_host_line() -> String {
+    "HOST: ROUND CLOSED. NO MVP. LEAGUE DENIES THE SCRAP.".to_string()
+}
+
 /// Display name for the mid-round Continuance boss NPC.
 pub const BOSS_NAME: &str = "COMPLIANCE-DRONE";
 
@@ -328,6 +338,15 @@ pub enum GameEvent {
         reason: String,
         final_scores: Vec<PlayerScore>,
         winner_score: Option<u32>,
+        /// Round MVP (top score / frags). Same player as winner when scores exist.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        mvp: Option<String>,
+        /// MVP frag count (mirrors winner_score for agents / podium chrome).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        mvp_frags: Option<u32>,
+        /// Contested Frequency Host bumper for round-end podium.
+        #[serde(default = "default_host_line")]
+        host_line: String,
     },
     PlayerJoined {
         player: String,
@@ -703,5 +722,66 @@ mod protocol_tests {
         let (tier, msg) = killstreak_host_line(5, "Rusher").unwrap();
         assert_eq!(tier, "rampage");
         assert!(msg.contains("RAMPAGE"));
+    }
+
+    #[test]
+    fn mvp_host_line_voice() {
+        let line = mvp_host_line("Rusher", 10);
+        assert!(line.contains("ROUND MVP"));
+        assert!(line.contains("Rusher"));
+        assert!(line.contains("10 FRAGS"));
+        assert!(line.contains("CONTINUANCE DENIES THE PODIUM"));
+        assert!(empty_mvp_host_line().contains("NO MVP"));
+    }
+
+    #[test]
+    fn round_end_mvp_wire_round_trip() {
+        let event = GameEvent::RoundEnd {
+            winner: Some("Rusher".to_string()),
+            reason: "Frag limit reached".to_string(),
+            final_scores: vec![PlayerScore {
+                name: "Rusher".to_string(),
+                score: 10,
+            }],
+            winner_score: Some(10),
+            mvp: Some("Rusher".to_string()),
+            mvp_frags: Some(10),
+            host_line: mvp_host_line("Rusher", 10),
+        };
+        let v = serde_json::to_value(&event).unwrap();
+        assert_eq!(v["event"], "round_end");
+        assert_eq!(v["mvp"], "Rusher");
+        assert_eq!(v["mvp_frags"], 10);
+        assert!(v["host_line"].as_str().unwrap().contains("ROUND MVP"));
+        let back: GameEvent = serde_json::from_value(v).unwrap();
+        match back {
+            GameEvent::RoundEnd {
+                mvp,
+                mvp_frags,
+                host_line,
+                ..
+            } => {
+                assert_eq!(mvp.as_deref(), Some("Rusher"));
+                assert_eq!(mvp_frags, Some(10));
+                assert!(host_line.contains("ROUND MVP"));
+            }
+            other => panic!("expected RoundEnd, got {:?}", other),
+        }
+        // Legacy wire without mvp fields still deserializes.
+        let legacy = serde_json::json!({
+            "event": "round_end",
+            "winner": "Bot1",
+            "reason": "Time limit reached",
+            "final_scores": [],
+            "winner_score": null
+        });
+        let legacy_ev: GameEvent = serde_json::from_value(legacy).unwrap();
+        match legacy_ev {
+            GameEvent::RoundEnd { mvp, host_line, .. } => {
+                assert!(mvp.is_none());
+                assert_eq!(host_line, default_host_line());
+            }
+            other => panic!("expected RoundEnd, got {:?}", other),
+        }
     }
 }

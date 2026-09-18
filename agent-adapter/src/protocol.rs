@@ -223,6 +223,12 @@ pub enum GameEvent {
         reason: String,
         final_scores: Vec<PlayerScore>,
         winner_score: Option<u32>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        mvp: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        mvp_frags: Option<u32>,
+        #[serde(default = "default_host_line")]
+        host_line: String,
     },
     PlayerJoined {
         player: String,
