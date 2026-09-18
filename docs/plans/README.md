@@ -8,16 +8,17 @@ Do not treat chat as the plan of record.
 
 ## Tip priorities (after v0.5.0)
 
-Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Sticky host_line on Snapshot shipped (#63, Casino-cleared on MCP). Godot Host flash mid-join shipped (#64). MCP session tools shipped (#65). Pixel-3D look bar sealed on tip (`5d16f32`, #66). Far-cam fighter scale shipped (#67). Solo boot-and-scrap shipped (#68). Continuance SP boss shipped (#69). Weapon pickups shipped (#70). Health pads shipped (#71). Arena choke geometry shipped (#72). Reconnect + Godot null shipped (#73). Ship order from tip:
+Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Sticky host_line on Snapshot shipped (#63, Casino-cleared on MCP). Godot Host flash mid-join shipped (#64). MCP session tools shipped (#65). Pixel-3D look bar sealed on tip (`5d16f32`, #66). Far-cam fighter scale shipped (#67). Solo boot-and-scrap shipped (#68). Continuance SP boss shipped (#69). Weapon pickups shipped (#70). Health pads shipped (#71). Arena choke geometry shipped (#72). Reconnect + Godot null shipped (#73). Human join FP juice shipped (#74). Ship order from tip:
 
-1. **Human join FP juice** (NOW) - First-person scrap juice on Join: crosshair, weapon face/bob, spawn/damage flash. See [`human-join-fp-juice.md`](./human-join-fp-juice.md).
-2. (Shipped) **Reconnect + Godot null** - Clean join/leave/reconnect without ghost players; Godot add_child null guard. See [`reconnect-and-godot-null.md`](./reconnect-and-godot-null.md).
-3. (Shipped) **Arena choke geometry** - Scrap low walls, crate clusters, and pillar cover with authoritative collision. See [`arena-choke-geometry.md`](./arena-choke-geometry.md).
-4. (Shipped) **Health pads** - Mid-arena health and light armor pads for Quake chase sustain. See [`health-pads.md`](./health-pads.md).
-5. (Shipped) **Weapon pickups** - Mid-map scrap pads for Quake/Unreal chase energy. See [`weapon-pickups.md`](./weapon-pickups.md).
+1. **Killstreak Host juice** (NOW) - Multi-kill Host callouts + HUD flash at streak 2/3/5. See [`killstreak-host-juice.md`](./killstreak-host-juice.md).
+2. (Shipped) **Human join FP juice** - Join FP scrap juice: crosshair, weapon face/bob, spawn/damage flash. See [`human-join-fp-juice.md`](./human-join-fp-juice.md).
+3. (Shipped) **Reconnect + Godot null** - Clean join/leave/reconnect without ghost players; Godot add_child null guard. See [`reconnect-and-godot-null.md`](./reconnect-and-godot-null.md).
+4. (Shipped) **Arena choke geometry** - Scrap low walls, crate clusters, and pillar cover with authoritative collision. See [`arena-choke-geometry.md`](./arena-choke-geometry.md).
+5. (Shipped) **Health pads** - Mid-arena health and light armor pads for Quake chase sustain. See [`health-pads.md`](./health-pads.md).
 
 Shipped recently:
 
+- **Human join FP juice** (#74) - Join FP scrap juice: crosshair, weapon face/bob, spawn/damage flash. See [`human-join-fp-juice.md`](./human-join-fp-juice.md).
 - **Reconnect + Godot null** (#73) - Clean reconnect path + Godot add_child null guard. See [`reconnect-and-godot-null.md`](./reconnect-and-godot-null.md).
 - **Arena choke geometry** (#72) - Scrap choke solids + Quake slide/hitscan cover. See [`arena-choke-geometry.md`](./arena-choke-geometry.md).
 - **Health pads** (#71) - Mid-arena health and armor pads for Quake chase sustain. See [`health-pads.md`](./health-pads.md).
@@ -41,7 +42,8 @@ Port is **6767**. Public TCP+UDP 6767 for strangers/agents. Tailscale is private
 
 | Plan | Status | One-liner |
 |---|---|---|
-| [`human-join-fp-juice.md`](./human-join-fp-juice.md) | **in flight** | Join FP scrap juice: crosshair, weapon face/bob, spawn/damage flash. |
+| [`killstreak-host-juice.md`](./killstreak-host-juice.md) | **in flight** | Multi-kill Host callouts + HUD flash at streak 2/3/5. |
+| [`human-join-fp-juice.md`](./human-join-fp-juice.md) | **shipped** (#74) | Join FP scrap juice: crosshair, weapon face/bob, spawn/damage flash. |
 | [`reconnect-and-godot-null.md`](./reconnect-and-godot-null.md) | **shipped** (#73) | Clean reconnect (no ghost) + Godot add_child null guard on pads. |
 | [`arena-choke-geometry.md`](./arena-choke-geometry.md) | **shipped** (#72) | Scrap arena choke geometry: low walls, crates, pillar cover + server collision. |
 | [`health-pads.md`](./health-pads.md) | **shipped** (#71) | Mid-arena health and light armor pads for Quake chase sustain. |

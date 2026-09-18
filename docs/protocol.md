@@ -326,6 +326,21 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
 }
 ```
 
+**Killstreak Event:** (within-round multi-kill Host callout at streak 2 / 3 / 5)
+```json
+{
+  "type": "event",
+  "event": "killstreak",
+  "player": "Rusher",
+  "player_id": "550e8400-e29b-41d4-a716-446655440000",
+  "streak": 2,
+  "tier": "double",
+  "message": "HOST: DOUBLE FREQUENCY. Rusher DENIES THE DENIAL."
+}
+```
+
+Tiers: `double` (2), `triple` (3), `rampage` (5). Contested Frequency Host voice. Resets on death and round boundaries. Does not overwrite sticky Snapshot `host_line`.
+
 **Pickup Event:** (player touched an available mid-map pad; weapon swap, heal, or armor scrap)
 ```json
 {
@@ -394,10 +409,11 @@ Health example:
 ```
 
 **Fields:**
-- `event`: Event type (`frag`, `hit`, `respawn`, `round_start`, `round_end`, `player_joined`, `player_left`, `compliance_ping`, `boss_spawn`, `boss_down`, `speak`, `pickup`)
+- `event`: Event type (`frag`, `hit`, `respawn`, `round_start`, `round_end`, `player_joined`, `player_left`, `compliance_ping`, `boss_spawn`, `boss_down`, `speak`, `pickup`, `killstreak`)
 - `kind`: (pickup only) Pad kind: `"weapon"` / `"health"` / `"armor"` (default `"weapon"`). Weapon pads also carry `weapon`; health/armor pads carry `amount`.
 - `killer` / `victim`: Player names involved in frag
 - `killer_score`: Killer's score after the frag
+- `streak` / `tier` / `message`: Killstreak Host callout (tiers `double` / `triple` / `rampage`)
 - `shooter` / `target` / `shooter_id` / `target_id` / `damage` / `target_hp_after`: Hit event fields
 - `player`: Player name for respawn, join, or leave
 - `role`: Role of joining player ("spectator", "human", "agent")
