@@ -80,7 +80,7 @@ $0. No secrets. No attribution, emoji, or em/en dashes in commits, PR text, or d
 - [x] `boss_spawn` / `boss_down` on wire + MCP-readable
 - [x] Godot shows distinct silhouette / Host callout
 - [x] Tests + coverage fail-under 80 unfiltered
-- [ ] PR open on `cursor/continuance-sp-boss`
+- [x] PR open on `cursor/continuance-sp-boss` (https://github.com/blisspixel/fragr/pull/69)
 
 ## Tip priorities (this slice)
 
