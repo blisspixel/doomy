@@ -1,6 +1,49 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum WeaponType {
+    #[default]
+    Flechette,
+    Rail,
+    Scatter,
+}
+
+impl WeaponType {
+    pub fn damage(self) -> i32 {
+        match self {
+            WeaponType::Flechette => 25,
+            WeaponType::Rail => 75,
+            WeaponType::Scatter => 15,
+        }
+    }
+
+    pub fn cooldown_ticks(self) -> u32 {
+        match self {
+            WeaponType::Flechette => 10,
+            WeaponType::Rail => 40,
+            WeaponType::Scatter => 5,
+        }
+    }
+
+    pub fn spread_radians(self) -> f32 {
+        match self {
+            WeaponType::Flechette => 0.1,
+            WeaponType::Rail => 0.05,
+            WeaponType::Scatter => 0.3,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            WeaponType::Flechette => "Flechette",
+            WeaponType::Rail => "Rail",
+            WeaponType::Scatter => "Scatter",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ClientMessage {
@@ -40,6 +83,8 @@ pub struct Action {
     pub turn_right: bool,
     #[serde(default)]
     pub fire: bool,
+    #[serde(default)]
+    pub weapon_swap: Option<WeaponType>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -67,6 +112,7 @@ pub struct PlayerState {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub behavior: Option<String>,
     pub score: u32,
+    pub weapon: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

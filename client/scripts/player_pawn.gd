@@ -69,15 +69,20 @@ func update_state(state: Dictionary):
 	var old_hp = hp
 	hp = state.hp
 	
-	# Hit feedback: flash red when taking damage
 	if old_hp > hp and hp > 0:
 		show_hit_feedback()
 	
 	if label:
+		var weapon_name = state.get("weapon", "")
 		var behavior_chip = ""
 		if state.has("behavior") and state.behavior != null:
 			behavior_chip = " [" + str(state.behavior) + "]"
-		label.text = player_name + " [" + str(hp) + "]" + behavior_chip
+		
+		var weapon_display = ""
+		if weapon_name != "":
+			weapon_display = "\n" + weapon_name
+		
+		label.text = player_name + " [" + str(hp) + "]" + behavior_chip + weapon_display
 	
 	if muzzle and state.get("just_fired", false):
 		show_muzzle_flash()
