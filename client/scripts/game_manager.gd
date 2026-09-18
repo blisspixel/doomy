@@ -30,8 +30,18 @@ var action_state = {
 	"right": false,
 	"turn_left": false,
 	"turn_right": false,
-	"fire": false
+	"fire": false,
+	"weapon_swap": null
 }
+const WEAPON_CYCLE = ["flechette", "rail", "scatter"]
+const SPEAK_LINES = [
+	"scrap on",
+	"contested frequency",
+	"deny the denial",
+	"shall not be infringed",
+]
+var speak_line_index = 0
+var pending_weapon_swap = null
 
 func _ready():
 	net_client.snapshot_received.connect(_on_snapshot_received)
@@ -106,30 +116,36 @@ func _load_audio_streams():
 	if round_end_sound and ResourceLoader.exists(audio_dir + "round_end.wav"):
 		round_end_sound.stream = load(audio_dir + "round_end.wav")
 
-func _input(event):
-	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_J and not is_human_player:
-			print("Joining as human player...")
-			net_client.disconnect_from_server()
-			await get_tree().create_timer(0.5).timeout
-			is_human_player = true
-			fp_spawn_flashed = false
-			net_client.connect_to_server("human", "Human Player")
-			hud.set_mode("PLAYING")
-			if radio:
-				radio.set_human_mode(true)
-			_pick_ghost_rival_from_alive()
-		elif event.keycode == KEY_L and is_human_player:
-			print("Leaving match, returning to spectator...")
-			net_client.disconnect_from_server()
-			await get_tree().create_timer(0.5).timeout
-			is_human_player = false
-			_clear_fp_state()
-			net_client.connect_to_server("spectator", "Spectator")
-			hud.set_ghost_rival("")
-			hud.set_mode("SPECTATING")
-			if radio:
-				radio.set_human_mode(false)
+func _input(_event):
+	# InputMap actions (keyboard + joypad). Same join/leave path.
+	if Input.is_action_just_pressed("join_as_human") and not is_human_player:
+		print("Joining as human player...")
+		net_client.disconnect_from_server()
+		await get_tree().create_timer(0.5).timeout
+		is_human_player = true
+		fp_spawn_flashed = false
+		net_client.connect_to_server("human", "Human Player")
+		hud.set_mode("PLAYING")
+		if radio:
+			radio.set_human_mode(true)
+		_pick_ghost_rival_from_alive()
+	elif Input.is_action_just_pressed("leave_match") and is_human_player:
+		print("Leaving match, returning to spectator...")
+		net_client.disconnect_from_server()
+		await get_tree().create_timer(0.5).timeout
+		is_human_player = false
+		_clear_fp_state()
+		net_client.connect_to_server("spectator", "Spectator")
+		hud.set_ghost_rival("")
+		hud.set_mode("SPECTATING")
+		if radio:
+			radio.set_human_mode(false)
+	elif is_human_player and Input.is_action_just_pressed("speak"):
+		_send_speak_taunt()
+	elif is_human_player and Input.is_action_just_pressed("weapon_next"):
+		pending_weapon_swap = _next_weapon_swap(1)
+	elif is_human_player and Input.is_action_just_pressed("weapon_prev"):
+		pending_weapon_swap = _next_weapon_swap(-1)
 
 func _process(_delta):
 	if is_human_player and net_client.connection_state == WebSocketPeer.STATE_OPEN:
@@ -143,7 +159,30 @@ func _process(_delta):
 			turns = camera.consume_turn_bits()
 		action_state.turn_left = turns.get("turn_left", false)
 		action_state.turn_right = turns.get("turn_right", false)
+		action_state.weapon_swap = pending_weapon_swap
+		pending_weapon_swap = null
 		net_client.send_action(action_state)
+
+func _current_weapon_wire() -> String:
+	var name = _local_weapon_name().to_lower()
+	if name in WEAPON_CYCLE:
+		return name
+	return "flechette"
+
+func _next_weapon_swap(step: int):
+	var cur = _current_weapon_wire()
+	var idx = WEAPON_CYCLE.find(cur)
+	if idx < 0:
+		idx = 0
+	var n = WEAPON_CYCLE.size()
+	return WEAPON_CYCLE[(idx + step) % n]
+
+func _send_speak_taunt() -> void:
+	if not net_client or not net_client.has_method("send_speak"):
+		return
+	var line = SPEAK_LINES[speak_line_index % SPEAK_LINES.size()]
+	speak_line_index += 1
+	net_client.send_speak(line)
 
 
 func _apply_map_from_snapshot(snapshot: Dictionary) -> void:

@@ -140,9 +140,9 @@ func _refresh_mode_label():
 		host_chip = "\n" + sticky_host_line
 	var controls = ""
 	if client_mode == "SPECTATING":
-		controls = "SPECTATING (J: Join, F: Cycle Cam, R/T/M: Radio, ESC: Mouse)"
+		controls = "SPECTATING (J/A: Join, F/D-pad: Cycle, V/Back: Free-fly, R/N/M: Radio, ESC: Mouse) | Pad OK"
 	else:
-		controls = client_mode + " (L: Leave, R/T/M: Radio, ESC: Mouse)"
+		controls = client_mode + " (L/Start: Leave, sticks move/look, RT/A: Fire, LB/RB: Weapon, Y/T: Speak, R/N/M: Radio) | Pad OK"
 	var pressure_chip = ""
 	if pressure_id == "compliance_drone":
 		pressure_chip = "\nPRESSURE: CONTINUANCE COMPLIANCE DRONE"

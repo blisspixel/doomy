@@ -18,6 +18,7 @@ Status words: **planned**, **in flight**, **shipped** (merged to `main`, PR numb
 | Plan | Status | One-liner |
 |---|---|---|
 | [`radio-stations.md`](./radio-stations.md) | **in flight** | Contested Frequency radio: eight stations, generated library, client player with ducking. |
+| [`controller-and-desktop-platforms.md`](./controller-and-desktop-platforms.md) | **shipped** (#88) | Gamepad join, solo, and match input on the same action path; Windows, macOS, and Linux export presets. |
 | [`bug-hunt-polish-pass.md`](./bug-hunt-polish-pass.md) | **shipped** (#90) | Tip feel polish: boss down round-end wipe, layout null guard, spectator cam validity, net send hardening. |
 | [`l5-vs-nods-why-fight.md`](./l5-vs-nods-why-fight.md) | **shipped** (#87) | Solo Broadcast and L5 versus NODS: the why-fight spine folded into LORE and VISION. |
 | [`arty-gold-face-pack.md`](./arty-gold-face-pack.md) | **shipped** (#86) | Gold face pack: Cyanex and Kragge gold idle billboards plus broadcast HUD chrome. |

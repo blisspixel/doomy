@@ -46,9 +46,40 @@ cargo run -p fragr-server -- --bind 127.0.0.1:6767 --bots 4
 # Headless alternative: godot --path client res://scenes/main.tscn -- --solo
 ```
 
-**Controls:** WASD to move, mouse to look, left mouse to fire, J to join, L to leave back to spectate, F to cycle the spectator camera, R next radio station, T next track, M radio on or off, Esc to release the mouse.
+**Controls:** WASD to move, mouse to look, left mouse to fire, J to join, L to leave back to spectate, F to cycle the spectator camera, R next radio station, N next track, M radio on or off, Esc to release the mouse. Gamepads work too; see the controls table below.
 
 **Boot menu:** Solo Scrap (default), Spectate Local, Join Host. The map picker selects Arena Duel or Compliance Yard and must match the server's `--map`.
+
+## Controls (keyboard and gamepad)
+
+Keyboard and gamepad share the same action path into the server.
+
+| Action | Keyboard and mouse | Gamepad |
+|---|---|---|
+| Move | WASD | Left stick |
+| Look | Mouse | Right stick |
+| Fire | Left mouse | RT or A |
+| Weapon cycle | [ and ] | LB and RB |
+| Speak (taunt) | T | Y |
+| Join | J | A while spectating |
+| Leave to spectate | L | Start |
+| Spectator camera cycle | F | D-pad right |
+| Free-fly toggle | V | Back |
+| Radio: next station, next track, on or off | R, N, M | keyboard only for now |
+| Release the mouse | Esc | |
+
+## Desktop exports
+
+Export presets for Windows, macOS, and Linux live in `client/export_presets.cfg` and write under `builds/` (gitignored). Install the matching 4.7.2 export templates, then:
+
+```bash
+mkdir -p builds/windows builds/macos builds/linux
+godot --headless --path client --export-release "Windows Desktop" ../builds/windows/fragr.exe
+godot --headless --path client --export-release "macOS" ../builds/macos/fragr.zip
+godot --headless --path client --export-release "Linux/X11" ../builds/linux/fragr.x86_64
+```
+
+Exported clients still need a running `fragr-server` on port 6767.
 
 ## Host a server
 
