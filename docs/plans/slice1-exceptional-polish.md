@@ -90,3 +90,13 @@ No emoji, no em/en dashes, no tool attribution in any new prose/commits/PR text.
 ## Spend / safety
 
 $0 only. Fail closed on any paid dependency. Loopback only.
+
+## Added DoD (Chief / Nick 2026-09-17)
+
+Second peer must spectate the same match on LAN or Tailscale Personal ($0):
+
+- Server `--bind` supports non-loopback (document `0.0.0.0:7777` or LAN IP).
+- Client accepts server host/URL for a second machine.
+- README documents two-machine spectator via LAN and Tailscale Personal.
+- No paid VPS.
+
