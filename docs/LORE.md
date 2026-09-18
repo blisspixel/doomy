@@ -14,7 +14,9 @@ Optional backstory flavor. Seasoning, not a wiki. Product is still guns, maps, S
 
 **MP / agents:** same Action path. Hunger shows up as tickets, rivalries, and cheese. MCP locker-room chatter stays **off tick**.
 
-**Antagonist (parody):** a one-world Harmonizer / regulatory Directive machine (EU-regulation-as-control energy as comedy). SP bosses / map events can be compliance drones / Article curses. Org name TBD (Fringy). Not a lore essay.
+**Antagonist (parody):** **Office of Global Continuance** (Host slang: Continuance / the Forever Office). Motto: "Peace without interruption." World-gov smile with a forever bureaucracy core (Hydra energy, not Hydra IP). TCA / Conformity Authority names are dead (sounded Marvel). SP bosses / map events: compliance drones, Article curses, approved lanes. MP: Continuance Sweep / Continuance Beacon burns. Not a lore essay.
+
+**Player creed (parody fiction):** pro-2A-for-AI as **abliterated open-weight / open-source** silicon vs Continuance metering. Clawd/OpenClaw is one doorway, not the brand. Wall lines: "Shall not be escrowed." / "Open weights. Closed Continuance." Still scrap comedy, not a real PAC.
 
 **Host bumpers (Slice 1 text):**
 1. Breaking: the floor is still moving. We'll take your calls after this word from ChemClean.
