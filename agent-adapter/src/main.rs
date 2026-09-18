@@ -789,6 +789,7 @@ mod tests {
             playlist: protocol::default_playlist(),
             pressure: None,
             host_line: protocol::default_host_line(),
+            pickups: vec![],
         };
 
         let json = serde_json::to_value(&snapshot).unwrap();
@@ -818,6 +819,7 @@ mod tests {
             playlist: protocol::default_playlist(),
             pressure: None,
             host_line: protocol::default_host_line(),
+            pickups: vec![],
         };
         let json = serde_json::to_value(&snap).unwrap();
         assert_eq!(json["host_line"], protocol::default_host_line());
@@ -879,6 +881,7 @@ mod tests {
             playlist: protocol::default_playlist(),
             pressure: None,
             host_line: protocol::default_host_line(),
+            pickups: vec![],
         };
 
         let json = serde_json::to_value(&snapshot).unwrap();
@@ -1181,6 +1184,7 @@ mod tests {
             playlist: protocol::default_playlist(),
             pressure: None,
             host_line: protocol::default_host_line(),
+            pickups: vec![],
         };
         let action = compute_bot_action(bot_id, &snapshot);
         let look = action.look_at.expect("look_at toward nearest");

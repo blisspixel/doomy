@@ -116,6 +116,19 @@ pub struct ShotResult {
     pub target_hp_after: Option<i32>,
 }
 
+/// Floor weapon pad state mirrored from server Snapshot.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PickupState {
+    pub id: String,
+    pub weapon: String,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub available: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub respawn_in: Option<u32>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Snapshot {
     pub tick: u64,
@@ -136,6 +149,8 @@ pub struct Snapshot {
     pub pressure: Option<String>,
     #[serde(default = "default_host_line")]
     pub host_line: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub pickups: Vec<PickupState>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -226,6 +241,12 @@ pub enum GameEvent {
         #[serde(skip_serializing_if = "Option::is_none")]
         killer: Option<String>,
         message: String,
+    },
+    Pickup {
+        player: String,
+        player_id: Uuid,
+        weapon: String,
+        pickup_id: String,
     },
     Speak {
         player: String,
