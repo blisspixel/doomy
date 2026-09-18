@@ -1,69 +1,64 @@
 # fragr
 
-Agentic-first FPS arena: **Rust authoritative server** + **Godot spectator client**. Watch agents fight, join as human, leave back to spectate.
+Agentic-first FPS arena where **you spectate AI bots fight, then join the match yourself**. Watch named fighters with distinct behaviors battle for dominance, then press J to dive in as human and test yourself against the machines.
 
-## Quick Start (Run Your Own Server)
+**First 10 seconds:** 4 bots spawn and immediately engage. Muzzle flashes, hit feedback, killfeed. Camera follows the action.  
+**First frag:** Typically within 5 seconds of round start. Bright feedback, scoreboard updates, camera locks on killer.  
+**First minute:** Round scoring (10 frag limit or 3 min), bots use Aggressive/Defensive/Flanker/Balanced tactics, spectator auto-cycles between fighters.  
+**Press J:** Join as human (WASD + mouse + LMB). Your shots count. Bots react to you.  
+**Press L:** Leave back to spectate. Bots keep fighting. Continuous match, community-server feel.
 
-Like Minecraft, you run the server and connect clients to it. Works on one machine (loopback), LAN, or Tailscale.
-
-### Single machine (loopback)
+## Quick Start (60 seconds to fun)
 
 ```bash
-# Terminal 1: Server (4 bots fight, 10 frag limit)
+# Terminal 1: Server (4 named bots, 10 frag limit)
 cargo run -p doomy-server -- --bots 4
 
-# Terminal 2: Spectator client
+# Terminal 2: Spectator
 # Open client/ in Godot 4.7.2, press F5
-# Press J to join as human, L to leave back to spectate
+# Watch bots fight immediately
+# Press J to join, L to leave, F to toggle camera, ESC for mouse
 ```
 
-### Run your own server (LAN or Tailscale)
+**That is it.** Bots fight on loopback. No accounts, no cloud, no spend.
 
-#### Server host (home PC, VPS, or friend's machine)
+## Why it is fun
+
+- **Immediate drama:** Bots spawn with names (Rusher, Sniper, Flanker, Tank) and fight instantly. No waiting.
+- **Visible tactics:** Watch Aggressive bots rush, Defensive bots strafe and keep distance, Flanker bots circle.
+- **Color-coded action:** Red center zone, cyan/gold/green/purple corners. Distinct bot colors (red Rusher, cyan Sniper, gold Flanker, green Tank).
+- **Satisfying feedback:** Snappy muzzle flashes (0.08s), hit pulses, camera locks on killer for 1.5s after frag.
+- **Spectator-first, join anytime:** Default is watch. Press J to join, test yourself, press L to leave. Bots persist.
+- **Round scoring:** 10 frag limit or 3 min time limit. Winner announced, next round auto-starts. Continuous match.
+- **Zero friction:** Loopback (one machine) or LAN/Tailscale (friends). No accounts, no cloud, no spend.
+
+## Multi-machine (LAN or Tailscale)
+
+Run server on one machine, connect spectators/players from others.
+
+### Server host
 
 ```bash
-# Start server on all interfaces
 cargo run -p doomy-server -- --bind 0.0.0.0:7777 --bots 4
-
-# Note your LAN IP (e.g. 192.168.1.100) or Tailscale IP (e.g. 100.x.y.z)
-ip addr show  # Linux/Mac
-ipconfig      # Windows
+# Note LAN IP (e.g. 192.168.1.100) or Tailscale IP (e.g. 100.x.y.z)
 ```
 
-#### Client (spectator or player)
+### Client (another machine)
 
 ```bash
-# Set server address via environment variable
 export FRAGR_SERVER="192.168.1.100:7777"  # or Tailscale IP
-
 # Open client/ in Godot 4.7.2, press F5
-# Or launch from command line with env set
 ```
 
-**Tailscale Personal:** Free tier, zero cloud spend. Install from [tailscale.com](https://tailscale.com), connect machines, use Tailscale IP.
+**Tailscale Personal:** Free, zero spend. Install from [tailscale.com](https://tailscale.com), connect machines.
 
-### Agent adapter (MCP-compatible)
+## Agent adapter (MCP-compatible)
 
 ```bash
-# Terminal 3: MCP server for external agents
-cd agent-adapter && cargo run -- mcp
-
-# Or run a scripted bot
-cd agent-adapter && cargo run -- scripted-bot --name MyBot
+cd agent-adapter && cargo run -- mcp  # or scripted-bot --name MyBot
 ```
 
-## What you see
-
-First 30 seconds as spectator:
-- 4 named/colored bots spawn: Rusher (red), Sniper (cyan), Flanker (gold), Tank (green)
-- Bots chase, strafe, shoot with distinct behaviors (Aggressive, Defensive, Flanker, Balanced)
-- Round system: 3s warmup, then 10 frag limit or 3min time limit
-- Follow-cam auto-cycles between fighters every 6s (press F to toggle free-fly)
-- Muzzle flashes, hit feedback (red flash + scale pulse), killfeed with live scoreboard
-- Round ends when frag limit reached or time expires; winner announced; next round auto-starts
-- First frag typically within 5 seconds of round start
-
-Press `J` to join as human fighter (WASD + mouse + LMB). Press `L` to leave back to spectate. **Bots keep fighting when humans leave.**
+External agents (clawbots, MCP clients) can observe and act via structured JSON (no vision API, no LLM required for bots).
 
 ## Architecture
 

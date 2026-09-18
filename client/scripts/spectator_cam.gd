@@ -8,6 +8,8 @@ var follow_mode = true
 var follow_target_index = 0
 var available_targets = []
 var auto_cycle_timer = 0.0
+var frag_follow_timer = 0.0
+var frag_follow_target_id = ""
 
 var mouse_motion = Vector2.ZERO
 
@@ -30,6 +32,14 @@ func _process(delta):
 	
 	if Input.is_action_just_pressed("toggle_follow"):
 		toggle_follow_mode()
+	
+	if frag_follow_timer > 0:
+		frag_follow_timer -= delta
+		if frag_follow_timer <= 0:
+			frag_follow_target_id = ""
+		else:
+			_follow_frag_target()
+			return
 	
 	if follow_mode and len(available_targets) > 0:
 		auto_cycle_timer += delta
@@ -98,3 +108,24 @@ func set_available_targets(targets: Array):
 	available_targets = targets
 	if follow_mode and len(targets) > 0:
 		follow_target_index = follow_target_index % len(targets)
+
+func lock_on_frag(killer_id: String, duration: float = 1.5):
+	frag_follow_target_id = killer_id
+	frag_follow_timer = duration
+	auto_cycle_timer = 0.0
+
+func _follow_frag_target():
+	if frag_follow_target_id == "":
+		return
+	
+	for target in available_targets:
+		if is_instance_valid(target) and target.player_id == frag_follow_target_id:
+			var target_pos = target.global_position
+			var offset = Vector3(0, 4, 7)
+			var cam_pos = target_pos + offset.rotated(Vector3.UP, target.rotation.y)
+			position = position.lerp(cam_pos, 0.15)
+			
+			var look_target = target_pos + Vector3(0, 1.5, 0)
+			var desired_transform = global_transform.looking_at(look_target, Vector3.UP)
+			global_transform = global_transform.interpolate_with(desired_transform, 0.2)
+			return
