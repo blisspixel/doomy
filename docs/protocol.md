@@ -102,9 +102,14 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
       "z": -5.2,
       "yaw": 1.57,
       "hp": 75,
-      "just_fired": false
+      "just_fired": false,
+      "behavior": "Aggressive",
+      "score": 3
     }
-  ]
+  ],
+  "round_state": "Active",
+  "round_time_left": 120,
+  "frag_limit": 10
 }
 ```
 
@@ -117,11 +122,17 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
   - `yaw`: Rotation in radians (0 = +X axis, counter-clockwise)
   - `hp`: Health points (0-100)
   - `just_fired`: True on the tick a weapon was fired (for muzzle flash)
+  - `behavior`: (optional) Bot behavior type if server-side bot
+  - `score`: Kills in current round
+- `round_state`: (optional) Current round state ("Warmup", "Active", "Ended")
+- `round_time_left`: (optional) Seconds remaining in active round
+- `frag_limit`: (optional) Frag limit for current round
 
 **Notes:**
 - Dead players (HP ≤ 0) are omitted from the snapshot
 - Clients must handle players appearing/disappearing
 - No delta compression in v1 (future optimization)
+- Round fields present when round system is active
 
 #### Event
 
@@ -146,10 +157,36 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
 }
 ```
 
+**Round Start Event:**
+```json
+{
+  "type": "event",
+  "event": "round_start",
+  "round_number": 1,
+  "frag_limit": 10,
+  "time_limit": 180
+}
+```
+
+**Round End Event:**
+```json
+{
+  "type": "event",
+  "event": "round_end",
+  "winner": "Bot1",
+  "reason": "Frag limit reached"
+}
+```
+
 **Fields:**
-- `event`: Event type (`frag` or `respawn`)
+- `event`: Event type (`frag`, `respawn`, `round_start`, `round_end`)
 - `killer` / `victim`: Player names involved in frag
 - `player`: Player name for respawn
+- `round_number`: Round counter (starts at 1)
+- `frag_limit`: (optional) Frag limit for the round (null if time-only)
+- `time_limit`: (optional) Time limit in seconds (null if frag-only)
+- `winner`: (optional) Winner name if any (null for draw/time)
+- `reason`: Round end reason ("Frag limit reached", "Time limit reached", etc.)
 
 ## Implementation Notes
 
@@ -171,6 +208,14 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
 - **Turn speed**: 2 radians/second
 - **Collision**: Simple AABB with 0.5 unit radius
 
+### Round System
+- **Warmup**: 3 seconds (60 ticks)
+- **Frag limit**: Default 10 kills
+- **Time limit**: Default 180 seconds (3600 ticks)
+- **End delay**: 5 seconds between rounds
+- **Scoring**: Per-round kills, reset each round
+- **Persistence**: Bots remain active when humans leave
+
 ## Example Session
 
 ```
@@ -180,9 +225,12 @@ C→S: {"type": "hello", "role": "agent", "name": "MyBot"}
 // Server welcomes
 S→C: {"type": "welcome", "player_id": "...", "role": "agent"}
 
+// Round starts after warmup
+S→C: {"type": "event", "event": "round_start", "round_number": 1, "frag_limit": 10, "time_limit": 180}
+
 // Server sends periodic snapshots
-S→C: {"type": "snapshot", "tick": 1, "players": [...]}
-S→C: {"type": "snapshot", "tick": 2, "players": [...]}
+S→C: {"type": "snapshot", "tick": 1, "players": [...], "round_state": "Active", "round_time_left": 180, "frag_limit": 10}
+S→C: {"type": "snapshot", "tick": 2, "players": [...], "round_state": "Active", "round_time_left": 180, "frag_limit": 10}
 
 // Client sends actions
 C→S: {"type": "action", "forward": true, "fire": false}
@@ -191,8 +239,14 @@ C→S: {"type": "action", "turn_right": true, "fire": true}
 // Server announces frag
 S→C: {"type": "event", "event": "frag", "killer": "MyBot", "victim": "Bot1"}
 
-// More snapshots
-S→C: {"type": "snapshot", "tick": 45, "players": [...]}
+// More snapshots (with updated scores)
+S→C: {"type": "snapshot", "tick": 45, "players": [{"id": "...", "name": "MyBot", "score": 1, ...}], ...}
+
+// Round ends when limit reached
+S→C: {"type": "event", "event": "round_end", "winner": "MyBot", "reason": "Frag limit reached"}
+
+// Next round starts after delay
+S→C: {"type": "event", "event": "round_start", "round_number": 2, "frag_limit": 10, "time_limit": 180}
 ```
 
 ## Future Considerations (Post-Slice 1)

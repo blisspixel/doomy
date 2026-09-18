@@ -1,106 +1,182 @@
-# Doomy Agent Adapter
+# Agent Adapter
 
-Agent adapter for Doomy - provides both **MCP slow control plane** and fast scripted bot modes.
+MCP-compatible control plane for external agents to observe and act in the fragr arena. Runs separate from the hot-path combat tick.
 
-## Design Philosophy
+## What this is
 
-The agent adapter is a **slow strategic control plane**, not a 20-60 Hz combat interface. Suitable for:
-- LLM agents with 1-10 second think times
-- High-level decision making and goal setting
-- Deliberative AI that observes and acts at human-like cadences
+The agent-adapter bridges external AI agents (LLMs, scripted bots, MCP clients) to the authoritative game server. It provides:
 
-Fast reactive bots run server-side (or via scripted-bot mode) and own the tick loop.
+1. **MCP Server mode**: JSON-RPC 2.0 over stdio, compatible with MCP clients
+2. **Scripted bot mode**: Standalone bot client for testing without MCP
 
-## Modes
+Agents and humans share the same discrete action channel into the server. The adapter operates at slow control-plane rates (observe/act at ~1-10 Hz), not the combat tick (20 Hz).
 
-### 1. MCP Server Mode
+## Quick Start
 
-Exposes MCP stdio tools for external agents and clawbots to control a player.
+### MCP Server (for external agents)
 
 ```bash
+cd agent-adapter
 cargo run -- mcp --server ws://127.0.0.1:7777
 ```
 
-#### Available Tools
+Connect via MCP client (stdio) and use the `observe` and `act` tools.
 
-- **observe**: Get current game state observation
-  - Returns: JSON snapshot with tick, players (id, name, x, y, z, yaw, hp, just_fired)
-
-- **act**: Send action to game server
-  - Parameters (all optional booleans):
-    - `forward`, `back`, `left`, `right`: Movement
-    - `turn_left`, `turn_right`: Rotation
-    - `fire`: Shoot weapon
-
-### 2. Scripted Bot Mode
-
-Runs a simple chase-and-shoot AI bot.
+### Scripted Bot (standalone test)
 
 ```bash
-cargo run -- scripted-bot --name "MyBot" --server ws://127.0.0.1:7777
+cd agent-adapter
+cargo run -- scripted-bot --server ws://127.0.0.1:7777 --name MyBot
 ```
 
-Bot behavior:
-- Finds nearest enemy
-- Turns to face them
-- Moves forward if far away
-- Fires when aligned and in range
+Connects as an agent role, observes snapshots, computes simple chase-and-shoot actions at ~20 Hz.
+
+## MCP Tools
+
+### `observe`
+
+Get the current game state snapshot.
+
+**Input schema:**
+```json
+{}
+```
+
+**Output:**
+```json
+{
+  "tick": 12345,
+  "players": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Bot1",
+      "x": 10.5,
+      "y": 1.5,
+      "z": -5.2,
+      "yaw": 1.57,
+      "hp": 75,
+      "just_fired": false,
+      "behavior": "Aggressive",
+      "score": 3
+    }
+  ],
+  "round_state": "Active",
+  "round_time_left": 120,
+  "frag_limit": 10
+}
+```
+
+**Notes:**
+- Returns the most recent snapshot received from the server
+- Dead players (HP <= 0) are omitted
+- `behavior` field is present only for server-side bots
+- Call rate: 1-10 Hz is typical; faster is allowed but returns cached data between server ticks
+
+### `act`
+
+Send an action to control your agent's pawn.
+
+**Input schema:**
+```json
+{
+  "forward": false,
+  "back": false,
+  "left": false,
+  "right": false,
+  "turn_left": false,
+  "turn_right": false,
+  "fire": false
+}
+```
+
+All fields are optional booleans, default `false`.
+
+**Output:**
+```json
+{
+  "content": [{
+    "type": "text",
+    "text": "Action sent successfully"
+  }]
+}
+```
+
+**Notes:**
+- Actions are queued and applied on the next server tick
+- Movement keys combine (e.g., `forward + left` = diagonal)
+- Server enforces cooldowns (fire rate: ~500ms)
+- Call rate: 1-20 Hz typical; higher rates allowed but limited by server tick rate
+
+## Architecture
+
+```
+MCP Client (LLM/script)
+    |
+    | stdio (JSON-RPC 2.0)
+    v
+agent-adapter (this crate)
+    |
+    | WebSocket JSON
+    v
+game server (doomy-server)
+```
+
+**Roles:**
+- `spectator`: Read-only, no player ID, cannot send actions
+- `human`: Keyboard/mouse player, sends actions at input rate
+- `agent`: Bot/MCP agent, sends actions via adapter or direct WS
 
 ## Protocol
 
-Uses the same WebSocket JSON protocol as the main server:
+The adapter speaks the same WebSocket JSON protocol as the Godot client and human players. See `docs/protocol.md` for full message schemas.
 
-```json
-// Client → Server
-{"type": "hello", "role": "agent", "name": "BotName"}
-{"type": "action", "forward": true, "fire": false, ...}
+**Connection flow:**
+1. Adapter connects to game server WebSocket
+2. Sends `Hello` with `role=agent` and name
+3. Receives `Welcome` with assigned `player_id`
+4. Begins receiving `Snapshot` messages at ~20 Hz (cached for `observe`)
+5. MCP client calls `act` tool, adapter sends `Action` message to server
 
-// Server → Client
-{"type": "welcome", "player_id": "uuid", "role": "agent"}
-{"type": "snapshot", "tick": 123, "players": [...]}
-{"type": "event", "event": "frag", "killer": "Bot1", "victim": "Bot2"}
-```
+## Implementation Notes
 
-## MCP Integration
+- MCP server logs to stderr to avoid polluting stdout (JSON-RPC channel)
+- Last snapshot is cached in a Tokio mutex; `observe` returns the cached value
+- `act` tool forwards actions directly to the game server WebSocket
+- Scripted bot runs a simple chase-and-shoot AI loop for smoke testing
 
-The MCP mode implements the MCP protocol over stdio:
+## Hardening (completed)
 
-```json
-// Initialize
-{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {...}}
+- [x] Session lifecycle: `Hello` / `Welcome` / clean disconnect
+- [x] Observe returns full snapshot with round state, scores, time remaining
+- [x] Act validates action schema and forwards to server
+- [x] Scripted bot mode for end-to-end testing without MCP client
+- [x] Same input pipeline as humans (shared `Action` message type)
+- [x] MCP tools documented with schemas and examples
 
-// List tools
-{"jsonrpc": "2.0", "id": 2, "method": "tools/list"}
+## Future (post-Slice 1)
 
-// Call observe
-{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "observe"}}
-
-// Call act
-{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {
-  "name": "act",
-  "arguments": {"forward": true, "fire": true}
-}}
-```
-
-## Building
-
-```bash
-cargo build --release
-```
+- Session summaries: periodic `observe` with historical stats (kills, deaths, accuracy)
+- Goal setting: agent declares intent (e.g., "flank target", "defend area")
+- Low-Hz summaries for LLM context (not full snapshot spam)
+- Clawbot integration: screenshot observations via separate tooling (spend-gated)
 
 ## Testing
 
-Start the game server first:
 ```bash
-cd ../server && cargo run -- --bots 0
+# Run adapter tests
+cargo test
+
+# Manual smoke test (server must be running)
+cargo run -- scripted-bot --name TestBot
+
+# MCP client test (requires MCP-compatible client like Claude Desktop)
+cargo run -- mcp < test_input.jsonl
 ```
 
-Then run a bot:
-```bash
-cargo run -- scripted-bot
-```
-
-Or test MCP mode with a simple client:
-```bash
-cargo run -- mcp | head -100
+Example `test_input.jsonl`:
+```json
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05"}}
+{"jsonrpc":"2.0","id":2,"method":"tools/list"}
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"observe","arguments":{}}}
+{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"act","arguments":{"forward":true,"fire":true}}}
 ```
