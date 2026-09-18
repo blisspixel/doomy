@@ -3320,3 +3320,153 @@ fn test_sim_choke_compliance_drone_center_clear() {
         .expect("boss player");
     assert!(boss.x.abs() < 0.1 && boss.z.abs() < 0.1, "drone at hub");
 }
+
+fn force_hitscan_frag(state: &mut GameState, shooter_id: Uuid, target_id: Uuid) {
+    let shooter_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == shooter_id)
+        .expect("shooter");
+    let target_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == target_id)
+        .expect("target");
+    state.players[target_idx].x = 5.0;
+    state.players[target_idx].z = 0.0;
+    state.players[target_idx].y = 1.5;
+    state.players[target_idx].hp = 20;
+    state.players[target_idx].armor = 0;
+    state.players[target_idx].respawn_timer = None;
+    state.players[shooter_idx].x = 0.0;
+    state.players[shooter_idx].z = 0.0;
+    state.players[shooter_idx].y = 1.5;
+    state.players[shooter_idx].yaw = 0.0;
+    state.players[shooter_idx].fire_cooldown = 0;
+    state.set_action(
+        shooter_id,
+        Action {
+            fire: true,
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+}
+
+#[test]
+fn test_killstreak_emits_at_2_3_5_and_resets_on_death() {
+    let mut state = GameState::new();
+    state.config.compliance_ping_ticks = None;
+    state.config.boss_spawn_ticks = None;
+    state.config.frag_limit = Some(99);
+    state.start_round();
+
+    let shooter_id = Uuid::new_v4();
+    let target_id = Uuid::new_v4();
+    state.add_player(shooter_id, "Rusher".to_string(), Role::Agent);
+    state.add_player(target_id, "Target".to_string(), Role::Agent);
+    let _ = state.take_events();
+
+    let mut seen_tiers: Vec<String> = Vec::new();
+    for n in 1..=5 {
+        // Wait out respawn if target died last frag.
+        for _ in 0..70 {
+            let tidx = state
+                .players
+                .iter()
+                .position(|p| p.id == target_id)
+                .unwrap();
+            if state.players[tidx].respawn_timer.is_none() && state.players[tidx].hp > 0 {
+                break;
+            }
+            state.tick(0.05);
+        }
+        let _ = state.take_events();
+        force_hitscan_frag(&mut state, shooter_id, target_id);
+        let events = state.take_events();
+        assert!(
+            events.iter().any(|e| matches!(
+                e,
+                GameEvent::Frag {
+                    killer,
+                    ..
+                } if killer == "Rusher"
+            )),
+            "expected frag on kill {}",
+            n
+        );
+        let sidx = state
+            .players
+            .iter()
+            .position(|p| p.id == shooter_id)
+            .unwrap();
+        assert_eq!(state.players[sidx].killstreak, n, "streak after kill {}", n);
+        for e in &events {
+            if let GameEvent::Killstreak {
+                streak,
+                tier,
+                message,
+                player,
+                ..
+            } = e
+            {
+                assert_eq!(player, "Rusher");
+                assert_eq!(*streak, n);
+                assert!(message.starts_with("HOST:"));
+                seen_tiers.push(tier.clone());
+            }
+        }
+        if n == 1 || n == 4 {
+            assert!(
+                !events
+                    .iter()
+                    .any(|e| matches!(e, GameEvent::Killstreak { .. })),
+                "no killstreak event at streak {}",
+                n
+            );
+        }
+    }
+    assert_eq!(seen_tiers, vec!["double", "triple", "rampage"]);
+
+    // Victim death resets victim streak; kill Rusher with Target to reset Rusher.
+    let sidx = state
+        .players
+        .iter()
+        .position(|p| p.id == shooter_id)
+        .unwrap();
+    assert_eq!(state.players[sidx].killstreak, 5);
+    for _ in 0..70 {
+        let tidx = state
+            .players
+            .iter()
+            .position(|p| p.id == target_id)
+            .unwrap();
+        if state.players[tidx].respawn_timer.is_none() && state.players[tidx].hp > 0 {
+            break;
+        }
+        state.tick(0.05);
+    }
+    let _ = state.take_events();
+    force_hitscan_frag(&mut state, target_id, shooter_id);
+    let sidx = state
+        .players
+        .iter()
+        .position(|p| p.id == shooter_id)
+        .unwrap();
+    assert_eq!(state.players[sidx].killstreak, 0, "death resets streak");
+}
+
+#[test]
+fn test_killstreak_resets_on_round_start() {
+    let mut state = GameState::new();
+    state.config.compliance_ping_ticks = None;
+    state.config.boss_spawn_ticks = None;
+    state.start_round();
+    let a = Uuid::new_v4();
+    state.add_player(a, "A".to_string(), Role::Agent);
+    let idx = state.players.iter().position(|p| p.id == a).unwrap();
+    state.players[idx].killstreak = 4;
+    state.start_round();
+    let idx = state.players.iter().position(|p| p.id == a).unwrap();
+    assert_eq!(state.players[idx].killstreak, 0);
+}

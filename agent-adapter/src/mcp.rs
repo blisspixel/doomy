@@ -498,7 +498,7 @@ fn tools_list_result() -> Value {
             },
             {
                 "name": "get_events",
-                "description": "Get recent game events (player joins/leaves, frags, respawns, round start/end, speaks). Includes last 50 events.",
+                "description": "Get recent game events (player joins/leaves, frags, killstreaks, respawns, round start/end, speaks). Includes last 50 events.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {

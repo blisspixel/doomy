@@ -13,6 +13,7 @@ extends CanvasLayer
 @onready var crosshair = $Crosshair
 @onready var damage_flash = $DamageFlash
 @onready var spawn_flash = $SpawnFlash
+@onready var streak_flash = $StreakFlash
 @onready var fp_weapon = $FpWeapon
 
 var scores = {}
@@ -42,6 +43,7 @@ var fp_bob_t = 0.0
 var fp_weapon_base_pos = Vector2.ZERO
 var damage_flash_timer = 0.0
 var spawn_flash_timer = 0.0
+var streak_flash_timer = 0.0
 
 func _ready():
 	weapon_textures["Flechette"] = load("res://assets/weapons/32/flechette.png")
@@ -67,6 +69,9 @@ func _ready():
 	if spawn_flash:
 		spawn_flash.visible = false
 		spawn_flash.modulate.a = 0.0
+	if streak_flash:
+		streak_flash.visible = false
+		streak_flash.modulate.a = 0.0
 	if fp_weapon:
 		fp_weapon.visible = false
 		fp_weapon_base_pos = fp_weapon.position
@@ -341,6 +346,44 @@ func show_boss_down(message: String, killer: String = ""):
 		if is_instance_valid(round_message):
 			round_message.visible = false
 
+func show_killstreak(player_name: String, streak: int, tier: String, message: String):
+	# Arena multi-kill Host bumper + brief ember flash (spectator and join).
+	streak_flash_timer = 0.4
+	if streak_flash:
+		streak_flash.visible = true
+		streak_flash.modulate = Color(1.0, 0.72, 0.22, 0.5)
+	var line = message
+	if line == "":
+		match tier:
+			"double":
+				line = "HOST: DOUBLE FREQUENCY. " + player_name + " DENIES THE DENIAL."
+			"triple":
+				line = "HOST: TRIPLE SCRAP. CONTINUANCE LOSES COUNT."
+			"rampage":
+				line = "HOST: FREQUENCY RAMPAGE. " + player_name + " BREAKS EVERY APPROVED LANE."
+			_:
+				line = "HOST: MULTI SCRAP. " + player_name + " IS LIVE."
+	if round_message:
+		round_message.text = line + "\nSTREAK " + str(streak) + " // " + tier.to_upper()
+		round_message.visible = true
+		var tween = create_tween()
+		tween.tween_property(round_message, "scale", Vector2(1.35, 1.35), 0.1)
+		tween.tween_property(round_message, "scale", Vector2(1.0, 1.0), 0.18)
+		await get_tree().create_timer(2.8).timeout
+		if is_instance_valid(round_message):
+			round_message.visible = false
+	if frag_label:
+		frag_label.text = tier.to_upper() + " // " + player_name
+		frag_label.modulate = Color(1.0, 0.85, 0.35)
+		frag_label.visible = true
+		var ft = create_tween()
+		ft.tween_property(frag_label, "scale", Vector2(1.4, 1.4), 0.08)
+		ft.tween_property(frag_label, "scale", Vector2(1.0, 1.0), 0.14)
+		await get_tree().create_timer(2.2).timeout
+		if is_instance_valid(frag_label):
+			frag_label.visible = false
+			frag_label.modulate = Color.WHITE
+
 func show_speak(player: String, line: String):
 	# Killfeed-adjacent callout; keep string literals simple for Godot.
 	if frag_label:
@@ -468,6 +511,14 @@ func _process(delta):
 		if spawn_flash_timer <= 0 and spawn_flash:
 			spawn_flash.visible = false
 			spawn_flash.modulate.a = 0.0
+	if streak_flash_timer > 0:
+		streak_flash_timer -= delta
+		if streak_flash:
+			streak_flash.visible = true
+			streak_flash.modulate.a = clampf(streak_flash_timer / 0.4, 0.0, 0.5)
+		if streak_flash_timer <= 0 and streak_flash:
+			streak_flash.visible = false
+			streak_flash.modulate.a = 0.0
 	if fp_juice_enabled and fp_weapon and fp_weapon.visible:
 		fp_bob_t += delta * 9.0
 		var bob_y = sin(fp_bob_t) * 4.0

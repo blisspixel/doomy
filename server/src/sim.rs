@@ -1,7 +1,8 @@
 use crate::protocol::{
     boss_down_host_line, boss_host_line, compliance_host_line, default_host_line,
-    default_mode_name, default_playlist, Action, GameEvent, PickupState, PlayerScore, PlayerState,
-    Role, ShotResult, Snapshot, WeaponType, BOSS_NAME, MODE_NAME, PLAYLIST_NAME,
+    default_mode_name, default_playlist, killstreak_host_line, Action, GameEvent, PickupState,
+    PlayerScore, PlayerState, Role, ShotResult, Snapshot, WeaponType, BOSS_NAME, MODE_NAME,
+    PLAYLIST_NAME,
 };
 use std::collections::HashMap;
 use std::f32::consts::PI;
@@ -411,6 +412,8 @@ pub struct Player {
     pub last_speak_tick: Option<u64>,
     /// Continuance Compliance Drone (no respawn, distinct silhouette).
     pub is_boss: bool,
+    /// Within-round killstreak (resets on death and round boundaries).
+    pub killstreak: u32,
 }
 
 impl GameState {
@@ -440,6 +443,7 @@ impl GameState {
 
         for player in &mut self.players {
             self.scores.insert(player.id, 0);
+            player.killstreak = 0;
         }
 
         let players: Vec<String> = self.players.iter().map(|p| p.name.clone()).collect();
@@ -494,6 +498,9 @@ impl GameState {
 
         self.round_state = RoundState::Ended;
         self.round_ticks = 0;
+        for player in &mut self.players {
+            player.killstreak = 0;
+        }
 
         self.events.push(GameEvent::RoundEnd {
             winner: winner.clone(),
@@ -532,6 +539,7 @@ impl GameState {
             weapon: WeaponType::default(),
             last_speak_tick: None,
             is_boss: false,
+            killstreak: 0,
         });
 
         self.scores.entry(id).or_insert(0);
@@ -755,13 +763,34 @@ impl GameState {
             }
 
             if let Some(victim_idx) = maybe_victim_idx {
-                let victim = &mut self.players[victim_idx];
-                let target_id = victim.id;
-                let target_name = victim.name.clone();
-                let absorbed = damage.min(victim.armor);
-                victim.armor -= absorbed;
-                victim.hp -= damage - absorbed;
-                let target_hp_after = victim.hp;
+                let (target_id, target_name, target_hp_after, died, victim_was_boss, boss_id) = {
+                    let victim = &mut self.players[victim_idx];
+                    let target_id = victim.id;
+                    let target_name = victim.name.clone();
+                    let absorbed = damage.min(victim.armor);
+                    victim.armor -= absorbed;
+                    victim.hp -= damage - absorbed;
+                    let target_hp_after = victim.hp;
+                    let died = victim.hp <= 0;
+                    let victim_was_boss = victim.is_boss;
+                    if died {
+                        // Victim streak dies with them; boss does not respawn.
+                        victim.killstreak = 0;
+                        if victim_was_boss {
+                            victim.respawn_timer = None;
+                        } else {
+                            victim.respawn_timer = Some(RESPAWN_DELAY_TICKS);
+                        }
+                    }
+                    (
+                        target_id,
+                        target_name,
+                        target_hp_after,
+                        died,
+                        victim_was_boss,
+                        target_id,
+                    )
+                };
 
                 self.shot_results.push(ShotResult {
                     shooter_id,
@@ -781,15 +810,7 @@ impl GameState {
                     target_hp_after,
                 });
 
-                if victim.hp <= 0 {
-                    let victim_was_boss = victim.is_boss;
-                    if victim_was_boss {
-                        // Boss does not respawn; removed after this hit batch.
-                        victim.respawn_timer = None;
-                    } else {
-                        victim.respawn_timer = Some(RESPAWN_DELAY_TICKS);
-                    }
-
+                if died {
                     *self.scores.entry(shooter_id).or_insert(0) += 1;
                     let killer_score = self.scores[&shooter_id];
 
@@ -798,8 +819,26 @@ impl GameState {
                         victim: target_name.clone(),
                         killer_score,
                     });
+
+                    // Killer streak (victim already reset). Host callouts at 2/3/5.
+                    let killer_streak = {
+                        let killer = &mut self.players[shooter_idx];
+                        killer.killstreak = killer.killstreak.saturating_add(1);
+                        killer.killstreak
+                    };
+                    if let Some((tier, message)) =
+                        killstreak_host_line(killer_streak, &shooter_name)
+                    {
+                        self.events.push(GameEvent::Killstreak {
+                            player: shooter_name.clone(),
+                            player_id: shooter_id,
+                            streak: killer_streak,
+                            tier,
+                            message,
+                        });
+                    }
+
                     if victim_was_boss {
-                        let boss_id = victim.id;
                         self.events.push(GameEvent::BossDown {
                             name: target_name.clone(),
                             boss_id,
@@ -1106,6 +1145,7 @@ impl GameState {
             weapon: WeaponType::Rail,
             last_speak_tick: None,
             is_boss: true,
+            killstreak: 0,
         });
         self.bots
             .push(BotController::new(id, BotBehavior::Compliance));
