@@ -14,14 +14,14 @@ Join is Hello on adapter start. There is no `session_join` tool.
 
 ## Tools
 
-- `observe` - current snapshot (poses, hp, weapon, score, behavior, round fields) plus recent_events
-- `act` - discrete intents: forward/back/left/right, turn_left/turn_right, fire, weapon_swap
-- `get_events` - last ~50 game events (frag, respawn, round_start, round_end, join/leave)
+- `observe` - current snapshot (poses, hp, weapon, score, behavior, round fields, shot_results) plus recent_events
+- `act` - discrete intents: forward/back/left/right, turn_left/turn_right, fire, weapon_swap, look_at
+- `get_events` - last ~50 game events (frag, hit, respawn, round_start, round_end, join/leave)
 
 ## Loop
 
 1. `observe`
-2. Choose action from structured state (not pixels)
+2. Choose action from structured state (not pixels). Aim with `look_at.player_id` (or x/z). Read `shot_results` / `hit` events for damage feedback.
 3. `act` at ~1-10 Hz
 4. Repeat until round_end or you disconnect
 

@@ -239,6 +239,7 @@ fn test_protocol_snapshot_serialization() {
         round_state: Some("Active".to_string()),
         round_time_left: Some(60),
         frag_limit: Some(10),
+        shot_results: vec![],
     };
     let json = serde_json::to_value(&snapshot).unwrap();
     assert_eq!(json["tick"], 123);
@@ -253,6 +254,7 @@ fn test_protocol_snapshot_empty_players() {
         round_state: None,
         round_time_left: None,
         frag_limit: None,
+        shot_results: vec![],
     };
     let json = serde_json::to_string(&snapshot).unwrap();
     assert!(json.contains(r#""tick":0"#));
@@ -2081,6 +2083,7 @@ async fn test_net_ws_action_forwarded_for_agent() {
             round_state: Some("active".into()),
             round_time_left: Some(100),
             frag_limit: Some(10),
+            shot_results: vec![],
         });
         broadcast_to_clients(&clients, &[snap]).await;
         let msg = tokio::time::timeout(std::time::Duration::from_secs(2), stream.next())
@@ -2223,4 +2226,211 @@ async fn test_session_plus_net_join_leave_round_broadcast_path() {
             .iter()
             .any(|e| matches!(e, GameEvent::PlayerLeft { player, .. } if player == "RoundFox")));
     }
+}
+
+#[test]
+fn test_look_at_player_id_sets_yaw() {
+    use std::f32::consts::PI;
+    let mut state = GameState::new();
+    state.start_round();
+
+    let aimer_id = Uuid::new_v4();
+    let target_id = Uuid::new_v4();
+    state.add_player(aimer_id, "Aimer".to_string(), Role::Agent);
+    state.add_player(target_id, "Target".to_string(), Role::Agent);
+
+    let aimer_idx = state.players.iter().position(|p| p.id == aimer_id).unwrap();
+    let target_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == target_id)
+        .unwrap();
+    state.players[aimer_idx].x = 0.0;
+    state.players[aimer_idx].z = 0.0;
+    state.players[aimer_idx].yaw = 0.0;
+    state.players[target_idx].x = 0.0;
+    state.players[target_idx].z = 10.0;
+
+    state.set_action(
+        aimer_id,
+        Action {
+            look_at: Some(crate::protocol::LookAt {
+                player_id: Some(target_id),
+                x: None,
+                z: None,
+            }),
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+
+    let yaw = state.players[aimer_idx].yaw;
+    let expected = PI / 2.0;
+    let mut diff = (yaw - expected).abs();
+    if diff > PI {
+        diff = 2.0 * PI - diff;
+    }
+    assert!(
+        diff < 0.05,
+        "look_at player_id should face target, yaw={yaw} expected~{expected}"
+    );
+}
+
+#[test]
+fn test_look_at_world_xz_sets_yaw() {
+    use std::f32::consts::PI;
+    let mut state = GameState::new();
+    state.start_round();
+
+    let aimer_id = Uuid::new_v4();
+    state.add_player(aimer_id, "Aimer".to_string(), Role::Agent);
+    let aimer_idx = state.players.iter().position(|p| p.id == aimer_id).unwrap();
+    state.players[aimer_idx].x = 0.0;
+    state.players[aimer_idx].z = 0.0;
+    state.players[aimer_idx].yaw = 0.0;
+
+    state.set_action(
+        aimer_id,
+        Action {
+            look_at: Some(crate::protocol::LookAt {
+                player_id: None,
+                x: Some(-10.0),
+                z: Some(0.0),
+            }),
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+
+    let yaw = state.players[aimer_idx].yaw;
+    let expected = PI;
+    let mut diff = (yaw - expected).abs();
+    if diff > PI {
+        diff = 2.0 * PI - diff;
+    }
+    assert!(
+        diff < 0.05,
+        "look_at x/z should face world point, yaw={yaw} expected~{expected}"
+    );
+}
+
+#[test]
+fn test_shot_results_hit_and_hit_event() {
+    let mut state = GameState::new();
+    state.start_round();
+
+    let shooter_id = Uuid::new_v4();
+    let target_id = Uuid::new_v4();
+    state.add_player(shooter_id, "Shooter".to_string(), Role::Agent);
+    state.add_player(target_id, "Victim".to_string(), Role::Agent);
+
+    let shooter_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == shooter_id)
+        .unwrap();
+    let target_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == target_id)
+        .unwrap();
+    state.players[shooter_idx].x = 0.0;
+    state.players[shooter_idx].z = 0.0;
+    state.players[shooter_idx].yaw = 0.0;
+    state.players[target_idx].x = 5.0;
+    state.players[target_idx].z = 0.0;
+
+    let hp_before = state.players[target_idx].hp;
+
+    state.set_action(
+        shooter_id,
+        Action {
+            fire: true,
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+
+    let snap = state.snapshot();
+    assert_eq!(snap.shot_results.len(), 1, "one shot_result expected");
+    let shot = &snap.shot_results[0];
+    assert_eq!(shot.shooter_id, shooter_id);
+    assert!(shot.hit, "aligned flechette should hit");
+    assert_eq!(shot.target_id, Some(target_id));
+    assert_eq!(shot.damage, WeaponType::Flechette.damage());
+    assert_eq!(
+        shot.target_hp_after,
+        Some(hp_before - WeaponType::Flechette.damage())
+    );
+
+    let hit_events: Vec<_> = state
+        .events
+        .iter()
+        .filter(|e| matches!(e, GameEvent::Hit { .. }))
+        .collect();
+    assert_eq!(hit_events.len(), 1, "Hit event on damage");
+    match &hit_events[0] {
+        GameEvent::Hit {
+            damage,
+            target_hp_after,
+            target_id: tid,
+            ..
+        } => {
+            assert_eq!(*damage, WeaponType::Flechette.damage());
+            assert_eq!(*target_hp_after, hp_before - WeaponType::Flechette.damage());
+            assert_eq!(*tid, target_id);
+        }
+        _ => unreachable!(),
+    }
+}
+
+#[test]
+fn test_shot_results_miss() {
+    use std::f32::consts::PI;
+    let mut state = GameState::new();
+    state.start_round();
+
+    let shooter_id = Uuid::new_v4();
+    let target_id = Uuid::new_v4();
+    state.add_player(shooter_id, "Shooter".to_string(), Role::Agent);
+    state.add_player(target_id, "Victim".to_string(), Role::Agent);
+
+    let shooter_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == shooter_id)
+        .unwrap();
+    let target_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == target_id)
+        .unwrap();
+    state.players[shooter_idx].x = 0.0;
+    state.players[shooter_idx].z = 0.0;
+    state.players[shooter_idx].yaw = PI / 2.0;
+    state.players[target_idx].x = 5.0;
+    state.players[target_idx].z = 0.0;
+
+    state.set_action(
+        shooter_id,
+        Action {
+            fire: true,
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+
+    let snap = state.snapshot();
+    assert_eq!(snap.shot_results.len(), 1);
+    let shot = &snap.shot_results[0];
+    assert!(!shot.hit);
+    assert!(shot.target_id.is_none());
+    assert_eq!(shot.damage, 0);
+    assert!(
+        !state
+            .events
+            .iter()
+            .any(|e| matches!(e, GameEvent::Hit { .. })),
+        "no Hit event on miss"
+    );
 }

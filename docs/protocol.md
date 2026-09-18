@@ -52,27 +52,40 @@ Sent by `human` or `agent` roles to control their player. All fields are optiona
   "turn_left": false,
   "turn_right": false,
   "fire": false,
-  "weapon_swap": "rail"
+  "weapon_swap": "rail",
+  "look_at": { "player_id": "550e8400-e29b-41d4-a716-446655440000" }
+}
+```
+
+World-point aim:
+
+```json
+{
+  "type": "action",
+  "look_at": { "x": 10.0, "z": -5.0 },
+  "fire": true
 }
 ```
 
 **Fields:**
 - `forward` / `back`: Move forward/backward
 - `left` / `right`: Strafe left/right
-- `turn_left` / `turn_right`: Rotate view left/right
+- `turn_left` / `turn_right`: Rotate view left/right (incremental)
 - `fire`: Fire weapon
 - `weapon_swap`: (optional) Switch to weapon type: `"flechette"` | `"rail"` | `"scatter"`
+- `look_at`: (optional) Authoritative aim object. Prefer `player_id` (UUID string), or both `x` and `z` (world point). Server snaps yaw toward the target on the Action tick. Invalid/missing target is a yaw no-op.
 
 **Notes:**
 - Actions are **level-held (sticky)** within each server tick window, not edge-triggered
 - Each Action message overwrites the previous pending action state
 - All `true` fields are applied together on the next server tick
 - Movement keys combine (e.g., forward + left = diagonal)
+- `look_at` is applied after movement/turn so agents can strafe while locking aim
 - Weapon swap is processed immediately on the next tick
 - Server enforces rate limits and cooldowns (weapon-specific)
 - Spectators that send actions are ignored
 - Unknown fields are rejected (schema error). Sticky state is not overwritten by junk.
-- MCP `act` returns `isError` on unknown keys or bad `weapon_swap` (must be `flechette`|`rail`|`scatter` when present). Empty/missing arguments are OK (all defaults).
+- MCP `act` returns `isError` on unknown keys, bad `weapon_swap`, or bad `look_at` (unknown nested keys, incomplete x/z, bad UUID). Empty/missing arguments are OK (all defaults).
 
 ### Server → Client
 
@@ -117,7 +130,18 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
   ],
   "round_state": "Active",
   "round_time_left": 120,
-  "frag_limit": 10
+  "frag_limit": 10,
+  "shot_results": [
+    {
+      "shooter_id": "550e8400-e29b-41d4-a716-446655440000",
+      "shooter": "ArenaFox",
+      "hit": true,
+      "target_id": "660e8400-e29b-41d4-a716-446655440000",
+      "target": "Bot1",
+      "damage": 25,
+      "target_hp_after": 75
+    }
+  ]
 }
 ```
 
@@ -136,6 +160,7 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
 - `round_state`: (optional) Current round state ("Warmup", "Active", "Ended")
 - `round_time_left`: (optional) Seconds remaining in active round
 - `frag_limit`: (optional) Frag limit for current round
+- `shot_results`: (optional, omitted when empty) Per-tick fire outcomes for observe hit-confirm. Each entry: `shooter_id`, `shooter`, `hit`, optional `target_id`/`target`/`target_hp_after`, and `damage` (0 on miss).
 
 **Notes:**
 - Dead players (HP ≤ 0) are omitted from the snapshot
@@ -155,6 +180,20 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
   "killer": "Bot1",
   "victim": "Bot2",
   "killer_score": 5
+}
+```
+
+**Hit Event:** (damage applied; structured hit-confirm for agents)
+```json
+{
+  "type": "event",
+  "event": "hit",
+  "shooter": "ArenaFox",
+  "shooter_id": "550e8400-e29b-41d4-a716-446655440000",
+  "target": "Bot1",
+  "target_id": "660e8400-e29b-41d4-a716-446655440000",
+  "damage": 25,
+  "target_hp_after": 75
 }
 ```
 
@@ -222,9 +261,10 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
 ```
 
 **Fields:**
-- `event`: Event type (`frag`, `respawn`, `round_start`, `round_end`, `player_joined`, `player_left`)
+- `event`: Event type (`frag`, `hit`, `respawn`, `round_start`, `round_end`, `player_joined`, `player_left`)
 - `killer` / `victim`: Player names involved in frag
 - `killer_score`: Killer's score after the frag
+- `shooter` / `target` / `shooter_id` / `target_id` / `damage` / `target_hp_after`: Hit event fields
 - `player`: Player name for respawn, join, or leave
 - `role`: Role of joining player ("spectator", "human", "agent")
 - `round_number`: Current round number (starts at 1)
