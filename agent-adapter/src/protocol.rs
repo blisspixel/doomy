@@ -169,6 +169,10 @@ pub struct Snapshot {
     pub pressure: Option<String>,
     #[serde(default = "default_host_line")]
     pub host_line: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mvp: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mvp_frags: Option<u32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub pickups: Vec<PickupState>,
     #[serde(default = "default_map_id")]

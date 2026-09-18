@@ -11,7 +11,7 @@ Raise sticky spectator/join fun: round-end MVP / podium Host drama (leader name,
 
 ## Tip priorities
 
-Shipped. Second scrap map is the NOW tip. See [`second-scrap-map.md`](./second-scrap-map.md). look_at / hit HOLD. Port 6767. Coverage fail-under 80.
+Shipped. Tip NOW: Ended linger + MVP rehydrate. See [`ended-linger-mvp-rehydrate.md`](./ended-linger-mvp-rehydrate.md). look_at / hit HOLD. Port 6767. Coverage fail-under 80.
 
 ## Non-goals
 
