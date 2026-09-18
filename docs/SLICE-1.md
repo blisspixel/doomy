@@ -10,48 +10,48 @@
 
 ## Success criteria
 
-- [ ] `cargo run -p doomy-server` (or `cd server && cargo run`) listens on `127.0.0.1:7777` with no env secrets / cloud config.
-- [ ] At least four automated fighters (rule bots) engage; within ~30s damage or a frag is visible in **server logs and** Godot spectator.
-- [ ] Spectator is presentation-only (no local authority); killing the server drops/freezes the match cleanly.
-- [ ] Agent-adapter (or documented equivalent) drives ≥1 fighter via `observe` / `act`; MCP tool surface listed in README even if partially stubbed.
-- [ ] Optional human: same Godot client can join with keyboard move + shoot in the same match.
-- [ ] Incremental spend: **$0**.
+- [x] `cargo run -p doomy-server` (or `cd server && cargo run`) listens on `127.0.0.1:7777` with no env secrets / cloud config.
+- [x] At least four automated fighters (rule bots) engage; within ~30s damage or a frag is visible in **server logs and** Godot spectator.
+- [x] Spectator is presentation-only (no local authority); killing the server drops/freezes the match cleanly.
+- [x] Agent-adapter (or documented equivalent) drives ≥1 fighter via `observe` / `act`; MCP tool surface listed in README even if partially stubbed.
+- [x] Optional human: same Godot client can join with keyboard move + shoot in the same match.
+- [x] Incremental spend: **$0**.
 
 ---
 
 ## Checklist
 
 ### 0. Scaffold (~1-2 h)
-- [ ] Create monorepo folders: `server/`, `client/`, `agent-adapter/`, `docs/`
-- [ ] Godot project: create with **4.7.2-stable**, GDScript, forward+/mobile OK; save under `client/`
-- [ ] `server/Cargo.toml`: tokio, tokio-tungstenite, serde, serde_json, futures-util, clap, tracing
-- [ ] Root `README.md`: three-terminal run instructions (placeholders OK until green)
-- [ ] `docs/protocol.md`: draft JSON for `Hello`, `Action`, `Snapshot`
+- [x] Create monorepo folders: `server/`, `client/`, `agent-adapter/`, `docs/`
+- [x] Godot project: create with **4.7.2-stable**, GDScript, forward+/mobile OK; save under `client/`
+- [x] `server/Cargo.toml`: tokio, tokio-tungstenite, serde, serde_json, futures-util, clap, tracing
+- [x] Root `README.md`: three-terminal run instructions (placeholders OK until green)
+- [x] `docs/protocol.md`: draft JSON for `Hello`, `Action`, `Snapshot`
 
 ### 1. Wire echo (~2-3 h)
-- [ ] Server accepts WebSocket; on connect expect `Hello { role, name }`
-- [ ] Reply `Welcome { player_id?, role }`
-- [ ] Godot `WebSocketPeer` connects; print connected + welcome in console
-- [ ] Reject unknown roles; accept `spectator` | `human` | `agent`
+- [x] Server accepts WebSocket; on connect expect `Hello { role, name }`
+- [x] Reply `Welcome { player_id?, role }`
+- [x] Godot `WebSocketPeer` connects; print connected + welcome in console
+- [x] Reject unknown roles; accept `spectator` | `human` | `agent`
 
 ### 2. Snapshot render (~3-4 h)
-- [ ] Server tick @ **20 Hz**; maintain list of `Player { id, x, y, z, yaw, hp }`
-- [ ] Spawn 2 dummy players that strafe or circle in code (no combat yet)
-- [ ] Broadcast `Snapshot { tick, players[] }` each tick (or every 2nd tick)
-- [ ] Godot: graybox arena mesh; spawn/update capsule (or MeshInstance) per player id
-- [ ] Spectator free-fly camera (WASD + mouse look **local only**)
+- [x] Server tick @ **20 Hz**; maintain list of `Player { id, x, y, z, yaw, hp }`
+- [x] Spawn 2 dummy players that strafe or circle in code (no combat yet)
+- [x] Broadcast `Snapshot { tick, players[] }` each tick (or every 2nd tick)
+- [x] Godot: graybox arena mesh; spawn/update capsule (or MeshInstance) per player id
+- [x] Spectator free-fly camera (WASD + mouse look **local only**)
 
 ### 3. Combat (~3-4 h)
-- [ ] Action schema: `{ forward, back, left, right, turn_left, turn_right, fire }` booleans (or small enums)
-- [ ] Apply actions next tick; clamp to arena AABB
-- [ ] Hitscan **or** slow projectile; on hit reduce HP; at 0 → respawn after N ticks
-- [ ] Log `frag killer→victim` to stdout
-- [ ] Snapshot includes hp (and optionally `just_fired` for muzzle flash stub)
+- [x] Action schema: `{ forward, back, left, right, turn_left, turn_right, fire }` booleans (or small enums)
+- [x] Apply actions next tick; clamp to arena AABB
+- [x] Hitscan **or** slow projectile; on hit reduce HP; at 0 → respawn after N ticks
+- [x] Log `frag killer→victim` to stdout
+- [x] Snapshot includes hp (and optionally `just_fired` for muzzle flash stub)
 
 ### 4. Bots that fight (~2-3 h)
-- [ ] Server-side bot controller **or** headless scripted WS client: chase nearest enemy + fire when roughly facing
-- [ ] Start match with 2 bots automatically on server boot (CLI flag `--bots 4`)
-- [ ] Verify frags happen without any LLM / MCP yet
+- [x] Server-side bot controller **or** headless scripted WS client: chase nearest enemy + fire when roughly facing
+- [x] Start match with 4 bots automatically on server boot (CLI flag `--bots 4`)
+- [x] Verify frags happen without any LLM / MCP yet
 
 ### 5. Spectator UX (~2 h)
 - [ ] Default scene = spectator (no join as human unless flag/button)
@@ -92,8 +92,8 @@
 ## Smoke test script (manual)
 
 ```bash
-# T1 - server (with 2 bots)
-cd server && cargo run -- --bind 127.0.0.1:7777 --bots 2
+# T1 - server (with 4 bots)
+cd server && cargo run -- --bind 127.0.0.1:7777 --bots 4
 
 # T2 - Godot spectator
 # Open client/ in Godot 4.7.2 → F5 (main scene = spectator)

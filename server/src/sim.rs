@@ -259,7 +259,7 @@ impl GameState {
                         .iter()
                         .find(|b| b.player_id == p.id)
                         .map(|b| format!("{:?}", b.behavior));
-                    
+
                     PlayerState {
                         id: p.id,
                         name: p.name.clone(),
