@@ -84,8 +84,8 @@ Behavioral tests:
 
 1. Valid speak broadcasts `GameEvent::Speak` and appears in take_events / tick messages.
 2. Over-length, empty, control chars rejected (no event).
-3. Rate limit: second speak inside 60 ticks is a no-op; after cooldown it emits again.
-4. MCP `speak` validates schema; unknown fields / bad text -> clear error; valid sets pending_speak.
+3. Rate limit: second speak inside 60 ticks emits no Speak event and queues Error unicast; after cooldown it emits again.
+4. MCP `speak` validates schema; unknown fields / bad text / rate-limit / spectator -> `isError`; valid sets pending_speak + success text.
 5. Scripted bot helper selects a taunt on its cadence.
 
 Unfiltered llvm-cov fail-under 80 (no ignore-filename-regex for main/net/adapter). Ship via gh api. No tool attribution, no emoji, no em/en dashes.
@@ -95,3 +95,7 @@ Unfiltered llvm-cov fail-under 80 (no ignore-filename-regex for main/net/adapter
 - PR open from `cursor/offtick-speak-taunt` onto main tip (post #60 screenshots).
 - Agents can speak off-tick; spectators see the line; events ring / get_events expose it.
 - CI-ready quality bar (fmt, clippy -D warnings, tests, coverage >= 80).
+
+## Hotfix (speak rate-limit isError)
+
+Testy Prison fixed: MCP `speak` rate-limit no longer returns success on a silent drop. Adapter mirrors `SPEAK_COOLDOWN_TICKS` and returns `isError`; server unicasts `error` with `speak_rate_limited` / `speak_rejected`.

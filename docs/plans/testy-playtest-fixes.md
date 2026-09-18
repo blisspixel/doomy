@@ -13,6 +13,7 @@
 | Junk-act silent success (unknown keys / bad `weapon_swap` overwrite sticky state) | **This PR** - `deny_unknown_fields` on `Action`, MCP act allowlist, `isError` schema errors. |
 | Observe vs README round fields | Treat as verified/shipped unless Testy reopens. |
 | Window title "fragr Client" | **Fixed**. |
+| Speak rate-limit silent success toast | **Fixed** (MCP `isError` + server Error unicast). Testy Prison fixed. |
 
 Remaining soft prisons: call them honestly; do not paper over.
 

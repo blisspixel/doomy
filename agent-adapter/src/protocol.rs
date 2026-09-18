@@ -46,6 +46,11 @@ pub enum ServerMessage {
     },
     Snapshot(Snapshot),
     Event(GameEvent),
+    /// Unicast control-plane rejection (e.g. speak rate limit). Not broadcast.
+    Error {
+        code: String,
+        message: String,
+    },
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
