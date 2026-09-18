@@ -1,5 +1,5 @@
 [workspace]
-members = ["server", "agent-adapter", "tools/audiogen"]
+members = ["server", "agent-adapter", "tools/audiogen", "tools/playtest"]
 resolver = "2"
 
 [workspace.package]

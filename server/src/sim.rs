@@ -414,6 +414,7 @@ pub enum RoundState {
     Ended,
 }
 
+#[derive(Debug, Clone)]
 pub struct MatchConfig {
     pub frag_limit: Option<u32>,
     pub time_limit_ticks: Option<u32>,
