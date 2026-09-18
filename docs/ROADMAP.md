@@ -30,7 +30,7 @@ The engineering ladder for scale runs through every phase: small squads first (f
 Status: **in progress**. Small, high-leverage, mostly tooling.
 
 - **Standards.** `AGENTS.md` refreshed; workspace lints in `Cargo.toml`; CI actions on current majors; coverage tool installed as a prebuilt binary; dependency advisories checked in CI. Shipped with this roadmap.
-- **Godot in CI.** Headless import plus script checks for every `client/scripts/*.gd`, and the existing `test_far_cam_scale.gd` harness. Planned.
+- **Godot in CI.** Shipped: the `godot` CI job runs `tools/godot_check.sh` (import, parse every script, the radio and far-cam harnesses).
 - **One protocol crate.** The adapter currently mirrors the server's wire types in its own `protocol.rs`. Extract `fragr-protocol` shared by both so the wire cannot drift. Planned.
 - **Dev audio pipeline.** `tools/audiogen` generates sound effects and music through the ElevenLabs API for developers only, writes assets plus a manifest, and never runs in CI or at player runtime. Shipped with this roadmap; spoken bulletins (text to speech) and credit estimates are next.
 - **Rust and GDScript only.** Port `tools/generate_audio.py` to a Rust subcommand of audiogen and delete the Python. Planned.

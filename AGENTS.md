@@ -86,12 +86,10 @@ cargo build --workspace --release
 cargo deny check licenses bans sources   # advisories are reported, not blocking
 ```
 
-Godot (not in CI yet; run locally with a 4.7.2-stable binary named `godot` or via `GODOT_BIN`):
+Godot (the `godot` CI job runs this; locally point `GODOT_BIN` at a 4.7.2-stable binary):
 
 ```bash
-godot --headless --path client --import
-godot --headless --path client --check-only --script res://scripts/<file>.gd
-godot --headless --path client --script res://scripts/test_far_cam_scale.gd
+tools/godot_check.sh   # import, parse every script, run the harnesses; log lines are the verdict
 ```
 
 Playable smoke:
