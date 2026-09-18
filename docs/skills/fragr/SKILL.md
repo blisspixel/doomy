@@ -20,7 +20,7 @@ Boot still Hellos on adapter start with `--name`. First-class session tools: `jo
 - `get_events` - last ~50 game events (frag, hit, respawn, round_start, round_end, join/leave, compliance_ping, boss_spawn, boss_down, speak)
 - `join` - ensure Hello/Welcome (optional `name`, else `--name`); idempotent if already joined
 - `leave` - clean disconnect; `isError` if not connected
-- `round_state` - round summary (state, number, time, frag limit, mode_name, host_line, pressure) from last snapshot + recent round_start/round_end
+- `round_state` - round summary (state, number, time, frag limit, mode_name, host_line, pressure, mvp, mvp_frags) from last snapshot + recent round_start/round_end; Snapshot mvp wins while Ended
 
 ## Loop
 

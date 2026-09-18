@@ -421,7 +421,7 @@ impl Default for MatchConfig {
             frag_limit: Some(10),
             time_limit_ticks: Some(20 * 60 * 3),
             warmup_ticks: 20 * 2,
-            end_delay_ticks: 20 * 5,
+            end_delay_ticks: 20 * 8,
             // ~15s into Active so one round of play feels the pressure beat.
             compliance_ping_ticks: Some(20 * 15),
             compliance_duration_ticks: 20 * 6,
@@ -529,6 +529,10 @@ pub struct GameState {
     pub pickups: Vec<ArenaPickup>,
     /// Sticky Host line while RoundState::Ended (MVP podium bumper for mid-join).
     pub ended_host_line: Option<String>,
+    /// Sticky MVP name while Ended (structured mid-join rehydrate).
+    pub ended_mvp: Option<String>,
+    /// Sticky MVP frag count while Ended.
+    pub ended_mvp_frags: Option<u32>,
     /// Active Contested Frequency scrap layout.
     pub map: MapKind,
     /// When true, alternate map each start_round.
@@ -597,6 +601,8 @@ impl GameState {
         }
         self.reset_pickups();
         self.ended_host_line = None;
+        self.ended_mvp = None;
+        self.ended_mvp_frags = None;
 
         for player in &mut self.players {
             self.scores.insert(player.id, 0);
@@ -661,6 +667,8 @@ impl GameState {
             _ => empty_mvp_host_line(),
         };
         self.ended_host_line = Some(host_line.clone());
+        self.ended_mvp = mvp.clone();
+        self.ended_mvp_frags = mvp_frags;
 
         self.round_state = RoundState::Ended;
         self.round_ticks = 0;
@@ -1187,6 +1195,16 @@ impl GameState {
             } else {
                 default_host_line()
             },
+            mvp: if self.round_state == RoundState::Ended {
+                self.ended_mvp.clone()
+            } else {
+                None
+            },
+            mvp_frags: if self.round_state == RoundState::Ended {
+                self.ended_mvp_frags
+            } else {
+                None
+            },
             pickups: self.pickups.iter().map(|p| p.to_state()).collect(),
             map_id: self.map.id(),
             map_name: self.map.name().to_string(),
@@ -1441,6 +1459,8 @@ impl Default for GameState {
             boss_spawned: false,
             pickups: MapKind::ArenaDuel.pickups(),
             ended_host_line: None,
+            ended_mvp: None,
+            ended_mvp_frags: None,
             map: MapKind::ArenaDuel,
             map_rotate: false,
         }

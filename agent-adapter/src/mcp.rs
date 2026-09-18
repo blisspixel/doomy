@@ -439,6 +439,18 @@ pub fn build_round_state_result(state: &ToolState) -> Value {
             .unwrap_or(Value::Null),
         other => other,
     };
+    // Prefer Snapshot MVP while Ended (mid-join); fall back to buffered round_end.
+    let mvp = match snap_field(snap, "mvp") {
+        Value::Null => last_round_end.get("mvp").cloned().unwrap_or(Value::Null),
+        other => other,
+    };
+    let mvp_frags = match snap_field(snap, "mvp_frags") {
+        Value::Null => last_round_end
+            .get("mvp_frags")
+            .cloned()
+            .unwrap_or(Value::Null),
+        other => other,
+    };
 
     serde_json::json!({
         "connected": state.connected,
@@ -452,8 +464,8 @@ pub fn build_round_state_result(state: &ToolState) -> Value {
         "playlist": snap_field(snap, "playlist"),
         "host_line": host_line,
         "pressure": snap_field(snap, "pressure"),
-        "mvp": last_round_end.get("mvp").cloned().unwrap_or(Value::Null),
-        "mvp_frags": last_round_end.get("mvp_frags").cloned().unwrap_or(Value::Null),
+        "mvp": mvp,
+        "mvp_frags": mvp_frags,
         "last_round_start": last_round_start,
         "last_round_end": last_round_end
     })
@@ -1531,6 +1543,37 @@ mod mcp_tests {
         assert!(result["host_line"].as_str().unwrap().contains("ROUND MVP"));
         assert_eq!(result["last_round_end"]["mvp"], "Rusher");
         assert_eq!(result["last_round_end"]["mvp_frags"], 10);
+    }
+
+    #[test]
+    fn round_state_prefers_snapshot_mvp_for_mid_join() {
+        // Mid-join during Ended: Snapshot carries structured mvp; no buffered round_end.
+        let mut state = ToolState {
+            connected: true,
+            player_id: Some(Uuid::nil()),
+            last_snapshot: Some(serde_json::json!({
+                "tick": 120,
+                "round_state": "Ended",
+                "mvp": "Anchor",
+                "mvp_frags": 7,
+                "host_line": "HOST: ROUND MVP. Anchor WITH 7 FRAGS. CONTINUANCE DENIES THE PODIUM."
+            })),
+            recent_events: vec![],
+            ..Default::default()
+        };
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({"name":"round_state","arguments":{}})),
+            ),
+            &mut state,
+        );
+        let result = out.response.result.unwrap();
+        assert_eq!(result["round_state"], "Ended");
+        assert_eq!(result["mvp"], "Anchor");
+        assert_eq!(result["mvp_frags"], 7);
+        assert!(result["host_line"].as_str().unwrap().contains("Anchor"));
+        assert!(result["last_round_end"].is_null());
     }
 
     #[test]

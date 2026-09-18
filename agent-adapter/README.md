@@ -244,12 +244,14 @@ No fields. Unknown fields -> schema error (`isError: true`).
   "playlist": "Arena Duel",
   "host_line": "HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE. ARENA DUEL IS LIVE.",
   "pressure": null,
+  "mvp": null,
+  "mvp_frags": null,
   "last_round_start": {"event": "round_start", "round_number": 3},
   "last_round_end": null
 }
 ```
 
-Fields come from the last snapshot plus the most recent `round_start` / `round_end` in the events buffer.
+Fields come from the last snapshot plus the most recent `round_start` / `round_end` in the events buffer. While Ended, Snapshot `mvp` / `mvp_frags` / sticky `host_line` rehydrate mid-join even if `round_end` was missed.
 
 ## Architecture
 

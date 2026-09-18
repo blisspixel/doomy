@@ -282,6 +282,12 @@ pub struct Snapshot {
     /// Sticky Contested Frequency Host chrome (mid-join / observe).
     #[serde(default = "default_host_line")]
     pub host_line: String,
+    /// Round MVP while Ended (mid-join / observe rehydrate). Omitted otherwise.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mvp: Option<String>,
+    /// MVP frag count while Ended.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mvp_frags: Option<u32>,
     /// Mid-map pads: weapons, health, armor (Quake chase energy). Empty omitted on wire.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub pickups: Vec<PickupState>,
@@ -522,6 +528,8 @@ mod protocol_tests {
             playlist: default_playlist(),
             pressure: None,
             host_line: default_host_line(),
+            mvp: None,
+            mvp_frags: None,
             pickups: vec![],
             map_id: default_map_id(),
             map_name: default_map_name(),
@@ -650,6 +658,8 @@ mod protocol_tests {
             playlist: default_playlist(),
             pressure: None,
             host_line: default_host_line(),
+            mvp: None,
+            mvp_frags: None,
             pickups: vec![pad.clone()],
             map_id: default_map_id(),
             map_name: default_map_name(),
