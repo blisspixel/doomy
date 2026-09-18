@@ -87,9 +87,31 @@ impl WeaponType {
 
     pub fn spread_radians(self) -> f32 {
         match self {
-            WeaponType::Flechette => 0.1,
-            WeaponType::Rail => 0.05,
-            WeaponType::Scatter => 0.3,
+            // Mid workhorse: readable cone.
+            WeaponType::Flechette => 0.10,
+            // Long precision: tighter than legacy 0.05.
+            WeaponType::Rail => 0.04,
+            // Close shred: wide cone, dies beyond range_units.
+            WeaponType::Scatter => 0.38,
+        }
+    }
+
+    /// Max hitscan reach in world units. Caps roles so Scatter is close-only
+    /// and Rail owns long lanes (arena is ~50 across).
+    pub fn range_units(self) -> f32 {
+        match self {
+            WeaponType::Flechette => 42.0,
+            WeaponType::Rail => 100.0,
+            WeaponType::Scatter => 14.0,
+        }
+    }
+
+    /// Preferred bot engagement band (min, max) for role play.
+    pub fn preferred_range(self) -> (f32, f32) {
+        match self {
+            WeaponType::Flechette => (8.0, 28.0),
+            WeaponType::Rail => (18.0, 45.0),
+            WeaponType::Scatter => (2.0, 10.0),
         }
     }
 

@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `cursor/killstreak-host-juice`
 **Spend:** $0. No ElevenLabs, no GCP apply, no renet, no look_at/hit reopen.
-**Status:** Plan of record for killstreak Host callouts + HUD flash.
+**Status:** **shipped** (#75 / `979f263`). Tip face: killstreak Host juice.
 
 ## Goal
 
@@ -11,7 +11,7 @@ Raise scrap drama: per-player killstreak / multi-kill Host callouts plus a brief
 
 ## Tip priorities
 
-Human join FP juice shipped (#74 / `094f941`). **Killstreak Host juice is the NOW tip.** look_at / hit HOLD. Port 6767. Coverage fail-under 80.
+Human join FP juice shipped (#74). Killstreak Host juice shipped (#75). Next tip: weapon roles excellence. look_at / hit HOLD. Port 6767. Coverage fail-under 80.
 
 ## Non-goals
 

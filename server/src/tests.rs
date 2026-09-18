@@ -861,17 +861,20 @@ fn test_net_client_session_structure() {
 fn test_protocol_all_weapon_types_coverage() {
     assert_eq!(WeaponType::Flechette.damage(), 25);
     assert_eq!(WeaponType::Flechette.cooldown_ticks(), 10);
-    assert_eq!(WeaponType::Flechette.spread_radians(), 0.1);
+    assert_eq!(WeaponType::Flechette.spread_radians(), 0.10);
+    assert_eq!(WeaponType::Flechette.range_units(), 42.0);
     assert_eq!(WeaponType::Flechette.name(), "Flechette");
 
     assert_eq!(WeaponType::Rail.damage(), 75);
     assert_eq!(WeaponType::Rail.cooldown_ticks(), 40);
-    assert_eq!(WeaponType::Rail.spread_radians(), 0.05);
+    assert_eq!(WeaponType::Rail.spread_radians(), 0.04);
+    assert_eq!(WeaponType::Rail.range_units(), 100.0);
     assert_eq!(WeaponType::Rail.name(), "Rail");
 
     assert_eq!(WeaponType::Scatter.damage(), 15);
     assert_eq!(WeaponType::Scatter.cooldown_ticks(), 5);
-    assert_eq!(WeaponType::Scatter.spread_radians(), 0.3);
+    assert_eq!(WeaponType::Scatter.spread_radians(), 0.38);
+    assert_eq!(WeaponType::Scatter.range_units(), 14.0);
     assert_eq!(WeaponType::Scatter.name(), "Scatter");
 }
 
@@ -1363,15 +1366,18 @@ fn test_weapon_type_stats() {
 
     assert_eq!(WeaponType::Flechette.damage(), 25);
     assert_eq!(WeaponType::Flechette.cooldown_ticks(), 10);
-    assert_eq!(WeaponType::Flechette.spread_radians(), 0.1);
+    assert_eq!(WeaponType::Flechette.spread_radians(), 0.10);
+    assert_eq!(WeaponType::Flechette.range_units(), 42.0);
 
     assert_eq!(WeaponType::Rail.damage(), 75);
     assert_eq!(WeaponType::Rail.cooldown_ticks(), 40);
-    assert_eq!(WeaponType::Rail.spread_radians(), 0.05);
+    assert_eq!(WeaponType::Rail.spread_radians(), 0.04);
+    assert_eq!(WeaponType::Rail.range_units(), 100.0);
 
     assert_eq!(WeaponType::Scatter.damage(), 15);
     assert_eq!(WeaponType::Scatter.cooldown_ticks(), 5);
-    assert_eq!(WeaponType::Scatter.spread_radians(), 0.3);
+    assert_eq!(WeaponType::Scatter.spread_radians(), 0.38);
+    assert_eq!(WeaponType::Scatter.range_units(), 14.0);
 }
 
 #[test]
@@ -3469,4 +3475,152 @@ fn test_killstreak_resets_on_round_start() {
     state.start_round();
     let idx = state.players.iter().position(|p| p.id == a).unwrap();
     assert_eq!(state.players[idx].killstreak, 0);
+}
+
+#[test]
+fn test_weapon_range_units_distinct() {
+    use crate::protocol::WeaponType;
+    assert!(WeaponType::Scatter.range_units() < WeaponType::Flechette.range_units());
+    assert!(WeaponType::Flechette.range_units() < WeaponType::Rail.range_units());
+    assert_eq!(WeaponType::Flechette.preferred_range(), (8.0, 28.0));
+    assert_eq!(WeaponType::Rail.preferred_range(), (18.0, 45.0));
+    assert_eq!(WeaponType::Scatter.preferred_range(), (2.0, 10.0));
+}
+
+#[test]
+fn test_scatter_misses_beyond_range() {
+    use crate::protocol::WeaponType;
+
+    let mut state = GameState::new();
+    state.start_round();
+
+    let shooter_id = Uuid::new_v4();
+    let target_id = Uuid::new_v4();
+    state.add_player(shooter_id, "Shooter".to_string(), Role::Agent);
+    state.add_player(target_id, "Target".to_string(), Role::Agent);
+
+    let shooter_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == shooter_id)
+        .unwrap();
+    let target_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == target_id)
+        .unwrap();
+
+    // Clear north lane (z=20): beyond Scatter 14u, inside Rail. Avoids mid choke walls.
+    state.players[shooter_idx].x = 0.0;
+    state.players[shooter_idx].z = 20.0;
+    state.players[shooter_idx].yaw = 0.0;
+    state.players[target_idx].x = 16.0;
+    state.players[target_idx].z = 20.0;
+
+    state.players[shooter_idx].weapon = WeaponType::Scatter;
+    state.players[shooter_idx].fire_cooldown = 0;
+    state.set_action(
+        shooter_id,
+        Action {
+            fire: true,
+            ..Default::default()
+        },
+    );
+    let hp_before = state.players[target_idx].hp;
+    state.tick(0.05);
+    assert_eq!(
+        state.players[target_idx].hp, hp_before,
+        "Scatter must miss beyond range_units"
+    );
+
+    state.players[shooter_idx].weapon = WeaponType::Rail;
+    state.players[shooter_idx].fire_cooldown = 0;
+    state.set_action(
+        shooter_id,
+        Action {
+            fire: true,
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+    assert!(
+        state.players[target_idx].hp < hp_before,
+        "Rail must still hit at 20u"
+    );
+}
+
+#[test]
+fn test_bot_rail_holds_long_lane() {
+    use crate::protocol::WeaponType;
+
+    let mut state = GameState::new();
+    state.start_round();
+
+    let bot_id = Uuid::new_v4();
+    let target_id = Uuid::new_v4();
+    state.add_player(bot_id, "Bot".to_string(), Role::Agent);
+    state.add_player(target_id, "Target".to_string(), Role::Agent);
+
+    let bot_idx = state.players.iter().position(|p| p.id == bot_id).unwrap();
+    let target_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == target_id)
+        .unwrap();
+
+    state.players[bot_idx].weapon = WeaponType::Rail;
+    state.players[bot_idx].x = 0.0;
+    state.players[bot_idx].z = 0.0;
+    state.players[bot_idx].yaw = 0.0;
+    // Target inside Rail preferred band (~25u).
+    state.players[target_idx].x = 25.0;
+    state.players[target_idx].z = 0.0;
+
+    let bot = BotController::new(bot_id, BotBehavior::Defensive);
+    let action = bot.update(&state);
+    // At preferred band, Defensive should strafe (not rush) and be willing to fire.
+    assert!(
+        action.fire || action.left || action.right || action.back || action.forward,
+        "Rail bot at preferred range should act"
+    );
+    // Not closing hard when already in band.
+    assert!(
+        !(action.forward && !action.left && !action.right && !action.back),
+        "Rail defensive bot should not only rush when already mid-long"
+    );
+}
+
+#[test]
+fn test_bot_scatter_pushes_close() {
+    use crate::protocol::WeaponType;
+
+    let mut state = GameState::new();
+    state.start_round();
+
+    let bot_id = Uuid::new_v4();
+    let target_id = Uuid::new_v4();
+    state.add_player(bot_id, "Bot".to_string(), Role::Agent);
+    state.add_player(target_id, "Target".to_string(), Role::Agent);
+
+    let bot_idx = state.players.iter().position(|p| p.id == bot_id).unwrap();
+    let target_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == target_id)
+        .unwrap();
+
+    state.players[bot_idx].weapon = WeaponType::Scatter;
+    state.players[bot_idx].x = 0.0;
+    state.players[bot_idx].z = 0.0;
+    state.players[bot_idx].yaw = 0.0;
+    // Target outside Scatter preferred band but inside fire range stretch.
+    state.players[target_idx].x = 16.0;
+    state.players[target_idx].z = 0.0;
+
+    let bot = BotController::new(bot_id, BotBehavior::Aggressive);
+    let action = bot.update(&state);
+    assert!(
+        action.forward,
+        "Scatter aggressive bot should push toward close range"
+    );
 }

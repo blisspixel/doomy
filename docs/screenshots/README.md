@@ -19,6 +19,9 @@ README screenshots MUST match the current playable UI. Stale mood stubs labeled 
 | `07_tip_compliance_pressure_16x9.png` | 16:9 | Live tip: mid-round scrap with killfeed + Contested Frequency |
 | `08_tip_host_flash_midjoin_16x9.png` | 16:9 | Live tip: mid-join Host bumper flash from first Active Snapshot |
 | `09_tip_weapons_frags_16x9.png` | 16:9 | Live tip: weapons / muzzle / killfeed combat still |
+| `10_tip_human_join_fp_16x9.png` | 16:9 | Live tip: Join FP scrap juice (crosshair + weapon face) |
+
+Weapon roles excellence may recapture `01` / `07` / `08` / `09` / `10` when Xvfb + Godot capture path is available; until then existing stills remain tip baseline and `10` stays in the table.
 
 ## Mood plates (archived)
 

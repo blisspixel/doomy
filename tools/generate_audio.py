@@ -208,6 +208,61 @@ def generate_round_end_sound():
     return samples
 
 
+
+def generate_fire_flechette():
+    """Mid chatter: snappy needle burst."""
+    kick = generate_sine_wave(110, 0.03, 0.45)
+    snap = generate_noise(0.045, 0.35)
+    crack = generate_square_wave(900, 0.03, 0.28)
+    samples = mix_samples(kick, snap, crack)
+    return apply_envelope(samples, attack=0.0004, decay=0.012, sustain=0.28, release=0.02)
+
+
+def generate_fire_rail():
+    """Long precision: heavy charge crack + cold ring."""
+    charge = generate_sine_wave(60, 0.05, 0.55)
+    body = generate_sine_wave(220, 0.08, 0.35)
+    crack = generate_square_wave(1400, 0.035, 0.22)
+    ring = generate_sine_wave(2400, 0.10, 0.18)
+    samples = mix_samples(charge, body, crack, ring)
+    return apply_envelope(samples, attack=0.002, decay=0.03, sustain=0.45, release=0.06)
+
+
+def generate_fire_scatter():
+    """Close shred: chunky noise blast."""
+    boom = generate_sine_wave(70, 0.05, 0.65)
+    blast = generate_noise(0.09, 0.55)
+    grit = generate_square_wave(280, 0.04, 0.25)
+    samples = mix_samples(boom, blast, grit)
+    return apply_envelope(samples, attack=0.0003, decay=0.02, sustain=0.35, release=0.04)
+
+
+def generate_hit_flechette():
+    """Needle thwack."""
+    thwack = generate_noise(0.012, 0.45)
+    ding = generate_sine_wave(1600, 0.06, 0.35)
+    samples = mix_samples(thwack, ding)
+    return apply_envelope(samples, attack=0.0004, decay=0.01, sustain=0.5, release=0.02)
+
+
+def generate_hit_rail():
+    """Heavy confirm: deep thump + cold ding."""
+    thump = generate_sine_wave(90, 0.06, 0.5)
+    ding = generate_sine_wave(2100, 0.10, 0.32)
+    crack = generate_noise(0.02, 0.3)
+    samples = mix_samples(thump, ding, crack)
+    return apply_envelope(samples, attack=0.0005, decay=0.02, sustain=0.55, release=0.04)
+
+
+def generate_hit_scatter():
+    """Chunky flesh/metal splat."""
+    splat = generate_noise(0.04, 0.55)
+    thump = generate_sine_wave(100, 0.04, 0.4)
+    grit = generate_square_wave(400, 0.03, 0.2)
+    samples = mix_samples(splat, thump, grit)
+    return apply_envelope(samples, attack=0.0003, decay=0.015, sustain=0.4, release=0.03)
+
+
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     output_dir = os.path.join(script_dir, OUTPUT_DIR)
@@ -221,6 +276,12 @@ def main():
         "frag.wav": generate_frag_sound,
         "round_start.wav": generate_round_start_sound,
         "round_end.wav": generate_round_end_sound,
+        "fire_flechette.wav": generate_fire_flechette,
+        "fire_rail.wav": generate_fire_rail,
+        "fire_scatter.wav": generate_fire_scatter,
+        "hit_flechette.wav": generate_hit_flechette,
+        "hit_rail.wav": generate_hit_rail,
+        "hit_scatter.wav": generate_hit_scatter,
     }
     
     for filename, generator in sounds.items():

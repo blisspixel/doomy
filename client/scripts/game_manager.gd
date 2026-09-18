@@ -211,6 +211,7 @@ func _on_snapshot_received(data):
 	if is_human_player:
 		_refresh_fp_target()
 		_update_local_fp_hud(data.get("players", []))
+	_process_shot_results(data.get("shot_results", []))
 
 func _on_event_received(data):
 	var event_type = data.get("event", "")
@@ -267,6 +268,7 @@ func _on_event_received(data):
 		hud.set_pressure("")
 		hud.show_boss_down(str(data.get("message", "")), str(data.get("killer", "")))
 	elif event_type == "hit":
+		# Victim blood flash only. Shooter hit markers come from Snapshot shot_results.
 		var target_id = str(data.get("target_id", ""))
 		var my_id = str(net_client.player_id) if net_client.player_id != null else ""
 		if is_human_player and my_id != "" and target_id == my_id:
@@ -482,3 +484,50 @@ func _update_local_fp_hud(player_list: Array) -> void:
 		if hud and hud.has_method("set_followed_weapon"):
 			hud.set_followed_weapon(weapon, str(pdata.get("name", "YOU")), "")
 		return
+
+func _process_shot_results(results) -> void:
+	if results == null or typeof(results) != TYPE_ARRAY:
+		return
+	var my_id = str(net_client.player_id) if net_client.player_id != null else ""
+	var followed_id = "" if is_human_player else _followed_player_id()
+	for shot in results:
+		if typeof(shot) != TYPE_DICTIONARY:
+			continue
+		var shooter_id = str(shot.get("shooter_id", ""))
+		var hit = bool(shot.get("hit", false))
+		var dmg = int(shot.get("damage", 0))
+		var is_local = is_human_player and my_id != "" and shooter_id == my_id
+		var is_followed = (not is_human_player) and followed_id != "" and shooter_id == followed_id
+		if not is_local and not is_followed:
+			continue
+		var wpn = _local_weapon_name() if is_local else _followed_weapon_name()
+		if hit:
+			if hud and hud.has_method("show_hit_marker"):
+				hud.show_hit_marker(dmg, wpn)
+		else:
+			# Miss still gets a light fire kick in FP.
+			if is_local and hud and hud.has_method("show_fire_juice"):
+				hud.show_fire_juice(wpn)
+
+func _local_weapon_name() -> String:
+	var pid = str(net_client.player_id) if net_client.player_id != null else ""
+	if pid != "" and players.has(pid) and is_instance_valid(players[pid]):
+		if players[pid].has_method("get_weapon_name"):
+			return players[pid].get_weapon_name()
+	return ""
+
+func _followed_player_id() -> String:
+	if not camera or not camera.has_method("get_followed_target"):
+		return ""
+	var followed = camera.get_followed_target()
+	if followed != null and is_instance_valid(followed) and "player_id" in followed:
+		return str(followed.player_id)
+	return ""
+
+func _followed_weapon_name() -> String:
+	if not camera or not camera.has_method("get_followed_target"):
+		return ""
+	var followed = camera.get_followed_target()
+	if followed != null and is_instance_valid(followed) and followed.has_method("get_weapon_name"):
+		return followed.get_weapon_name()
+	return ""
