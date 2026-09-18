@@ -15,6 +15,7 @@
 - [x] Spectator is presentation-only (no local authority); killing the server drops/freezes the match cleanly.
 - [x] Agent-adapter (or documented equivalent) drives ≥1 fighter via `observe` / `act`; MCP tool surface listed in README even if partially stubbed.
 - [x] Optional human: same Godot client can join with keyboard move + shoot in the same match.
+- [x] Second peer can spectate the same match on LAN or Tailscale Personal (server binds non-loopback, client accepts server URL via env var, README documents two-machine steps).
 - [x] Incremental spend: **$0**.
 
 ---
