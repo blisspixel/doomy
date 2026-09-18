@@ -37,20 +37,30 @@ func set_server_host(host: String) -> void:
 func connect_to_server(p_role: String = "spectator", p_name: String = "Player"):
 	role = p_role
 	player_name = p_name
-	
+	player_id = null
+
+	# Godot WebSocketPeer is not reliably reusable after close. Always start fresh
+	# so J/L join-leave-reconnect cannot soft-prison on a dead peer.
+	if connection_state != WebSocketPeer.STATE_CLOSED:
+		socket.close()
+	socket = WebSocketPeer.new()
+	connection_state = WebSocketPeer.STATE_CLOSED
+
 	var err = socket.connect_to_url(server_url)
 	if err != OK:
 		push_error("Failed to connect to server: " + str(err))
 		return false
-	
+
 	connection_state = socket.get_ready_state()
 	set_process(true)
 	print("Connecting to ", server_url, " as ", role)
 	return true
 
 func disconnect_from_server():
-	socket.close()
+	if connection_state != WebSocketPeer.STATE_CLOSED:
+		socket.close()
 	connection_state = WebSocketPeer.STATE_CLOSED
+	player_id = null
 	set_process(false)
 	disconnected_from_server.emit()
 

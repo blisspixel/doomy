@@ -92,6 +92,44 @@ impl GameSession {
         self.spawn_bots(need);
     }
 
+    /// Remove a client-mapped player that still holds `name` (ghost reconnect reclaim).
+    /// Rule bots are not in `client_to_player` and are never evicted by name.
+    fn evict_client_player_by_name(&mut self, name: &str) {
+        let ghost_ids: Vec<Uuid> = self
+            .state
+            .players
+            .iter()
+            .filter(|p| p.name == name)
+            .filter(|p| self.client_to_player.values().any(|pid| *pid == p.id))
+            .map(|p| p.id)
+            .collect();
+
+        for player_id in ghost_ids {
+            self.client_to_player.retain(|_, pid| *pid != player_id);
+            let (player_name, player_score) = self
+                .state
+                .players
+                .iter()
+                .find(|p| p.id == player_id)
+                .map(|p| (p.name.clone(), *self.state.scores.get(&p.id).unwrap_or(&0)))
+                .unwrap_or_else(|| (name.to_string(), 0));
+            let player_count_before = self.state.players.len();
+            self.state.remove_player(player_id);
+            self.state.push_event(protocol::GameEvent::PlayerLeft {
+                player: player_name.clone(),
+                score: player_score,
+                round_number: self.state.round_number,
+                player_count: player_count_before.saturating_sub(1),
+            });
+            tracing::info!(
+                "Evicted ghost player {} on reconnect (score: {}, {} players remain)",
+                player_name,
+                player_score,
+                player_count_before.saturating_sub(1)
+            );
+        }
+    }
+
     /// Apply a net-layer game command (join, leave, or action).
     /// Join/leave push PlayerJoined / PlayerLeft events onto the sim event queue.
     pub fn apply_command(&mut self, cmd: GameCommand) {
@@ -103,6 +141,8 @@ impl GameSession {
                 player_id,
             } => {
                 if let Some(pid) = player_id {
+                    // Re-Hello same name: drop prior client-mapped ghost before add.
+                    self.evict_client_player_by_name(&name);
                     self.state.add_player(pid, name.clone(), role);
                     self.client_to_player.insert(id, pid);
                     let player_count = self.state.players.len();
@@ -657,5 +697,157 @@ mod session_tests {
             .iter()
             .any(|p| p.name == protocol::BOSS_NAME && p.behavior.as_deref() == Some("Compliance")));
         assert_eq!(snap.pressure.as_deref(), Some("compliance_drone"));
+    }
+
+    #[test]
+    fn reconnect_same_name_after_leave_is_single_player() {
+        let mut session = GameSession::new();
+        let c1 = Uuid::new_v4();
+        let p1 = Uuid::new_v4();
+        session.apply_command(GameCommand::Connected {
+            id: c1,
+            role: Role::Human,
+            name: "Human Player".to_string(),
+            player_id: Some(p1),
+        });
+        let _ = session.state.take_events();
+
+        session.apply_command(GameCommand::Disconnected { id: c1 });
+        assert!(session.state.players.is_empty());
+        let _ = session.state.take_events();
+
+        let c2 = Uuid::new_v4();
+        let p2 = Uuid::new_v4();
+        session.apply_command(GameCommand::Connected {
+            id: c2,
+            role: Role::Human,
+            name: "Human Player".to_string(),
+            player_id: Some(p2),
+        });
+
+        assert_eq!(session.state.players.len(), 1);
+        assert_eq!(session.state.players[0].id, p2);
+        assert_eq!(session.state.players[0].name, "Human Player");
+        assert_eq!(session.client_to_player.get(&c2), Some(&p2));
+        assert!(!session.client_to_player.contains_key(&c1));
+    }
+
+    #[test]
+    fn overlapping_reconnect_same_name_evicts_ghost_without_stuck_session() {
+        let mut session = GameSession::new();
+        let c_old = Uuid::new_v4();
+        let p_old = Uuid::new_v4();
+        session.apply_command(GameCommand::Connected {
+            id: c_old,
+            role: Role::Agent,
+            name: "ArenaFox".to_string(),
+            player_id: Some(p_old),
+        });
+        *session.state.scores.get_mut(&p_old).unwrap() = 3;
+        let _ = session.state.take_events();
+
+        // New Hello before old Disconnect (soft prison without eviction).
+        let c_new = Uuid::new_v4();
+        let p_new = Uuid::new_v4();
+        session.apply_command(GameCommand::Connected {
+            id: c_new,
+            role: Role::Agent,
+            name: "ArenaFox".to_string(),
+            player_id: Some(p_new),
+        });
+
+        assert_eq!(
+            session.state.players.len(),
+            1,
+            "ghost must be evicted; only one ArenaFox"
+        );
+        assert_eq!(session.state.players[0].id, p_new);
+        assert_eq!(session.client_to_player.get(&c_new), Some(&p_new));
+        assert!(
+            !session.client_to_player.contains_key(&c_old),
+            "old client mapping must be cleared"
+        );
+
+        let events = session.state.take_events();
+        assert!(
+            events.iter().any(|e| matches!(
+                e,
+                protocol::GameEvent::PlayerLeft {
+                    player,
+                    score: 3,
+                    ..
+                } if player == "ArenaFox"
+            )),
+            "expected ghost PlayerLeft, got {:?}",
+            events
+        );
+        assert!(
+            events.iter().any(|e| matches!(
+                e,
+                protocol::GameEvent::PlayerJoined {
+                    player,
+                    player_count: 1,
+                    ..
+                } if player == "ArenaFox"
+            )),
+            "expected PlayerJoined after reclaim, got {:?}",
+            events
+        );
+
+        // Late Disconnect for the old socket must not remove the new player.
+        session.apply_command(GameCommand::Disconnected { id: c_old });
+        assert_eq!(session.state.players.len(), 1);
+        assert_eq!(session.state.players[0].id, p_new);
+        assert!(session.state.take_events().is_empty());
+    }
+
+    #[test]
+    fn reconnect_new_name_is_new_session_without_ghost() {
+        let mut session = GameSession::new();
+        let c1 = Uuid::new_v4();
+        let p1 = Uuid::new_v4();
+        session.apply_command(GameCommand::Connected {
+            id: c1,
+            role: Role::Human,
+            name: "Alpha".to_string(),
+            player_id: Some(p1),
+        });
+        session.apply_command(GameCommand::Disconnected { id: c1 });
+        let _ = session.state.take_events();
+
+        let c2 = Uuid::new_v4();
+        let p2 = Uuid::new_v4();
+        session.apply_command(GameCommand::Connected {
+            id: c2,
+            role: Role::Human,
+            name: "Bravo".to_string(),
+            player_id: Some(p2),
+        });
+
+        assert_eq!(session.state.players.len(), 1);
+        assert_eq!(session.state.players[0].name, "Bravo");
+        assert_eq!(session.client_to_player.len(), 1);
+    }
+
+    #[test]
+    fn reconnect_same_name_does_not_evict_rule_bot() {
+        let mut session = GameSession::new();
+        session.spawn_bots(1);
+        assert_eq!(session.state.players.len(), 1);
+        let bot_name = session.state.players[0].name.clone();
+        let bot_id = session.state.players[0].id;
+
+        let c1 = Uuid::new_v4();
+        let p1 = Uuid::new_v4();
+        session.apply_command(GameCommand::Connected {
+            id: c1,
+            role: Role::Human,
+            name: bot_name.clone(),
+            player_id: Some(p1),
+        });
+
+        assert_eq!(session.state.players.len(), 2);
+        assert!(session.state.players.iter().any(|p| p.id == bot_id));
+        assert!(session.state.players.iter().any(|p| p.id == p1));
     }
 }
