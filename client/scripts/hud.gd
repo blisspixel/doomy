@@ -15,6 +15,12 @@ extends CanvasLayer
 @onready var spawn_flash = $SpawnFlash
 @onready var streak_flash = $StreakFlash
 @onready var fp_weapon = $FpWeapon
+var crosshair_hbar = null
+var crosshair_vbar = null
+var crosshair_dot = null
+var crosshair_ring = null
+var hit_marker = null
+var damage_numbers = null
 
 var scores = {}
 var behaviors = {}
@@ -41,14 +47,26 @@ var followed_player_name = ""
 var fp_juice_enabled = false
 var fp_bob_t = 0.0
 var fp_weapon_base_pos = Vector2.ZERO
+var fp_weapon_scene_base = Vector2.ZERO
 var damage_flash_timer = 0.0
 var spawn_flash_timer = 0.0
 var streak_flash_timer = 0.0
+var hit_marker_timer = 0.0
+var fp_kick_timer = 0.0
+var fp_kick_amount = Vector2.ZERO
+var current_fp_weapon = ""
+var floating_damage_nodes = []
 
 func _ready():
 	weapon_textures["Flechette"] = load("res://assets/weapons/32/flechette.png")
 	weapon_textures["Rail"] = load("res://assets/weapons/32/rail.png")
 	weapon_textures["Scatter"] = load("res://assets/weapons/32/scatter.png")
+	crosshair_hbar = get_node_or_null("Crosshair/HBar")
+	crosshair_vbar = get_node_or_null("Crosshair/VBar")
+	crosshair_dot = get_node_or_null("Crosshair/Dot")
+	crosshair_ring = get_node_or_null("Crosshair/RingBorder")
+	hit_marker = get_node_or_null("HitMarker")
+	damage_numbers = get_node_or_null("DamageNumbers")
 	
 	if frag_label:
 		frag_label.text = ""
@@ -75,6 +93,7 @@ func _ready():
 	if fp_weapon:
 		fp_weapon.visible = false
 		fp_weapon_base_pos = fp_weapon.position
+		fp_weapon_scene_base = fp_weapon.position
 
 func set_status(text: String):
 	if status_label:
@@ -476,9 +495,9 @@ func set_followed_weapon(weapon_name: String, player_name: String = "", behavior
 	var weapon_desc = ""
 	match weapon_name:
 		"Flechette":
-			weapon_desc = "FLECHETTE (balanced)"
+			weapon_desc = "FLECHETTE (mid)"
 		"Rail":
-			weapon_desc = "RAIL (sniper)"
+			weapon_desc = "RAIL (long)"
 		"Scatter":
 			weapon_desc = "SCATTER (close)"
 	
@@ -519,11 +538,34 @@ func _process(delta):
 		if streak_flash_timer <= 0 and streak_flash:
 			streak_flash.visible = false
 			streak_flash.modulate.a = 0.0
+	if hit_marker_timer > 0:
+		hit_marker_timer -= delta
+		if hit_marker:
+			hit_marker.visible = true
+			hit_marker.modulate.a = clampf(hit_marker_timer / 0.18, 0.0, 1.0)
+		if hit_marker_timer <= 0 and hit_marker:
+			hit_marker.visible = false
+			hit_marker.modulate.a = 0.0
+	if fp_kick_timer > 0:
+		fp_kick_timer -= delta
+	_update_floating_damage(delta)
 	if fp_juice_enabled and fp_weapon and fp_weapon.visible:
 		fp_bob_t += delta * 9.0
-		var bob_y = sin(fp_bob_t) * 4.0
-		var bob_x = cos(fp_bob_t * 0.5) * 2.0
-		fp_weapon.position = fp_weapon_base_pos + Vector2(bob_x, bob_y)
+		var bob_scale = 1.0
+		match current_fp_weapon:
+			"Rail":
+				bob_scale = 0.55
+			"Scatter":
+				bob_scale = 1.35
+			_:
+				bob_scale = 1.0
+		var bob_y = sin(fp_bob_t) * 4.0 * bob_scale
+		var bob_x = cos(fp_bob_t * 0.5) * 2.0 * bob_scale
+		var kick = Vector2.ZERO
+		if fp_kick_timer > 0:
+			var k = clampf(fp_kick_timer / 0.12, 0.0, 1.0)
+			kick = fp_kick_amount * k
+		fp_weapon.position = fp_weapon_base_pos + Vector2(bob_x, bob_y) + kick
 
 func set_fp_juice(enabled: bool) -> void:
 	fp_juice_enabled = enabled
@@ -538,9 +580,15 @@ func set_fp_juice(enabled: bool) -> void:
 		if spawn_flash:
 			spawn_flash.visible = false
 			spawn_flash.modulate.a = 0.0
+		if hit_marker:
+			hit_marker.visible = false
 		damage_flash_timer = 0.0
 		spawn_flash_timer = 0.0
+		hit_marker_timer = 0.0
+		fp_kick_timer = 0.0
 		fp_bob_t = 0.0
+		current_fp_weapon = ""
+		_clear_floating_damage()
 
 func set_fp_weapon(weapon_name: String) -> void:
 	if not fp_weapon:
@@ -548,10 +596,173 @@ func set_fp_weapon(weapon_name: String) -> void:
 	if not fp_juice_enabled or weapon_name == "" or not weapon_textures.has(weapon_name):
 		fp_weapon.visible = false
 		return
+	var changed = weapon_name != current_fp_weapon
+	current_fp_weapon = weapon_name
 	fp_weapon.texture = weapon_textures[weapon_name]
-	# Bone lift, not neon.
-	fp_weapon.modulate = Color(1.08, 1.04, 0.98, 1)
+	# Distinct viewmodel pose per role (bone/gunmetal, not neon).
+	# Only re-base on swap so walk bob / fire kick survive snapshot ticks.
+	if changed:
+		match weapon_name:
+			"Rail":
+				fp_weapon.modulate = Color(0.82, 0.86, 0.88, 1)
+				fp_weapon.scale = Vector2(1.15, 1.15)
+				fp_weapon_base_pos = fp_weapon_scene_base + Vector2(-20, -20)
+			"Scatter":
+				fp_weapon.modulate = Color(1.05, 0.88, 0.7, 1)
+				fp_weapon.scale = Vector2(1.25, 1.1)
+				fp_weapon_base_pos = fp_weapon_scene_base + Vector2(20, 10)
+			_:
+				fp_weapon.modulate = Color(1.08, 1.04, 0.98, 1)
+				fp_weapon.scale = Vector2(1.0, 1.0)
+				fp_weapon_base_pos = fp_weapon_scene_base
+		fp_weapon.position = fp_weapon_base_pos
+		_apply_crosshair_for_weapon(weapon_name)
 	fp_weapon.visible = true
+
+func _apply_crosshair_for_weapon(weapon_name: String) -> void:
+	if not crosshair or not fp_juice_enabled:
+		return
+	# Bone grit crosshair shapes per role.
+	var bone = Color(0.91, 0.886, 0.839, 0.85)
+	var ember = Color(0.85, 0.62, 0.38, 0.8)
+	var gun = Color(0.7, 0.74, 0.76, 0.95)
+	if crosshair_hbar:
+		crosshair_hbar.visible = true
+		crosshair_hbar.color = bone
+	if crosshair_vbar:
+		crosshair_vbar.visible = true
+		crosshair_vbar.color = bone
+	if crosshair_dot:
+		crosshair_dot.visible = false
+	if crosshair_ring:
+		crosshair_ring.visible = false
+	match weapon_name:
+		"Rail":
+			if crosshair_hbar:
+				crosshair_hbar.visible = false
+			if crosshair_vbar:
+				crosshair_vbar.visible = false
+			if crosshair_dot:
+				crosshair_dot.visible = true
+				crosshair_dot.color = gun
+				crosshair_dot.offset_left = -2.0
+				crosshair_dot.offset_top = -2.0
+				crosshair_dot.offset_right = 2.0
+				crosshair_dot.offset_bottom = 2.0
+		"Scatter":
+			if crosshair_hbar:
+				crosshair_hbar.offset_left = -18.0
+				crosshair_hbar.offset_right = 18.0
+				crosshair_hbar.offset_top = -1.0
+				crosshair_hbar.offset_bottom = 1.0
+				crosshair_hbar.color = ember
+			if crosshair_vbar:
+				crosshair_vbar.offset_top = -18.0
+				crosshair_vbar.offset_bottom = 18.0
+				crosshair_vbar.offset_left = -1.0
+				crosshair_vbar.offset_right = 1.0
+				crosshair_vbar.color = ember
+			if crosshair_ring:
+				crosshair_ring.visible = true
+				crosshair_ring.color = Color(0.78, 0.55, 0.32, 0.22)
+		_:
+			if crosshair_hbar:
+				crosshair_hbar.offset_left = -10.0
+				crosshair_hbar.offset_right = 10.0
+				crosshair_hbar.offset_top = -1.0
+				crosshair_hbar.offset_bottom = 1.0
+			if crosshair_vbar:
+				crosshair_vbar.offset_top = -10.0
+				crosshair_vbar.offset_bottom = 10.0
+				crosshair_vbar.offset_left = -1.0
+				crosshair_vbar.offset_right = 1.0
+
+func show_hit_marker(damage: int = 0, weapon_name: String = "") -> void:
+	# Light grit confirm when local / followed player scores a hit.
+	if not fp_juice_enabled and client_mode == "SPECTATING":
+		# Spectator follow path still gets a brief marker.
+		pass
+	hit_marker_timer = 0.18
+	if hit_marker:
+		hit_marker.visible = true
+		var col = Color(0.91, 0.82, 0.7, 0.95)
+		match weapon_name:
+			"Rail":
+				col = Color(0.72, 0.78, 0.82, 0.95)
+				hit_marker_timer = 0.28
+			"Scatter":
+				col = Color(0.9, 0.55, 0.32, 0.95)
+				hit_marker_timer = 0.14
+			_:
+				col = Color(0.91, 0.82, 0.7, 0.95)
+		hit_marker.modulate = col
+	if damage > 0:
+		_spawn_floating_damage(damage, weapon_name)
+	# Fire kick on confirm sells the shot.
+	_fp_fire_kick(weapon_name)
+
+func show_fire_juice(weapon_name: String = "") -> void:
+	_fp_fire_kick(weapon_name if weapon_name != "" else current_fp_weapon)
+
+func _fp_fire_kick(weapon_name: String) -> void:
+	if not fp_juice_enabled:
+		return
+	fp_kick_timer = 0.12
+	match weapon_name:
+		"Rail":
+			fp_kick_amount = Vector2(8, 22)
+			fp_kick_timer = 0.18
+		"Scatter":
+			fp_kick_amount = Vector2(14, 10)
+			fp_kick_timer = 0.10
+		_:
+			fp_kick_amount = Vector2(6, 8)
+
+func _spawn_floating_damage(damage: int, weapon_name: String) -> void:
+	if not damage_numbers:
+		return
+	var label = Label.new()
+	label.text = str(damage)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var col = Color(0.91, 0.82, 0.7, 1)
+	match weapon_name:
+		"Rail":
+			col = Color(0.75, 0.82, 0.86, 1)
+		"Scatter":
+			col = Color(0.92, 0.55, 0.3, 1)
+		_:
+			col = Color(0.95, 0.78, 0.45, 1)
+	label.add_theme_color_override("font_color", col)
+	label.add_theme_font_size_override("font_size", 22 if weapon_name != "Rail" else 28)
+	var ox = randf_range(-28.0, 28.0)
+	label.position = Vector2(ox, -20.0)
+	damage_numbers.add_child(label)
+	floating_damage_nodes.append({"node": label, "t": 0.0, "life": 0.55, "ox": ox})
+
+func _update_floating_damage(delta: float) -> void:
+	var keep = []
+	for entry in floating_damage_nodes:
+		var node = entry.get("node")
+		if node == null or not is_instance_valid(node):
+			continue
+		entry["t"] += delta
+		var t = float(entry["t"])
+		var life = float(entry["life"])
+		var progress = clampf(t / life, 0.0, 1.0)
+		node.position = Vector2(float(entry["ox"]), -20.0 - progress * 48.0)
+		node.modulate.a = 1.0 - progress
+		if t < life:
+			keep.append(entry)
+		else:
+			node.queue_free()
+	floating_damage_nodes = keep
+
+func _clear_floating_damage() -> void:
+	for entry in floating_damage_nodes:
+		var node = entry.get("node")
+		if node != null and is_instance_valid(node):
+			node.queue_free()
+	floating_damage_nodes = []
 
 func show_damage_flash() -> void:
 	if not fp_juice_enabled:
