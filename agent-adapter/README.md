@@ -165,7 +165,7 @@ agent-adapter (this crate)
     |
     | WebSocket JSON
     v
-game server (doomy-server)
+game server (fragr-server)
 ```
 
 **Roles:**
