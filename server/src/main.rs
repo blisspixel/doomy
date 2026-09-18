@@ -5,7 +5,7 @@ mod tests;
 
 use clap::Parser;
 use net::{GameCommand, NetServer};
-use protocol::{Role, ServerMessage};
+use protocol::ServerMessage;
 use sim::{BotController, GameState};
 use std::collections::HashMap;
 use std::time::Duration;
@@ -64,11 +64,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let (bot_name, behavior) = bot_configs
             .get(i)
             .unwrap_or(&("Bot", sim::BotBehavior::Balanced));
-        state.add_player(bot_id, bot_name.to_string(), Role::Agent);
+        let weapon = behavior.preferred_weapon();
+        state.add_player_with_weapon(bot_id, bot_name.to_string(), weapon);
         let bot_controller = BotController::new(bot_id, *behavior);
         bots.push(bot_controller.clone());
         state.bots.push(bot_controller);
-        tracing::info!("Spawned bot: {} ({:?}, {})", bot_name, behavior, bot_id);
+        tracing::info!(
+            "Spawned bot: {} ({:?}, {:?}, {})",
+            bot_name,
+            behavior,
+            weapon,
+            bot_id
+        );
     }
 
     let tick_duration = Duration::from_millis(50);

@@ -1,4 +1,4 @@
-use crate::protocol::{Action, GameEvent, PlayerState, Role, Snapshot};
+use crate::protocol::{Action, GameEvent, PlayerState, Role, Snapshot, WeaponType};
 use std::f32::consts::PI;
 use uuid::Uuid;
 
@@ -6,11 +6,45 @@ const MOVE_SPEED: f32 = 5.0;
 const TURN_SPEED: f32 = 2.0;
 const ARENA_SIZE: f32 = 50.0;
 const PLAYER_RADIUS: f32 = 0.5;
-const FIRE_COOLDOWN_TICKS: u32 = 10;
 const RESPAWN_DELAY_TICKS: u32 = 60;
-const HITSCAN_RANGE: f32 = 100.0;
-const HITSCAN_DAMAGE: i32 = 25;
 const PLAYER_MAX_HP: i32 = 100;
+
+#[derive(Debug)]
+pub struct WeaponStats {
+    pub damage: i32,
+    pub cooldown_ticks: u32,
+    pub range: f32,
+    pub pellets: u32,
+    pub spread: f32,
+}
+
+impl WeaponStats {
+    pub fn for_weapon(weapon: WeaponType) -> Self {
+        match weapon {
+            WeaponType::Blaster => WeaponStats {
+                damage: 15,
+                cooldown_ticks: 6,
+                range: 100.0,
+                pellets: 1,
+                spread: 0.0,
+            },
+            WeaponType::Cannon => WeaponStats {
+                damage: 50,
+                cooldown_ticks: 25,
+                range: 120.0,
+                pellets: 1,
+                spread: 0.0,
+            },
+            WeaponType::Scattergun => WeaponStats {
+                damage: 8,
+                cooldown_ticks: 15,
+                range: 30.0,
+                pellets: 5,
+                spread: 0.3,
+            },
+        }
+    }
+}
 
 pub struct GameState {
     pub tick: u64,
@@ -31,6 +65,7 @@ pub struct Player {
     pub fire_cooldown: u32,
     pub respawn_timer: Option<u32>,
     pub just_fired: bool,
+    pub weapon: WeaponType,
 }
 
 impl GameState {
@@ -44,6 +79,10 @@ impl GameState {
     }
 
     pub fn add_player(&mut self, id: Uuid, name: String, _role: Role) {
+        self.add_player_with_weapon(id, name, WeaponType::default());
+    }
+
+    pub fn add_player_with_weapon(&mut self, id: Uuid, name: String, weapon: WeaponType) {
         let angle = (self.players.len() as f32) * (2.0 * PI / 8.0);
         let spawn_radius = ARENA_SIZE * 0.3;
 
@@ -59,6 +98,7 @@ impl GameState {
             fire_cooldown: 0,
             respawn_timer: None,
             just_fired: false,
+            weapon,
         });
     }
 
@@ -94,6 +134,10 @@ impl GameState {
             }
 
             let action = &player.pending_action;
+
+            if let Some(new_weapon) = action.weapon_swap {
+                player.weapon = new_weapon;
+            }
 
             let mut dx = 0.0;
             let mut dz = 0.0;
@@ -156,29 +200,53 @@ impl GameState {
             }
 
             if player.pending_action.fire && player.fire_cooldown == 0 {
-                hits.push((i, self.check_hitscan(i)));
+                let weapon_stats = WeaponStats::for_weapon(player.weapon);
+                hits.push((i, self.check_weapon_hit(i, &weapon_stats)));
             }
         }
 
-        for (shooter_idx, maybe_victim_idx) in hits {
+        for (shooter_idx, total_damage) in hits {
+            if total_damage == 0 {
+                continue;
+            }
+
             let shooter = &mut self.players[shooter_idx];
-            shooter.fire_cooldown = FIRE_COOLDOWN_TICKS;
+            let weapon_stats = WeaponStats::for_weapon(shooter.weapon);
+            shooter.fire_cooldown = weapon_stats.cooldown_ticks;
             shooter.just_fired = true;
+        }
 
-            if let Some(victim_idx) = maybe_victim_idx {
-                let shooter_name = self.players[shooter_idx].name.clone();
-                let victim = &mut self.players[victim_idx];
+        let mut damage_events = Vec::new();
+        for i in 0..self.players.len() {
+            let player = &self.players[i];
 
-                victim.hp -= HITSCAN_DAMAGE;
-                if victim.hp <= 0 {
-                    let victim_name = victim.name.clone();
-                    victim.respawn_timer = Some(RESPAWN_DELAY_TICKS);
-                    self.events.push(GameEvent::Frag {
-                        killer: shooter_name.clone(),
-                        victim: victim_name.clone(),
-                    });
-                    tracing::info!("FRAG: {} → {}", shooter_name, victim_name);
+            if player.respawn_timer.is_some() || !player.just_fired {
+                continue;
+            }
+
+            let weapon_stats = WeaponStats::for_weapon(player.weapon);
+            let victims = self.find_weapon_victims(i, &weapon_stats);
+
+            for (victim_idx, damage) in victims {
+                if damage > 0 {
+                    damage_events.push((i, victim_idx, damage));
                 }
+            }
+        }
+
+        for (shooter_idx, victim_idx, damage) in damage_events {
+            let shooter_name = self.players[shooter_idx].name.clone();
+            let victim = &mut self.players[victim_idx];
+
+            victim.hp -= damage;
+            if victim.hp <= 0 {
+                let victim_name = victim.name.clone();
+                victim.respawn_timer = Some(RESPAWN_DELAY_TICKS);
+                self.events.push(GameEvent::Frag {
+                    killer: shooter_name.clone(),
+                    victim: victim_name.clone(),
+                });
+                tracing::info!("FRAG: {} → {}", shooter_name, victim_name);
             }
         }
 
@@ -187,12 +255,78 @@ impl GameState {
         }
     }
 
-    fn check_hitscan(&self, shooter_idx: usize) -> Option<usize> {
-        let shooter = &self.players[shooter_idx];
-        let ray_dx = shooter.yaw.cos();
-        let ray_dz = shooter.yaw.sin();
+    fn check_weapon_hit(&self, shooter_idx: usize, stats: &WeaponStats) -> i32 {
+        if stats.pellets == 1 {
+            if self
+                .check_single_ray(shooter_idx, stats.range, shooter_idx, 0.0)
+                .is_some()
+            {
+                return stats.damage;
+            }
+        } else {
+            let mut total_damage = 0;
+            for pellet in 0..stats.pellets {
+                let angle_offset = if stats.pellets == 1 {
+                    0.0
+                } else {
+                    let step = stats.spread / (stats.pellets - 1) as f32;
+                    -stats.spread / 2.0 + step * pellet as f32
+                };
 
-        let mut closest_dist = HITSCAN_RANGE;
+                if self
+                    .check_single_ray(shooter_idx, stats.range, shooter_idx, angle_offset)
+                    .is_some()
+                {
+                    total_damage += stats.damage;
+                }
+            }
+            return total_damage;
+        }
+        0
+    }
+
+    fn find_weapon_victims(&self, shooter_idx: usize, stats: &WeaponStats) -> Vec<(usize, i32)> {
+        let mut victims = std::collections::HashMap::new();
+
+        if stats.pellets == 1 {
+            if let Some(victim_idx) =
+                self.check_single_ray(shooter_idx, stats.range, shooter_idx, 0.0)
+            {
+                *victims.entry(victim_idx).or_insert(0) += stats.damage;
+            }
+        } else {
+            for pellet in 0..stats.pellets {
+                let angle_offset = if stats.pellets == 1 {
+                    0.0
+                } else {
+                    let step = stats.spread / (stats.pellets - 1) as f32;
+                    -stats.spread / 2.0 + step * pellet as f32
+                };
+
+                if let Some(victim_idx) =
+                    self.check_single_ray(shooter_idx, stats.range, shooter_idx, angle_offset)
+                {
+                    *victims.entry(victim_idx).or_insert(0) += stats.damage;
+                }
+            }
+        }
+
+        victims.into_iter().collect()
+    }
+
+    fn check_single_ray(
+        &self,
+        shooter_idx: usize,
+        range: f32,
+        _source_idx: usize,
+        angle_offset: f32,
+    ) -> Option<usize> {
+        let shooter = &self.players[shooter_idx];
+        let ray_angle = shooter.yaw + angle_offset;
+        let ray_dx = ray_angle.cos();
+        let ray_dz = ray_angle.sin();
+
+        let mut closest_dist = range;
         let mut closest_idx = None;
 
         for (i, target) in self.players.iter().enumerate() {
@@ -203,6 +337,10 @@ impl GameState {
             let dx = target.x - shooter.x;
             let dz = target.z - shooter.z;
             let dist = (dx * dx + dz * dz).sqrt();
+
+            if dist > range {
+                continue;
+            }
 
             if dist > closest_dist {
                 continue;
@@ -270,6 +408,7 @@ impl GameState {
                         hp: p.hp,
                         just_fired: p.just_fired,
                         behavior,
+                        weapon: p.weapon,
                     }
                 })
                 .collect(),
@@ -295,6 +434,17 @@ pub enum BotBehavior {
     Balanced,
 }
 
+impl BotBehavior {
+    pub fn preferred_weapon(self) -> WeaponType {
+        match self {
+            BotBehavior::Aggressive => WeaponType::Scattergun,
+            BotBehavior::Defensive => WeaponType::Cannon,
+            BotBehavior::Flanker => WeaponType::Scattergun,
+            BotBehavior::Balanced => WeaponType::Blaster,
+        }
+    }
+}
+
 impl BotController {
     pub fn new(player_id: Uuid, behavior: BotBehavior) -> Self {
         Self {
@@ -309,7 +459,17 @@ impl BotController {
         };
 
         if bot.respawn_timer.is_some() {
-            return Action::default();
+            return Action {
+                weapon_swap: Some(self.behavior.preferred_weapon()),
+                ..Default::default()
+            };
+        }
+
+        if bot.weapon != self.behavior.preferred_weapon() {
+            return Action {
+                weapon_swap: Some(self.behavior.preferred_weapon()),
+                ..Default::default()
+            };
         }
 
         let mut nearest_dist = f32::MAX;
@@ -348,9 +508,11 @@ impl BotController {
 
         let mut action = Action::default();
 
+        let weapon_stats = WeaponStats::for_weapon(bot.weapon);
+
         match self.behavior {
             BotBehavior::Aggressive => {
-                // Always chase, fire when close
+                // Scattergun: Rush in close
                 if angle_diff.abs() > 0.2 {
                     if angle_diff > 0.0 {
                         action.turn_right = true;
@@ -359,13 +521,13 @@ impl BotController {
                     }
                 }
                 action.forward = true;
-                if angle_diff.abs() < 0.6 && nearest_dist < 35.0 {
+                if angle_diff.abs() < 0.6 && nearest_dist < weapon_stats.range * 0.8 {
                     action.fire = true;
                 }
             }
 
             BotBehavior::Defensive => {
-                // Keep distance, strafe, precise shooting
+                // Cannon: Keep distance, precise shots
                 if angle_diff.abs() > 0.15 {
                     if angle_diff > 0.0 {
                         action.turn_right = true;
@@ -374,26 +536,23 @@ impl BotController {
                     }
                 }
 
-                if nearest_dist < 8.0 {
+                if nearest_dist < 12.0 {
                     action.back = true;
-                } else if nearest_dist > 15.0 {
+                } else if nearest_dist > 20.0 {
                     action.forward = true;
+                } else if (state.tick % 40) < 20 {
+                    action.left = true;
                 } else {
-                    // Strafe at optimal range
-                    if (state.tick % 40) < 20 {
-                        action.left = true;
-                    } else {
-                        action.right = true;
-                    }
+                    action.right = true;
                 }
 
-                if angle_diff.abs() < 0.3 && nearest_dist < 25.0 {
+                if angle_diff.abs() < 0.2 && nearest_dist < weapon_stats.range * 0.9 {
                     action.fire = true;
                 }
             }
 
             BotBehavior::Flanker => {
-                // Circle around target, fire from sides
+                // Scattergun: Circle close and blast
                 if angle_diff.abs() > 0.25 {
                     if angle_diff > 0.0 {
                         action.turn_right = true;
@@ -402,10 +561,9 @@ impl BotController {
                     }
                 }
 
-                if nearest_dist > 10.0 {
+                if nearest_dist > weapon_stats.range * 0.7 {
                     action.forward = true;
                 } else {
-                    // Circle strafe
                     action.forward = true;
                     if (state.tick % 60) < 30 {
                         action.left = true;
@@ -416,13 +574,13 @@ impl BotController {
                     }
                 }
 
-                if angle_diff.abs() < 0.5 && nearest_dist < 30.0 {
+                if angle_diff.abs() < 0.5 && nearest_dist < weapon_stats.range {
                     action.fire = true;
                 }
             }
 
             BotBehavior::Balanced => {
-                // Standard chase and shoot
+                // Blaster: Standard all-rounder
                 if angle_diff.abs() > 0.3 {
                     if angle_diff > 0.0 {
                         action.turn_right = true;
@@ -435,7 +593,7 @@ impl BotController {
                     action.forward = true;
                 }
 
-                if angle_diff.abs() < 0.5 && nearest_dist < 30.0 {
+                if angle_diff.abs() < 0.5 && nearest_dist < weapon_stats.range * 0.8 {
                     action.fire = true;
                 }
             }

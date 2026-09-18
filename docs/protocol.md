@@ -51,7 +51,8 @@ Sent by `human` or `agent` roles to control their player. All fields are optiona
   "right": false,
   "turn_left": false,
   "turn_right": false,
-  "fire": false
+  "fire": false,
+  "weapon_swap": "cannon"
 }
 ```
 
@@ -60,12 +61,14 @@ Sent by `human` or `agent` roles to control their player. All fields are optiona
 - `left` / `right`: Strafe left/right
 - `turn_left` / `turn_right`: Rotate view left/right
 - `fire`: Fire weapon
+- `weapon_swap` (optional): Change to specified weapon (`"blaster"`, `"cannon"`, or `"scattergun"`)
 
 **Notes:**
 - Actions are discrete intents applied on the next server tick
 - Movement keys combine (e.g., forward + left = diagonal)
-- Server enforces rate limits and cooldowns
+- Server enforces rate limits and cooldowns per weapon type
 - Spectators that send actions are ignored
+- Weapon swap takes effect immediately on the next tick
 
 ### Server → Client
 
@@ -102,7 +105,8 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
       "z": -5.2,
       "yaw": 1.57,
       "hp": 75,
-      "just_fired": false
+      "just_fired": false,
+      "weapon": "blaster"
     }
   ]
 }
@@ -117,6 +121,7 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
   - `yaw`: Rotation in radians (0 = +X axis, counter-clockwise)
   - `hp`: Health points (0-100)
   - `just_fired`: True on the tick a weapon was fired (for muzzle flash)
+  - `weapon`: Current weapon (`"blaster"`, `"cannon"`, or `"scattergun"`)
 
 **Notes:**
 - Dead players (HP ≤ 0) are omitted from the snapshot
@@ -160,10 +165,30 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
 - Walls prevent movement outside bounds
 
 ### Combat
-- **Hitscan weapon**: Instant hit detection, no projectile travel
-- **Damage**: 25 HP per hit
+
+Three distinct weapon roles with different TTK profiles:
+
+**Blaster** (default, all-rounder):
+- **Damage**: 15 HP per hit
+- **Fire rate**: 6 tick cooldown (~300ms, 3.3 shots/sec)
 - **Range**: 100 units
-- **Fire rate**: 10 tick cooldown (~500ms)
+- **TTK**: 7 hits to kill (2.1s optimal)
+
+**Cannon** (hard hitter):
+- **Damage**: 50 HP per hit
+- **Fire rate**: 25 tick cooldown (~1250ms, 0.8 shots/sec)
+- **Range**: 120 units
+- **TTK**: 2 hits to kill (1.25s optimal)
+
+**Scattergun** (close range):
+- **Damage**: 8 HP per pellet × 5 pellets = 40 HP max at point-blank
+- **Fire rate**: 15 tick cooldown (~750ms, 1.3 shots/sec)
+- **Range**: 30 units
+- **Spread**: 0.3 radian cone (5 raycasts)
+- **TTK**: 3 hits point-blank (1.5s optimal), 5+ hits at range
+
+**General**:
+- All weapons use instant hitscan (no projectile travel)
 - **Respawn delay**: 60 ticks (3 seconds)
 
 ### Movement
