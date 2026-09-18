@@ -102,7 +102,12 @@ async fn handle_connection(
                     None
                 };
 
-                let welcome = ServerMessage::Welcome { player_id, role: r };
+                let welcome = ServerMessage::Welcome {
+                    player_id,
+                    role: r,
+                    mode_name: crate::protocol::default_mode_name(),
+                    playlist: crate::protocol::default_playlist(),
+                };
 
                 ws_sink
                     .send(Message::Text(serde_json::to_string(&welcome)?))

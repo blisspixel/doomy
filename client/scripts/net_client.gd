@@ -105,7 +105,7 @@ func _handle_message(text: String):
 	match msg_type:
 		"welcome":
 			player_id = data.get("player_id")
-			print("Welcome received! Role: ", data.get("role"), " Player ID: ", player_id)
+			print("Welcome received! Role: ", data.get("role"), " Player ID: ", player_id, " Mode: ", data.get("mode_name", "Contested Frequency"), "/", data.get("playlist", "Arena Duel"))
 		
 		"snapshot":
 			snapshot_received.emit(data)
