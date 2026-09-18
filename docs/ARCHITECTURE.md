@@ -142,7 +142,7 @@ One graybox arena on loopback. Two **scripted agent bots** (or one agent + one s
 
 ### In scope
 - Rust server: arena collision, move, yaw, hitscan or slow projectiles, HP, respawn.
-- Protocol: join + action + snapshot over WS `ws://127.0.0.1:7777`.
+- Protocol: join + action + snapshot over WS `ws://127.0.0.1:6767`.
 - Godot client: connect, render arena + players, spectator camera.
 - Agent path: either (A) in-process server bots, or (B) adapter process sending actions - **prefer (A) for hour-1, (B) before slice “done”** so MCP shape is proven.
 - README: three terminals - server, spectator, (optional) human.
@@ -151,7 +151,7 @@ One graybox arena on loopback. Two **scripted agent bots** (or one agent + one s
 - LLM agents, public hosting, persistence, UI menus, audio mix, prediction, multiple maps.
 
 ### Success criteria (Slice 1)
-1. From a clean clone (local folders), `cargo run` starts the server bound to `127.0.0.1:7777` with **no cloud config**.
+1. From a clean clone (local folders), `cargo run` starts the server bound to `127.0.0.1:6767` with **no cloud config**.
 2. Two automated fighters engage; within ~30s someone takes damage / a frag occurs (visible in server logs **and** spectator view).
 3. Godot spectator shows both players moving and firing without local sim cheating (killing a process → entities despawn or freeze correctly).
 4. Agent-adapter (or equivalent) can drive at least one fighter through `observe`/`act` (scripted client counts; MCP tool surface documented even if stubbed).
