@@ -236,8 +236,10 @@ func _on_event_received(data):
 		hud.show_boss_down(str(data.get("message", "")), str(data.get("killer", "")))
 	elif event_type == "pickup":
 		var who = str(data.get("player", "?"))
-		var weapon = str(data.get("weapon", "?"))
-		hud.show_pickup_toast(who, weapon)
+		var kind = str(data.get("kind", "weapon"))
+		var weapon = str(data.get("weapon", ""))
+		var amount = int(data.get("amount", 0))
+		hud.show_pickup_toast(who, weapon, kind, amount)
 	elif event_type == "speak":
 		var speaker = str(data.get("player", "?"))
 		var line = str(data.get("text", ""))
@@ -255,18 +257,29 @@ func _sync_pickups(pickup_list):
 		if pid == "":
 			continue
 		seen[pid] = true
+		var kind = str(pad.get("kind", "weapon"))
 		var weapon = str(pad.get("weapon", ""))
+		var amount = int(pad.get("amount", 0))
 		var pos = Vector3(float(pad.get("x", 0.0)), float(pad.get("y", 0.4)), float(pad.get("z", 0.0)))
 		var is_up = bool(pad.get("available", true))
 		if not pickups.has(pid):
 			var node = pickup_scene.instantiate()
 			arena.add_child(node)
-			node.setup(pid, weapon, pos)
+			node.setup(pid, weapon, pos, kind, amount)
 			pickups[pid] = node
 		if pickups.has(pid):
 			pickups[pid].position = pos
+			var dirty = false
 			if pickups[pid].weapon_name != weapon:
 				pickups[pid].weapon_name = weapon
+				dirty = true
+			if pickups[pid].pickup_kind != kind:
+				pickups[pid].pickup_kind = kind
+				dirty = true
+			if pickups[pid].amount != amount:
+				pickups[pid].amount = amount
+				dirty = true
+			if dirty:
 				pickups[pid]._apply_look()
 			pickups[pid].set_available(is_up)
 	for pid in pickups.keys():
