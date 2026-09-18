@@ -13,6 +13,8 @@ const INTERP_SPEED: float = 10.0
 @onready var label: Label3D = $Label3D
 @onready var body: MeshInstance3D = $Body
 @onready var muzzle: MeshInstance3D = $Body/Muzzle
+@onready var fire_sound: AudioStreamPlayer3D = $FireSound
+@onready var hit_sound: AudioStreamPlayer3D = $HitSound
 
 # Distinct colors for named bots
 const BOT_COLORS = {
@@ -31,6 +33,17 @@ func _ready():
 		label.text = player_name
 	if muzzle:
 		muzzle.visible = false
+	
+	_load_audio_streams()
+
+func _load_audio_streams():
+	var audio_dir = "res://assets/audio/"
+	
+	if fire_sound and ResourceLoader.exists(audio_dir + "fire.wav"):
+		fire_sound.stream = load(audio_dir + "fire.wav")
+	
+	if hit_sound and ResourceLoader.exists(audio_dir + "hit.wav"):
+		hit_sound.stream = load(audio_dir + "hit.wav")
 
 func _process(delta):
 	# Interpolate position and rotation toward target
@@ -110,6 +123,9 @@ func _update_body_color(hit: bool):
 	body.material_override = mat
 
 func show_muzzle_flash():
+	if fire_sound and fire_sound.stream:
+		fire_sound.play()
+	
 	if muzzle:
 		muzzle.visible = true
 		var mat = StandardMaterial3D.new()
@@ -128,6 +144,9 @@ func show_muzzle_flash():
 			muzzle.scale = original_scale
 
 func show_hit_feedback():
+	if hit_sound and hit_sound.stream:
+		hit_sound.play()
+	
 	hit_flash_timer = 0.2
 	_update_body_color(true)
 	
