@@ -35,19 +35,25 @@ impl GameSession {
         }
     }
 
-    /// Spawn named bots into the arena (same configs as the production binary).
+    /// Contested Frequency scrap-league rule-bot roster (callsigns + sticky behaviors).
+    pub fn rule_bot_roster() -> &'static [(&'static str, crate::sim::BotBehavior)] {
+        &[
+            ("Dead Air Dan", crate::sim::BotBehavior::Aggressive),
+            ("Nightfall", crate::sim::BotBehavior::Defensive),
+            ("Static Kid", crate::sim::BotBehavior::Flanker),
+            ("Aunt Linda", crate::sim::BotBehavior::Balanced),
+            ("Scout Ant", crate::sim::BotBehavior::Flanker),
+            ("Crackpot", crate::sim::BotBehavior::Defensive),
+            ("Buzzkill", crate::sim::BotBehavior::Aggressive),
+            ("Tin Foil Tina", crate::sim::BotBehavior::Balanced),
+        ]
+    }
+
+    /// Spawn named scrap bots into the arena (same configs as the production binary).
     /// Raises `min_bots` to at least the resulting rule-bot count so solo stays stocked.
+    /// Refreshes sticky Warmup Host roster intro for mid-join.
     pub fn spawn_bots(&mut self, count: usize) {
-        let bot_configs = [
-            ("Rusher", crate::sim::BotBehavior::Aggressive),
-            ("Sniper", crate::sim::BotBehavior::Defensive),
-            ("Flanker", crate::sim::BotBehavior::Flanker),
-            ("Tank", crate::sim::BotBehavior::Balanced),
-            ("Scout", crate::sim::BotBehavior::Flanker),
-            ("Guard", crate::sim::BotBehavior::Defensive),
-            ("Hunter", crate::sim::BotBehavior::Aggressive),
-            ("Striker", crate::sim::BotBehavior::Balanced),
-        ];
+        let bot_configs = Self::rule_bot_roster();
 
         let start_index = self.bots.len();
         for i in 0..count {
@@ -55,7 +61,8 @@ impl GameSession {
             let config_index = start_index + i;
             let (bot_name, behavior) = bot_configs
                 .get(config_index % bot_configs.len())
-                .unwrap_or(&("Bot", crate::sim::BotBehavior::Balanced));
+                .copied()
+                .unwrap_or(("Scrap Bot", crate::sim::BotBehavior::Balanced));
             let display_name = if config_index < bot_configs.len() {
                 bot_name.to_string()
             } else {
@@ -63,7 +70,7 @@ impl GameSession {
             };
             self.state
                 .add_player(bot_id, display_name.clone(), Role::Agent);
-            let bot_controller = BotController::new(bot_id, *behavior);
+            let bot_controller = BotController::new(bot_id, behavior);
             self.bots.push(bot_controller.clone());
             self.state.bots.push(bot_controller);
             tracing::info!("Spawned bot: {} ({:?}, {})", display_name, behavior, bot_id);
@@ -71,6 +78,23 @@ impl GameSession {
         if self.bots.len() > self.min_bots {
             self.min_bots = self.bots.len();
         }
+        self.refresh_roster_host_line();
+    }
+
+    /// Rebuild sticky Warmup Host line from current rule-bot display names.
+    fn refresh_roster_host_line(&mut self) {
+        let names: Vec<String> = self
+            .bots
+            .iter()
+            .filter_map(|b| {
+                self.state
+                    .players
+                    .iter()
+                    .find(|p| p.id == b.player_id)
+                    .map(|p| p.name.clone())
+            })
+            .collect();
+        self.state.set_roster_host_line_from_names(&names);
     }
 
     /// Set the floor for rule-bot count and refill immediately if below it.
@@ -461,8 +485,55 @@ mod session_tests {
             .iter()
             .map(|p| p.name.as_str())
             .collect();
-        assert!(names.contains(&"Rusher"));
-        assert!(names.contains(&"Sniper"));
+        assert!(names.contains(&"Dead Air Dan"));
+        assert!(names.contains(&"Nightfall"));
+        assert!(names.contains(&"Static Kid"));
+        assert!(names.contains(&"Aunt Linda"));
+        assert!(session
+            .state
+            .roster_host_line
+            .as_ref()
+            .is_some_and(|h| h.contains("DEAD AIR DAN") && h.contains("ON THE SCRAP")));
+    }
+
+    #[test]
+    fn spawn_bots_roster_is_contested_frequency_callsigns() {
+        let roster: Vec<_> = GameSession::rule_bot_roster()
+            .iter()
+            .map(|(n, _)| *n)
+            .collect();
+        assert_eq!(roster.len(), 8);
+        assert!(!roster
+            .iter()
+            .any(|n| n.starts_with("Bot") || *n == "Rusher"));
+        assert!(roster.contains(&"Buzzkill"));
+        assert!(roster.contains(&"Tin Foil Tina"));
+    }
+
+    #[test]
+    fn warmup_snapshot_host_line_names_scrap_roster() {
+        let mut session = GameSession::new();
+        session.spawn_bots(4);
+        assert_eq!(session.state.round_state, crate::sim::RoundState::Warmup);
+        let snap = session.state.snapshot();
+        assert!(
+            snap.host_line.contains("ON THE SCRAP"),
+            "Warmup mid-join should name dialed-in scrap bots: {}",
+            snap.host_line
+        );
+        assert!(snap.host_line.contains("DEAD AIR DAN"));
+        // RoundStart should carry the same roster Host flavor.
+        session.state.start_round();
+        let start = session
+            .state
+            .events
+            .iter()
+            .find_map(|e| match e {
+                protocol::GameEvent::RoundStart { host_line, .. } => Some(host_line.clone()),
+                _ => None,
+            })
+            .expect("RoundStart");
+        assert!(start.contains("ON THE SCRAP"));
     }
 
     #[test]
