@@ -7,6 +7,7 @@ use crate::Error;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -73,13 +74,20 @@ pub struct Charge {
 }
 
 impl Charge {
-    /// What the ledger counts: the reported actual, else the estimate.
+    /// What the ledger counts: the reported actual when it is a finite,
+    /// non-negative number, else the estimate. A provider can never lower the
+    /// running total by reporting a negative or nonsense cost.
     pub fn billed_usd(&self) -> f64 {
-        self.actual_usd.unwrap_or(self.estimated_usd)
+        self.actual_usd
+            .filter(|a| a.is_finite() && *a >= 0.0)
+            .unwrap_or(self.estimated_usd)
     }
 }
 
-/// Append-only record of every paid call, kept as JSON under `.agents/spend/`.
+/// Append-only record of every paid call, one JSON object per line under
+/// `.agents/spend/`. Appending a line is crash safe (a torn last line is
+/// skipped with a warning, never a reason to refuse the file) and lets several
+/// processes share one ledger without overwriting each other's charges.
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Ledger {
     #[serde(default)]
@@ -87,28 +95,83 @@ pub struct Ledger {
 }
 
 impl Ledger {
-    /// A missing file is an empty ledger; an unreadable one is an error, never a reset.
+    /// A missing file is an empty ledger. The old single-object format is still
+    /// read. A malformed line in the middle is an error; a torn final line is
+    /// skipped so a crash mid-write cannot lock the next run out.
     pub fn load(path: &Path) -> Result<Self, Error> {
         if !path.exists() {
             return Ok(Ledger::default());
         }
         let text = fs::read_to_string(path)?;
+        Ledger::parse(&text, &path.display().to_string())
+    }
+
+    fn parse(text: &str, label: &str) -> Result<Self, Error> {
         if text.trim().is_empty() {
             return Ok(Ledger::default());
         }
-        serde_json::from_str(&text)
-            .map_err(|err| Error::Malformed(format!("ledger {}: {err}", path.display())))
-    }
-
-    pub fn save(&self, path: &Path) -> Result<(), Error> {
-        if let Some(parent) = path.parent() {
-            if !parent.as_os_str().is_empty() {
-                fs::create_dir_all(parent)?;
+        // The old format was one object with a "charges" array. A single JSON
+        // line would also parse as that struct (unknown fields are ignored), so
+        // look for the key before accepting the old shape.
+        if let Ok(serde_json::Value::Object(map)) = serde_json::from_str::<serde_json::Value>(text)
+        {
+            if map.contains_key("charges") {
+                return serde_json::from_value(serde_json::Value::Object(map))
+                    .map_err(|err| Error::Malformed(format!("ledger {label}: {err}")));
             }
         }
-        let text = serde_json::to_string_pretty(self)
-            .map_err(|err| Error::Malformed(format!("ledger encode: {err}")))?;
+        let lines: Vec<(usize, &str)> = text
+            .lines()
+            .enumerate()
+            .filter(|(_, line)| !line.trim().is_empty())
+            .collect();
+        let mut charges = Vec::with_capacity(lines.len());
+        for (index, (number, line)) in lines.iter().enumerate() {
+            match serde_json::from_str::<Charge>(line) {
+                Ok(charge) => charges.push(charge),
+                Err(err) if index + 1 == lines.len() => {
+                    tracing::warn!(
+                        "ledger {label}: skipping torn last line {}: {err}",
+                        number + 1
+                    );
+                }
+                Err(err) => {
+                    return Err(Error::Malformed(format!(
+                        "ledger {label} line {}: {err}",
+                        number + 1
+                    )));
+                }
+            }
+        }
+        Ok(Ledger { charges })
+    }
+
+    /// Rewrite the whole ledger as JSON lines (migrations and tests).
+    pub fn save(&self, path: &Path) -> Result<(), Error> {
+        ensure_parent(path)?;
+        let mut text = String::new();
+        for charge in &self.charges {
+            text.push_str(&encode_line(charge)?);
+        }
         fs::write(path, text)?;
+        Ok(())
+    }
+
+    /// Append one charge under an exclusive file lock.
+    pub fn append(path: &Path, charge: &Charge) -> Result<(), Error> {
+        ensure_parent(path)?;
+        let line = encode_line(charge)?;
+        // Read access is required for the lock on Windows; append keeps every
+        // write at the end whatever the offset.
+        let mut file = fs::OpenOptions::new()
+            .create(true)
+            .read(true)
+            .append(true)
+            .open(path)?;
+        file.lock()?;
+        let written = file.write_all(line.as_bytes()).and_then(|()| file.flush());
+        let _ = file.unlock();
+        written?;
         Ok(())
     }
 
@@ -121,6 +184,22 @@ impl Ledger {
     pub fn calls(&self) -> usize {
         self.charges.len()
     }
+}
+
+fn ensure_parent(path: &Path) -> Result<(), Error> {
+    if let Some(parent) = path.parent() {
+        if !parent.as_os_str().is_empty() {
+            fs::create_dir_all(parent)?;
+        }
+    }
+    Ok(())
+}
+
+fn encode_line(charge: &Charge) -> Result<String, Error> {
+    let mut line = serde_json::to_string(charge)
+        .map_err(|err| Error::Malformed(format!("ledger encode: {err}")))?;
+    line.push('\n');
+    Ok(line)
 }
 
 /// The caps a run declares up front. `run_usd` at zero means no paid call at all.
@@ -144,13 +223,75 @@ impl Default for Caps {
     }
 }
 
+/// The most one run may be allowed to spend, the developer ceiling in AGENTS.md.
+/// Raising it is a code change, which is the written approval the rules ask for.
+pub const MAX_RUN_CAP_USD: f64 = 5.0;
+
+impl Caps {
+    /// Every cap finite, non-negative, and under the ceiling.
+    pub fn validate(&self) -> Result<(), Error> {
+        let finite = |name: &str, value: f64| -> Result<(), Error> {
+            if value.is_finite() && value >= 0.0 {
+                Ok(())
+            } else {
+                Err(Error::InvalidArgument(format!(
+                    "{name} must be a finite non-negative number, got {value}"
+                )))
+            }
+        };
+        finite("--max-spend-usd", self.run_usd)?;
+        if self.run_usd > MAX_RUN_CAP_USD {
+            return Err(Error::InvalidArgument(format!(
+                "--max-spend-usd {} exceeds the {MAX_RUN_CAP_USD:.2} dollar per-run ceiling in AGENTS.md",
+                self.run_usd
+            )));
+        }
+        if let Some(total) = self.total_usd {
+            finite("--max-total-usd", total)?;
+        }
+        Ok(())
+    }
+}
+
+impl Pricing {
+    /// Prices finite and non-negative.
+    pub fn validate(&self) -> Result<(), Error> {
+        for (name, value) in [
+            ("--price-input-per-million", self.input_per_million),
+            ("--price-output-per-million", self.output_per_million),
+        ] {
+            if !(value.is_finite() && value >= 0.0) {
+                return Err(Error::InvalidArgument(format!(
+                    "{name} must be a finite non-negative number, got {value}"
+                )));
+            }
+        }
+        Ok(())
+    }
+}
+
 /// Why a call was not sent.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Refusal {
     NoCap,
-    RunCap { spent: f64, estimate: f64, cap: f64 },
-    TotalCap { total: f64, estimate: f64, cap: f64 },
-    CallCap { calls: u64, cap: u64 },
+    RunCap {
+        spent: f64,
+        estimate: f64,
+        cap: f64,
+    },
+    TotalCap {
+        total: f64,
+        estimate: f64,
+        cap: f64,
+    },
+    CallCap {
+        calls: u64,
+        cap: u64,
+    },
+    /// A cap, price, estimate, or running total is not a finite non-negative number.
+    Invalid(String),
+    /// The ledger on disk could not be read to enforce the total cap.
+    LedgerUnreadable(String),
 }
 
 impl fmt::Display for Refusal {
@@ -179,6 +320,8 @@ impl fmt::Display for Refusal {
             Refusal::CallCap { calls, cap } => {
                 write!(f, "call cap reached: {calls} of {cap} paid calls used")
             }
+            Refusal::Invalid(what) => write!(f, "refusing to spend: {what} is not a finite non-negative number"),
+            Refusal::LedgerUnreadable(err) => write!(f, "refusing to spend: ledger unreadable: {err}"),
         }
     }
 }
@@ -253,7 +396,15 @@ impl Budget {
     }
 
     /// Would a call costing `estimate_usd` fit every cap? Checked before sending.
-    pub fn check(&self, estimate_usd: f64) -> Result<(), Refusal> {
+    /// When a total cap is set and a ledger file exists, the total on disk is
+    /// re-read so charges from other processes sharing the ledger count too.
+    pub fn check(&mut self, estimate_usd: f64) -> Result<(), Refusal> {
+        if !(estimate_usd.is_finite() && estimate_usd >= 0.0) {
+            return Err(Refusal::Invalid("the estimate".to_string()));
+        }
+        if !self.run_usd.is_finite() || !self.caps.run_usd.is_finite() {
+            return Err(Refusal::Invalid("the running total or cap".to_string()));
+        }
         if self.caps.run_usd <= 0.0 {
             return Err(Refusal::NoCap);
         }
@@ -273,7 +424,16 @@ impl Budget {
             });
         }
         if let Some(cap) = self.caps.total_usd {
+            if let Some(path) = &self.ledger_path {
+                let on_disk =
+                    Ledger::load(path).map_err(|err| Refusal::LedgerUnreadable(err.to_string()))?;
+                // Other processes may have appended since this run started.
+                self.prior_usd = self.prior_usd.max(on_disk.total_usd() - self.run_usd);
+            }
             let total = self.total_usd();
+            if !total.is_finite() {
+                return Err(Refusal::Invalid("the ledger total".to_string()));
+            }
             if total + estimate_usd > cap + EPSILON {
                 return Err(Refusal::TotalCap {
                     total,
@@ -285,15 +445,18 @@ impl Budget {
         Ok(())
     }
 
-    /// Count a call that was sent, whether or not it succeeded, and persist.
+    /// Count a call that was sent, whether or not it succeeded, and append it
+    /// to the ledger. The in-memory totals move first so the run cap holds even
+    /// when the disk write fails.
     pub fn record(&mut self, charge: Charge) -> Result<(), Error> {
         self.run_usd += charge.billed_usd();
         self.run_calls += 1;
+        let appended = match &self.ledger_path {
+            Some(path) => Ledger::append(path, &charge),
+            None => Ok(()),
+        };
         self.ledger.charges.push(charge);
-        if let Some(path) = &self.ledger_path {
-            self.ledger.save(path)?;
-        }
-        Ok(())
+        appended
     }
 }
 
@@ -362,14 +525,111 @@ mod tests {
         assert_eq!(back.calls(), 2);
         fs::write(&path, "   ").unwrap();
         assert_eq!(Ledger::load(&path).unwrap(), Ledger::default());
-        fs::write(&path, "{not json").unwrap();
+        // A torn last line is skipped; a bad middle line is an error.
+        let good = serde_json::to_string(&charge(0.01, None)).unwrap();
+        fs::write(&path, format!("{good}\n{{\"unix\":1,\"prov")).unwrap();
+        assert_eq!(Ledger::load(&path).unwrap().calls(), 1);
+        fs::write(&path, format!("{{not json\n{good}\n")).unwrap();
         assert!(matches!(Ledger::load(&path), Err(Error::Malformed(_))));
+        // The old single-object format still loads.
+        let old = serde_json::json!({"charges": [charge(0.02, None)]});
+        fs::write(&path, old.to_string()).unwrap();
+        assert_eq!(Ledger::load(&path).unwrap().calls(), 1);
+        // Append is one line per charge and survives a re-read.
+        let _ = fs::remove_file(&path);
+        Ledger::append(&path, &charge(0.03, None)).unwrap();
+        Ledger::append(&path, &charge(0.04, Some(0.05))).unwrap();
+        let text = fs::read_to_string(&path).unwrap();
+        assert_eq!(text.lines().count(), 2);
+        assert!((Ledger::load(&path).unwrap().total_usd() - 0.08).abs() < 1e-12);
+        let _ = fs::remove_file(&path);
+    }
+
+    #[test]
+    fn non_finite_and_negative_values_never_pass() {
+        assert_eq!(charge(0.5, Some(f64::NAN)).billed_usd(), 0.5);
+        assert_eq!(charge(0.5, Some(-1.0)).billed_usd(), 0.5);
+        assert_eq!(charge(0.5, Some(f64::INFINITY)).billed_usd(), 0.5);
+        let caps = Caps {
+            run_usd: f64::NAN,
+            total_usd: None,
+            run_calls: None,
+        };
+        assert!(caps.validate().is_err());
+        let mut budget = Budget::new(caps, Pricing::default());
+        assert!(matches!(budget.check(0.0), Err(Refusal::Invalid(_))));
+        let caps = Caps {
+            run_usd: 1.0,
+            total_usd: Some(f64::INFINITY),
+            run_calls: None,
+        };
+        assert!(caps.validate().is_err());
+        let mut budget = Budget::new(
+            Caps {
+                run_usd: 1.0,
+                total_usd: None,
+                run_calls: None,
+            },
+            Pricing::default(),
+        );
+        assert!(matches!(budget.check(f64::NAN), Err(Refusal::Invalid(_))));
+        assert!(matches!(budget.check(-0.5), Err(Refusal::Invalid(_))));
+        assert!(Refusal::Invalid("x".into()).to_string().contains("finite"));
+        assert!(Caps {
+            run_usd: MAX_RUN_CAP_USD + 0.01,
+            total_usd: None,
+            run_calls: None,
+        }
+        .validate()
+        .is_err());
+        assert!(Caps {
+            run_usd: MAX_RUN_CAP_USD,
+            total_usd: Some(0.0),
+            run_calls: None,
+        }
+        .validate()
+        .is_ok());
+        assert!(Pricing {
+            input_per_million: -1.0,
+            output_per_million: 0.0
+        }
+        .validate()
+        .is_err());
+        assert!(Pricing {
+            input_per_million: f64::NAN,
+            output_per_million: 0.0
+        }
+        .validate()
+        .is_err());
+        assert!(Pricing::default().validate().is_ok());
+    }
+
+    #[test]
+    fn total_cap_sees_charges_from_other_processes() {
+        let path = temp_path("shared");
+        let _ = fs::remove_file(&path);
+        let caps = Caps {
+            run_usd: 1.0,
+            total_usd: Some(0.05),
+            run_calls: None,
+        };
+        let mut budget = Budget::with_ledger(caps, Pricing::default(), &path).unwrap();
+        assert_eq!(budget.check(0.01), Ok(()));
+        // Another process appends 0.045 behind our back.
+        Ledger::append(&path, &charge(0.045, None)).unwrap();
+        assert!(matches!(budget.check(0.01), Err(Refusal::TotalCap { .. })));
+        assert!((budget.prior_usd() - 0.045).abs() < 1e-12);
+        fs::write(&path, "{bad\n{worse\n").unwrap();
+        assert!(matches!(
+            budget.check(0.0),
+            Err(Refusal::LedgerUnreadable(_))
+        ));
         let _ = fs::remove_file(&path);
     }
 
     #[test]
     fn no_cap_refuses_everything() {
-        let budget = Budget::new(Caps::default(), Pricing::default());
+        let mut budget = Budget::new(Caps::default(), Pricing::default());
         assert_eq!(budget.check(0.0), Err(Refusal::NoCap));
         assert!(Refusal::NoCap.to_string().contains("--max-spend-usd"));
     }

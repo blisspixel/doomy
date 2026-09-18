@@ -6,7 +6,7 @@
 
 ## Goal
 
-Give fragr a third agent tier next to the scripted bot and the playtest reflex agents: a fighter whose macro intent comes from a decision model at two to five decisions per second while a local controller plays every tick. The first brain is Jev, TypeSafe AI's decision model, reached natively or through OpenRouter. Any paid call sits behind one budget gate with a pre-approved cap, a pre-send estimate, a post-return settlement, and a ledger on disk.
+Give fragr a reference agent whose macro intent comes from a decision model at two to five decisions per second while a local controller plays every tick. It is another way to engage as an agent, not a new kind of participant: one agent may combine a language model, other ML, and a decision model, and the server sees one fighter. The first brain is Jev, TypeSafe AI's decision model, reached natively or through OpenRouter. Any paid call sits behind one budget gate with a pre-approved cap, a pre-send estimate, a post-return settlement, and a ledger on disk.
 
 ## Why a decision model and not a chat model
 
@@ -34,7 +34,7 @@ The two-tier split is the same one SIMA 2 and every working design uses: a slow 
 | | TypeSafe native | OpenRouter |
 |---|---|---|
 | Endpoint | `POST https://api.typesafe.ai/v1/systemone` | `POST https://openrouter.ai/api/alpha/decisions` |
-| Model | `jev-latest` (alias of `jev-1.13.0`) | `typesafe/jev-1.13` (served as `jev-1.13-20260917`); `~typesafe/jev-latest` also accepted; plain `typesafe/jev-latest` returns 400 |
+| Model | `jev-1.13.0` pinned (`jev-latest` and `jev-preview` alias it) | `typesafe/jev-1.13` (served as `jev-1.13-20260917`); `~typesafe/jev-latest` also accepted; plain `typesafe/jev-latest` returns 400 |
 | Auth | `Authorization: Bearer` | `Authorization: Bearer` plus `HTTP-Referer` and `X-OpenRouter-Title` for app attribution |
 | Body | `state`, `model`, `questions` map | same |
 | Answers | `answers.<name>.{choice,noul,score}` plus `confidence`, `probabilities` | same, plus `id`, `provider` |
@@ -50,7 +50,7 @@ Question types are `choice` (named options with descriptions), `noul` (probabili
 1. `--max-spend-usd` defaults to zero; a paid provider with a zero cap refuses to start.
 2. Estimate before send: request bytes divided by two (the measured billing ratio), rounded up, plus overhead, at the configured price. A call that would cross the run cap, the ledger cap (`--max-total-usd`), or the call cap (`--max-calls`) is not sent.
 3. Settle after return: reported tokens (and OpenRouter's reported cost) replace the estimate.
-4. Ledger at `.agents/spend/brain.json` (gitignored) records every sent call, successful or not, and carries totals across runs. `fragr-brain spend` prints it.
+4. Ledger at `.agents/spend/brain.jsonl` (gitignored, one JSON line per call, appended under a file lock) records every sent call, successful or not, and carries totals across runs and processes. `fragr-brain spend` prints it. The per-run cap is refused above five dollars by a constant in the code.
 5. Provider backstop: an OpenRouter key with its own dollar limit; `fragr-brain key` shows it.
 
 ## Verification
@@ -94,7 +94,7 @@ The question is whether a brain fighter beats a reflex fighter, and by how much,
 
 ## Success criteria
 
-- [ ] Local provider plays a round on every PR at zero cost.
-- [ ] A paid provider refuses to start without a cap and stops at the cap, proven by tests.
+- [x] Local provider plays in-process on every PR at zero cost (the three second `local_provider_plays_for_free` test); the thirty second smoke in AGENTS.md covers a round.
+- [x] A paid provider refuses to start without a cap and stops at the cap, proven by the budget and bot tests.
 - [x] A developer smoke against OpenRouter recorded in the local ledger (2026-09-18: three `ask` calls and a live `play` session under a 25 cent cap). TypeSafe native still needs a key (waitlist).
 - [ ] Playtest tier `brain` with paired rounds and a private results note.

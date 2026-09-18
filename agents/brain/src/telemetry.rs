@@ -65,6 +65,8 @@ impl RecentHits {
         while matches!(self.hits.front(), Some((t, _)) if *t < floor) {
             self.hits.pop_front();
         }
+        // A hit stamped in the future means the server restarted its clock.
+        self.hits.retain(|(t, _)| *t <= tick);
         self.hits.iter().map(|(_, d)| *d).sum()
     }
 
@@ -132,6 +134,10 @@ pub fn observe(me: Uuid, snapshot: &Snapshot, hits: &mut RecentHits) -> Option<T
     let mut top_rival_score = 0;
     let mut fighters = 0;
     for other in &snapshot.players {
+        if other.id != me {
+            // A respawning leader is still the leader.
+            top_rival_score = top_rival_score.max(other.score);
+        }
         if other.hp <= 0 {
             continue;
         }
@@ -139,7 +145,6 @@ pub fn observe(me: Uuid, snapshot: &Snapshot, hits: &mut RecentHits) -> Option<T
         if other.id == me {
             continue;
         }
-        top_rival_score = top_rival_score.max(other.score);
         let dist = dist2d(mine.x, mine.z, other.x, other.z);
         if enemy.as_ref().is_none_or(|e| dist < e.dist) {
             enemy = Some(EnemyView {
@@ -400,6 +405,13 @@ mod tests {
         assert_eq!(hits.damage_within(60, UNDER_FIRE_TICKS), 25);
         assert_eq!(hits.damage_within(200, UNDER_FIRE_TICKS), 0);
         assert!(hits.is_empty());
+        hits.ingest(me, 500, &on_me);
+        assert_eq!(
+            hits.damage_within(100, UNDER_FIRE_TICKS),
+            0,
+            "future hits drop"
+        );
+        assert!(hits.is_empty());
     }
 
     #[test]
@@ -434,7 +446,7 @@ mod tests {
         assert_eq!(enemy.name, "near");
         assert!((enemy.dist - 5.0).abs() < 1e-5);
         assert_eq!(enemy.weapon, "scatter");
-        assert_eq!(t.top_rival_score, 7, "dead rivals do not set the bar");
+        assert_eq!(t.top_rival_score, 9, "a respawning leader still leads");
         assert!((t.health_pad.unwrap() - 5.0).abs() < 1e-5);
         assert!((t.armor_pad.unwrap() - 8.0).abs() < 1e-5);
         assert_eq!(t.weapon_pads.len(), 1);

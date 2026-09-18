@@ -245,7 +245,24 @@ impl Transport for HttpTransport {
     }
 }
 
+/// Untrusted text made safe for a log line: control characters stripped,
+/// at most 200 characters, a marker when cut.
+fn shorten(text: &str) -> String {
+    let cleaned: String = text.chars().filter(|c| !c.is_control()).collect();
+    let trimmed = cleaned.trim();
+    let mut short: String = trimmed.chars().take(200).collect();
+    if short.chars().count() < trimmed.chars().count() {
+        short.push_str("...");
+    }
+    if short.is_empty() {
+        "empty body".to_string()
+    } else {
+        short
+    }
+}
+
 /// The most useful message in an error body, whatever shape the provider used.
+/// Every path is bounded and stripped, since the body is the provider's to write.
 pub fn api_error_message(body: &[u8]) -> String {
     let text = String::from_utf8_lossy(body);
     if let Ok(value) = serde_json::from_str::<Value>(&text) {
@@ -268,24 +285,15 @@ pub fn api_error_message(body: &[u8]) -> String {
             }
             if found {
                 if let Some(s) = node.as_str() {
-                    return s.to_string();
+                    return shorten(s);
                 }
                 if !node.is_null() && !node.is_object() {
-                    return node.to_string();
+                    return shorten(&node.to_string());
                 }
             }
         }
     }
-    let trimmed = text.trim();
-    let mut short: String = trimmed.chars().take(200).collect();
-    if short.len() < trimmed.len() {
-        short.push_str("...");
-    }
-    if short.is_empty() {
-        "empty body".to_string()
-    } else {
-        short
-    }
+    shorten(&text)
 }
 
 /// Turn a raw response into a parsed decision or an API error.
@@ -371,7 +379,7 @@ pub fn decide(
     request: &HttpRequest,
 ) -> Result<Decision, Error> {
     let (estimate, pricing) = {
-        let guard = lock(budget);
+        let mut guard = lock(budget);
         let estimate = estimate_cost(request, &guard.pricing);
         guard.check(estimate)?;
         (estimate, guard.pricing)
@@ -392,7 +400,9 @@ pub fn decide(
     };
     if let Ok(response) = &outcome {
         charge.ok = true;
-        charge.actual_usd = response.cost_usd(&pricing);
+        charge.actual_usd = response
+            .cost_usd(&pricing)
+            .filter(|cost| cost.is_finite() && *cost >= 0.0);
         charge.input_tokens = response.usage.as_ref().map(|u| u.input_tokens);
         charge.output_tokens = response.usage.as_ref().map(|u| u.output_tokens);
         charge.request_id = response.id.clone();
@@ -646,6 +656,14 @@ mod tests {
         let shown = api_error_message(long.as_bytes());
         assert_eq!(shown.len(), 203);
         assert!(shown.ends_with("..."));
+        let json_long = format!(
+            "{{\"error\":{{\"message\":\"{}\\u0007\"}}}}",
+            "y".repeat(400)
+        );
+        let shown = api_error_message(json_long.as_bytes());
+        assert_eq!(shown.len(), 203, "JSON paths are bounded too");
+        assert!(!shown.contains('\u{7}'));
+        assert_eq!(api_error_message(b"\x1b[31mred\x1b[0m"), "[31mred[0m");
     }
 
     #[test]

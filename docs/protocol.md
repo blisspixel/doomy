@@ -91,6 +91,24 @@ World-point aim:
 - Unknown fields are rejected (schema error). Sticky state is not overwritten by junk.
 - MCP `act` returns `isError` on unknown keys, bad `weapon_swap`, or bad `look_at` (unknown nested keys, incomplete x/z, bad UUID). Empty/missing arguments are OK (all defaults).
 
+#### SetDisplayBehavior
+
+Agent-only observe chip. Echoed into Snapshot `PlayerState.behavior`. Never trusted for combat. Rule-bot behaviors still come from server `BotController`.
+
+```json
+{
+  "type": "set_display_behavior",
+  "behavior": "push_enemy"
+}
+```
+
+**Rules:**
+- `behavior` required; trimmed; max 32 Unicode scalars; no control characters; deny unknown fields
+- Accepted only for `agent` role players that are not server rule bots
+- Humans and spectators are ignored
+- Brain clients publish stance names: `push_enemy`, `fall_back_heal`, `hold_angle`, `kite_distance`
+- HUD short chips: PSH / HL / HLD / KIT
+
 ### Server → Client
 
 #### Speak
@@ -208,7 +226,7 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
   - `hp`: Health points (0-100)
   - `armor`: Scrap armor (0-100, default 0); absorbs damage before HP
   - `just_fired`: True on the tick a weapon was fired (for muzzle flash)
-  - `behavior`: (optional) Bot behavior type if server-side bot
+  - `behavior`: (optional) Rule-bot tactics name, or Agent-set display label from `set_display_behavior`
   - `score`: Kills in current round
   - `weapon`: Current weapon name ("Flechette", "Rail", or "Scatter")
 - `round_state`: (optional) Current round state ("Warmup", "Active", "Ended")

@@ -1,10 +1,10 @@
 # fragr-brain
 
-An example agent whose intent comes from a decision model and whose reflexes stay local. It is the third rung of the agent ladder: the scripted bot reacts, the playtest reflex agents react, and this one asks a brain what to do a few times a second while a local controller keeps playing every tick.
+A reference agent whose intent comes from a decision model and whose reflexes stay local. An agent in fragr is one participant on the wire, however it thinks: server-run rule bots, any MCP client through the adapter, a scripted client, or this one, which asks a decision model what to do a few times a second while a local controller keeps playing every tick. One agent can combine a language model, other ML, and a decision model; the server sees one fighter either way.
 
 The brain is Jev, TypeSafe AI's decision model, reached either at TypeSafe's own endpoint or through OpenRouter. Jev does not generate text. It answers typed questions (a choice between named options, a yes-or-no probability, a score on an ordered scale) with calibrated confidence, in a few hundred milliseconds, for about four cents per million input tokens. That shape fits a shooter far better than a chat model: no prose to parse, no invalid actions to guard against, no warm-up.
 
-Traditional agents keep their door. Any MCP client still drives a fighter through `agent-adapter`; this crate is a separate, optional client on the same wire protocol.
+The MCP door is unchanged. Any MCP client still drives a fighter through `agent-adapter`; this crate is a separate, optional client on the same wire protocol, and the two can be mixed inside one agent.
 
 ## Run it for free
 
@@ -34,7 +34,7 @@ cargo run -p fragr-brain -- --provider typesafe --max-spend-usd 5 play --name Je
 cargo run -p fragr-brain -- --provider openrouter --max-spend-usd 5 play --name Jev-2
 ```
 
-Both providers send the same body: a `state` string, a `model`, and a `questions` map. TypeSafe expects `jev-latest` at `https://api.typesafe.ai/v1/systemone`. OpenRouter expects `typesafe/jev-1.13` at `https://openrouter.ai/api/alpha/decisions` and gets the app attribution headers pointing at this repository. Override the model with `--model`.
+Both providers send the same body: a `state` object, a `model`, and a `questions` map. TypeSafe gets `jev-1.13.0` at `https://api.typesafe.ai/v1/systemone`. OpenRouter gets `typesafe/jev-1.13` at `https://openrouter.ai/api/alpha/decisions` plus the app attribution headers pointing at this repository. Override the model with `--model`.
 
 ## Budget controls
 
@@ -43,8 +43,9 @@ Every paid path goes through one gate, in this order:
 1. **Pre-approval.** `--max-spend-usd` defaults to zero. A paid provider with a zero cap refuses to start and says how to approve one.
 2. **Estimate before send.** Each request is priced from its byte length (two characters per token, the ratio measured against OpenRouter's billed count, rounded up, plus overhead) at `--price-input-per-million` and `--price-output-per-million`, which default to Jev's list price. If the estimate would cross a cap, the call is not sent.
 3. **Settle after return.** The provider's reported usage (and OpenRouter's reported cost) replaces the estimate in the running total.
-4. **Ledger on disk.** Every sent call, successful or not, lands in `.agents/spend/brain.json`. The total carries across runs. `--max-total-usd` caps that total; `--max-calls` caps the count regardless of price. `fragr-brain spend` prints it.
-5. **Fail open to rules.** A refused, failed, slow, or low-confidence decision hands the fighter to the local rules for that cycle. A cap refusal turns the brain off for the rest of the run, once, with a warning. The fighter never stops playing.
+4. **Ledger on disk.** Every sent call, successful or not, is appended as one JSON line to `.agents/spend/brain.jsonl` under a file lock, so several processes can share it and a crash mid-write costs at most the torn last line. The total carries across runs. `--max-total-usd` caps that total and re-reads the file before each call so other processes' charges count; `--max-calls` caps the count regardless of price. `fragr-brain spend` prints it.
+5. **Fail open to rules.** A refused, failed, slow, or low-confidence decision hands the fighter to the local rules for that cycle. A cap refusal, a bad key or model id (400, 401, 403, 404, 422), or three unreadable answers in a row turn the brain off for the rest of the run, once, with a warning, so a misconfiguration cannot bill a phantom charge every cycle. Dead fighters and fighters outside an active round are never asked. The fighter never stops playing.
+7. **Per-run ceiling.** `--max-spend-usd` above five dollars is refused outright; that ceiling is a constant in the code, so raising it is a reviewed change.
 6. **Provider-side backstop.** For OpenRouter, create a key with its own dollar limit in the dashboard; `fragr-brain --provider openrouter key` shows the limit and what remains, and warns when the key has none.
 
 Measured on 2026-09-18 through OpenRouter: one call bills roughly 700 input tokens (the fixed question text dominates the small state) and costs about three hundredths of a cent. At three decisions per second that is about two cents a minute, or thirty-three cents an hour of continuous play. A five dollar cap is about fifteen hours. Trimming the criteria text is the cheapest lever. Latency and win rates are deliberately not published here: TypeSafe's customer agreement forbids publishing performance information about the service, so those stay in local ledgers and reports.
