@@ -43,7 +43,10 @@ pub enum WeaponType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ClientMessage {
-    Hello { role: Role, name: String },
+    Hello {
+        role: Role,
+        name: String,
+    },
     Action(Action),
     Speak(Speak),
     /// Agent-only display label echoed into Snapshot PlayerState.behavior.

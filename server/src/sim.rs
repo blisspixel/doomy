@@ -776,7 +776,11 @@ impl GameState {
         if self.bots.iter().any(|b| b.player_id == id) {
             return false;
         }
-        let trimmed: String = raw.trim().chars().take(Self::DISPLAY_BEHAVIOR_MAX_CHARS + 1).collect();
+        let trimmed: String = raw
+            .trim()
+            .chars()
+            .take(Self::DISPLAY_BEHAVIOR_MAX_CHARS + 1)
+            .collect();
         if trimmed.is_empty() || trimmed.chars().count() > Self::DISPLAY_BEHAVIOR_MAX_CHARS {
             return false;
         }

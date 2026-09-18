@@ -801,23 +801,18 @@ mod session_tests {
             name: "Player".into(),
             player_id: Some(human),
         });
-        assert!(!session
-            .state
-            .set_display_behavior(human, "push_enemy"));
+        assert!(!session.state.set_display_behavior(human, "push_enemy"));
         let snap = session.state.snapshot();
         let me = snap.players.iter().find(|p| p.id == human).unwrap();
         assert!(me.behavior.is_none());
 
         session.spawn_bots(1);
         let bot_id = session.state.bots[0].player_id;
-        assert!(!session
-            .state
-            .set_display_behavior(bot_id, "push_enemy"));
+        assert!(!session.state.set_display_behavior(bot_id, "push_enemy"));
         let snap = session.state.snapshot();
         let bot = snap.players.iter().find(|p| p.id == bot_id).unwrap();
         assert_eq!(bot.behavior.as_deref(), Some("Aggressive"));
     }
-
 
     #[test]
     fn compliance_drone_spawn_does_not_inflate_min_bots() {

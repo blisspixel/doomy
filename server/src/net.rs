@@ -186,9 +186,7 @@ async fn handle_connection(
                                 });
                             }
                         }
-                        Ok(ClientMessage::SetDisplayBehavior(msg))
-                            if role == Role::Agent =>
-                        {
+                        Ok(ClientMessage::SetDisplayBehavior(msg)) if role == Role::Agent => {
                             // Further gated in sim (rule bots / humans ignored).
                             if let Some(pid) = player_id {
                                 let _ = game_tx.send(GameCommand::SetDisplayBehavior {
