@@ -6,7 +6,7 @@ Raise the Godot tip face from graybox + neon zone plates to a **chunky pixel-3D 
 
 ## Tip priorities
 
-MCP session tools shipped on tip (`8185f1c`, #65). **Pixel-3D look bar is now the tip priority.** look_at / hit HOLD. Speak rate-limit closed.
+Sealed on tip (`5d16f32`, #66). Next tip polish: far-cam fighter scale. look_at / hit HOLD.
 
 ## Non-goals
 
@@ -51,4 +51,4 @@ Inspect stills: floor/wall grit reads, fighters are billboard sprites not white 
 
 - Plan landed; tip priorities updated
 - Playable tip face looks like pixel-3D Contested Frequency scrap, not graybox
-- PR open on `cursor/pixel-3d-look-bar`; CI-ready (Godot-only diff)
+- Shipped on tip (`5d16f32`, #66); CI-ready Godot-only look bar
