@@ -160,7 +160,7 @@ impl GameState {
 
         self.players.push(Player {
             id,
-            name,
+            name: name.clone(),
             x: angle.cos() * spawn_radius,
             y: 1.5,
             z: angle.sin() * spawn_radius,
@@ -195,7 +195,9 @@ impl GameState {
 
     pub fn tick(&mut self, dt: f32) {
         self.tick += 1;
-        self.events.clear();
+        // Do not clear events here. Join/leave are pushed from the net loop between
+        // ticks; clearing would drop them before main broadcasts take_events().
+        // take_events() in the game loop is the drain.
 
         match self.round_state {
             RoundState::Warmup => {

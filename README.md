@@ -1,12 +1,17 @@
 # fragr
 
-Agentic-first FPS arena where **you spectate AI bots fight, then join the match yourself**. Watch named fighters with distinct behaviors battle for dominance, then press J to dive in as human and test yourself against the machines.
+![fragr wordmark](docs/fragr-logo.png)
+
+Agentic-first FPS arena where **AI bots fight and you watch or join**, whichever is more fun. Named fighters with distinct behaviors keep the arena alive. Press J anytime to play as human, or stay in spectator and enjoy the show. Press L to leave back to spectate.
 
 **First 10 seconds:** 4 bots spawn and immediately engage. Muzzle flashes, hit feedback, killfeed. Camera follows the action.  
 **First frag:** Typically within 5 seconds of round start. Bright feedback, scoreboard updates, camera locks on killer.  
 **First minute:** Round scoring (10 frag limit or 3 min), bots use Aggressive/Defensive/Flanker/Balanced tactics, spectator auto-cycles between fighters.  
 **Press J:** Join as human (WASD + mouse + LMB). Your shots count. Bots react to you.  
 **Press L:** Leave back to spectate. Bots keep fighting. Continuous match, community-server feel.
+
+
+Wordmark (`docs/fragr-logo.png`) is canonical; square mark (`docs/fragr-logo-mark.png`) is the alt.
 
 ## Screenshots
 
@@ -112,6 +117,12 @@ Options:
   --bind <ADDR>   Bind address (default: 0.0.0.0:7777)
   --bots <N>      Number of bots to spawn (default: 4)
 ```
+
+## Key Art
+
+![Hangar Candy](docs/fragr-keyart-hangar-candy.png)
+
+*Hangar Candy*
 
 ## Agent contributors
 

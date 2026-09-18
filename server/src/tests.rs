@@ -1670,3 +1670,71 @@ fn test_weapon_snapshot_includes_weapon_name() {
     let snapshot = state.snapshot();
     assert_eq!(snapshot.players[0].weapon, "Scatter");
 }
+
+#[test]
+fn test_join_leave_event_serialization() {
+    use crate::protocol::{GameEvent, ServerMessage};
+
+    let join_event = GameEvent::PlayerJoined {
+        player: "TestPlayer".to_string(),
+        role: "human".to_string(),
+        round_number: 1,
+        player_count: 5,
+    };
+    let join_msg = ServerMessage::Event(join_event);
+    let join_json = serde_json::to_string(&join_msg).unwrap();
+    assert!(join_json.contains(r#""event":"player_joined"#));
+    assert!(join_json.contains(r#""player":"TestPlayer"#));
+    assert!(join_json.contains(r#""role":"human"#));
+    assert!(join_json.contains(r#""round_number":1"#));
+    assert!(join_json.contains(r#""player_count":5"#));
+
+    let leave_event = GameEvent::PlayerLeft {
+        player: "TestPlayer".to_string(),
+        score: 7,
+        round_number: 2,
+        player_count: 4,
+    };
+    let leave_msg = ServerMessage::Event(leave_event);
+    let leave_json = serde_json::to_string(&leave_msg).unwrap();
+    assert!(leave_json.contains(r#""event":"player_left"#));
+    assert!(leave_json.contains(r#""player":"TestPlayer"#));
+    assert!(leave_json.contains(r#""score":7"#));
+    assert!(leave_json.contains(r#""round_number":2"#));
+    assert!(leave_json.contains(r#""player_count":4"#));
+}
+
+#[test]
+fn join_leave_events_survive_tick() {
+    use crate::protocol::GameEvent;
+    let mut state = GameState::new();
+    state.push_event(GameEvent::PlayerJoined {
+        player: "AgentA".to_string(),
+        role: "agent".to_string(),
+        round_number: state.round_number,
+        player_count: 1,
+    });
+    state.tick(0.05);
+    state.push_event(GameEvent::PlayerLeft {
+        player: "AgentA".to_string(),
+        score: 0,
+        round_number: state.round_number,
+        player_count: 0,
+    });
+    state.tick(0.05);
+    let events = state.take_events();
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, GameEvent::PlayerJoined { .. })),
+        "PlayerJoined must survive tick() and remain until take_events: {:?}",
+        events
+    );
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, GameEvent::PlayerLeft { .. })),
+        "PlayerLeft must survive tick() and remain until take_events: {:?}",
+        events
+    );
+}

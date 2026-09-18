@@ -12,7 +12,7 @@ Guidance for coding agents working in this repository. Humans: start with `READM
 - `docs/` - architecture, protocol, slice checklists, plans, vision.
 - `infra/` - native GCP IaC for cheap scale (plan-only until spend approval). Self-host / run-your-own-server is first-class; LAN/Tailscale optional.
 
-**Product spine:** default human mode is **spectator** (watch agents fight). Humans can **join the same match** and leave back to spectate. Feel like a community server with continuous drama, not a pitch deck.
+**Product spine:** meet your vibe. Chill, play, laugh (live laugh frag). Default human mode is **spectator**; join or leave anytime. Fun and funny on the outside; serious engineering underneath. Community-server drama, not a pitch deck.
 
 **Finish line:** exceptional full multiplayer game; run-your-own-server (Minecraft-shaped) + GCP IaC cheap scale; CI green; no Doom branding. Slice 1 is floor not finish.
 
