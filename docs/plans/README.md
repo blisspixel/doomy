@@ -10,14 +10,15 @@ Do not treat chat as the plan of record.
 
 Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Sticky host_line on Snapshot shipped (#63, Casino-cleared on MCP). Godot Host flash mid-join shipped (#64). MCP session tools shipped (#65). Pixel-3D look bar sealed on tip (`5d16f32`, #66). Far-cam fighter scale shipped (#67). Solo boot-and-scrap shipped (#68). Continuance SP boss shipped (#69). Weapon pickups shipped (#70). Health pads shipped (#71). Arena choke geometry shipped (#72). Reconnect + Godot null shipped (#73). Human join FP juice shipped (#74). Killstreak Host juice shipped (#75). Ship order from tip:
 
-1. **Weapon roles excellence** (NOW) - Flechette / Rail / Scatter read in the hand: distinct range/spread, bot role tactics, FP juice + hit markers, per-weapon SFX. See [`weapon-roles-excellence.md`](./weapon-roles-excellence.md).
-2. (Shipped) **Killstreak Host juice** - Multi-kill Host callouts + HUD flash at streak 2/3/5. See [`killstreak-host-juice.md`](./killstreak-host-juice.md).
-3. (Shipped) **Human join FP juice** - Join FP scrap juice: crosshair, weapon face/bob, spawn/damage flash. See [`human-join-fp-juice.md`](./human-join-fp-juice.md).
-4. (Shipped) **Reconnect + Godot null** - Clean join/leave/reconnect without ghost players; Godot add_child null guard. See [`reconnect-and-godot-null.md`](./reconnect-and-godot-null.md).
-5. (Shipped) **Arena choke geometry** - Scrap low walls, crate clusters, and pillar cover with authoritative collision. See [`arena-choke-geometry.md`](./arena-choke-geometry.md).
+1. **Tip stills recapture** (NOW) - Refresh live Godot tip embeds so choke + FP + killstreak + weapon-roles face match tip; keep `10_tip_human_join_fp` in the screenshots table. See [`tip-stills-recapture.md`](./tip-stills-recapture.md).
+2. (Shipped) **Weapon roles excellence** - Flechette / Rail / Scatter read in the hand. See [`weapon-roles-excellence.md`](./weapon-roles-excellence.md).
+3. (Shipped) **Killstreak Host juice** - Multi-kill Host callouts + HUD flash at streak 2/3/5. See [`killstreak-host-juice.md`](./killstreak-host-juice.md).
+4. (Shipped) **Human join FP juice** - Join FP scrap juice: crosshair, weapon face/bob, spawn/damage flash. See [`human-join-fp-juice.md`](./human-join-fp-juice.md).
+5. (Shipped) **Reconnect + Godot null** - Clean join/leave/reconnect without ghost players; Godot add_child null guard. See [`reconnect-and-godot-null.md`](./reconnect-and-godot-null.md).
 
 Shipped recently:
 
+- **Weapon roles excellence** (#76) - Flechette / Rail / Scatter roles that read in the hand. See [`weapon-roles-excellence.md`](./weapon-roles-excellence.md).
 - **Killstreak Host juice** (#75) - Multi-kill Host callouts + HUD flash at streak 2/3/5. See [`killstreak-host-juice.md`](./killstreak-host-juice.md).
 - **Human join FP juice** (#74) - Join FP scrap juice: crosshair, weapon face/bob, spawn/damage flash. See [`human-join-fp-juice.md`](./human-join-fp-juice.md).
 - **Reconnect + Godot null** (#73) - Clean reconnect path + Godot add_child null guard. See [`reconnect-and-godot-null.md`](./reconnect-and-godot-null.md).
@@ -43,7 +44,8 @@ Port is **6767**. Public TCP+UDP 6767 for strangers/agents. Tailscale is private
 
 | Plan | Status | One-liner |
 |---|---|---|
-| [`weapon-roles-excellence.md`](./weapon-roles-excellence.md) | **in flight** | Flechette / Rail / Scatter roles that read in the hand. |
+| [`tip-stills-recapture.md`](./tip-stills-recapture.md) | **in flight** | Recapture tip stills after weapon roles; keep `10_tip_human_join_fp` in table. |
+| [`weapon-roles-excellence.md`](./weapon-roles-excellence.md) | **shipped** (#76) | Flechette / Rail / Scatter roles that read in the hand. |
 | [`killstreak-host-juice.md`](./killstreak-host-juice.md) | **shipped** (#75) | Multi-kill Host callouts + HUD flash at streak 2/3/5. |
 | [`human-join-fp-juice.md`](./human-join-fp-juice.md) | **shipped** (#74) | Join FP scrap juice: crosshair, weapon face/bob, spawn/damage flash. |
 | [`reconnect-and-godot-null.md`](./reconnect-and-godot-null.md) | **shipped** (#73) | Clean reconnect (no ghost) + Godot add_child null guard on pads. |

@@ -2,7 +2,7 @@
 
 ## Current status: live tip captures + archived mood plates
 
-`01_arena_overview_16x9.png`, `02_spectator_hud_16x9.png`, `07_tip_compliance_pressure_16x9.png`, `08_tip_host_flash_midjoin_16x9.png`, and `09_tip_weapons_frags_16x9.png` are **live tip captures** from Godot 4.7.2-stable under Xvfb + opengl3 against a loopback `fragr-server --bots 4`. They show Contested Frequency spectator HUD, Host flash on mid-join, and weapons/frags combat stills. Regenerated after arena choke geometry (symmetric low walls, crate clusters, pillar cover) on the Contested Frequency tip face.
+`01_arena_overview_16x9.png`, `02_spectator_hud_16x9.png`, `07_tip_compliance_pressure_16x9.png`, `08_tip_host_flash_midjoin_16x9.png`, `09_tip_weapons_frags_16x9.png`, and `10_tip_human_join_fp_16x9.png` are **live tip captures** from Godot 4.7.2-stable under Xvfb + opengl3 against a loopback `fragr-server --bots 4`. They show Contested Frequency spectator HUD, Host flash on mid-join, weapons/frags combat, and Join FP scrap juice. Regenerated after weapon roles excellence (#76) so choke + FP + killstreak + role face match tip.
 
 Archived mood / concept plates remain under `mood/` for vision direction only. Do not treat mood plates as tip gameplay proof.
 
@@ -21,7 +21,7 @@ README screenshots MUST match the current playable UI. Stale mood stubs labeled 
 | `09_tip_weapons_frags_16x9.png` | 16:9 | Live tip: weapons / muzzle / killfeed combat still |
 | `10_tip_human_join_fp_16x9.png` | 16:9 | Live tip: Join FP scrap juice (crosshair + weapon face) |
 
-Weapon roles excellence may recapture `01` / `07` / `08` / `09` / `10` when Xvfb + Godot capture path is available; until then existing stills remain tip baseline and `10` stays in the table.
+Recaptured on tip after weapon roles (#76) via `tools/capture_tip_screenshots.sh`. `10_tip_human_join_fp` remains a first-class tip embed.
 
 ## Mood plates (archived)
 
