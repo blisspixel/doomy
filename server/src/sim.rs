@@ -1,4 +1,4 @@
-use crate::protocol::{Action, GameEvent, PlayerState, Role, Snapshot, WeaponType};
+use crate::protocol::{Action, GameEvent, PlayerScore, PlayerState, Role, Snapshot, WeaponType};
 use std::collections::HashMap;
 use std::f32::consts::PI;
 use uuid::Uuid;
@@ -80,6 +80,16 @@ impl GameState {
     }
 
     pub fn start_round(&mut self) {
+        let previous_winner = if self.round_number > 0 {
+            self.scores
+                .iter()
+                .max_by_key(|(_, &score)| score)
+                .and_then(|(id, _)| self.players.iter().find(|p| p.id == *id))
+                .map(|p| p.name.clone())
+        } else {
+            None
+        };
+
         self.round_number += 1;
         self.round_state = RoundState::Active;
         self.round_ticks = 0;
@@ -89,10 +99,14 @@ impl GameState {
             self.scores.insert(player.id, 0);
         }
 
+        let players: Vec<String> = self.players.iter().map(|p| p.name.clone()).collect();
+
         self.events.push(GameEvent::RoundStart {
             round_number: self.round_number,
             frag_limit: self.config.frag_limit,
             time_limit: self.config.time_limit_ticks.map(|t| t / 20),
+            players,
+            previous_winner,
         });
 
         tracing::info!(
@@ -104,25 +118,49 @@ impl GameState {
     }
 
     pub fn end_round(&mut self, reason: String) {
-        let winner = self
+        let (winner, winner_score) = self
             .scores
             .iter()
             .max_by_key(|(_, &score)| score)
-            .and_then(|(id, _)| self.players.iter().find(|p| p.id == *id))
-            .map(|p| p.name.clone());
+            .and_then(|(id, score)| {
+                self.players
+                    .iter()
+                    .find(|p| p.id == *id)
+                    .map(|p| (p.name.clone(), *score))
+            })
+            .unzip();
+
+        let mut final_scores: Vec<PlayerScore> = self
+            .scores
+            .iter()
+            .filter_map(|(id, &score)| {
+                self.players
+                    .iter()
+                    .find(|p| p.id == *id)
+                    .map(|p| PlayerScore {
+                        name: p.name.clone(),
+                        score,
+                    })
+            })
+            .collect();
+
+        final_scores.sort_by_key(|a| std::cmp::Reverse(a.score));
 
         self.round_state = RoundState::Ended;
 
         self.events.push(GameEvent::RoundEnd {
             winner: winner.clone(),
             reason: reason.clone(),
+            final_scores,
+            winner_score,
         });
 
         tracing::info!(
-            "Round {} ended: {} (winner: {:?})",
+            "Round {} ended: {} (winner: {:?}, score: {:?})",
             self.round_number,
             reason,
-            winner
+            winner,
+            winner_score
         );
     }
 
@@ -310,16 +348,18 @@ impl GameState {
                     victim.respawn_timer = Some(RESPAWN_DELAY_TICKS);
 
                     *self.scores.entry(shooter_id).or_insert(0) += 1;
+                    let killer_score = self.scores[&shooter_id];
 
                     self.events.push(GameEvent::Frag {
                         killer: shooter_name.clone(),
                         victim: victim_name.clone(),
+                        killer_score,
                     });
                     tracing::info!(
                         "FRAG: {} → {} (score: {})",
                         shooter_name,
                         victim_name,
-                        self.scores[&shooter_id]
+                        killer_score
                     );
                 }
             }
@@ -446,6 +486,10 @@ impl GameState {
 
     pub fn take_events(&mut self) -> Vec<GameEvent> {
         std::mem::take(&mut self.events)
+    }
+
+    pub fn push_event(&mut self, event: GameEvent) {
+        self.events.push(event);
     }
 }
 
