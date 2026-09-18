@@ -49,12 +49,13 @@ surface_material_override/0 = SubResource("StandardMaterial3D_wall")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.5, 0.866025, 0, -0.866025, 0.5, 0, 20, 0)
-light_energy = 1.2
+light_energy = 1.5
+light_color = Color(1, 0.95, 0.9, 1)
 shadow_enabled = true
 
 [node name="OmniLight3D" type="OmniLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10, 0)
-light_energy = 0.3
+light_energy = 0.5
 light_color = Color(0.8, 0.9, 1, 1)
 omni_range = 60.0
 

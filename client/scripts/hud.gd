@@ -4,7 +4,7 @@ extends CanvasLayer
 @onready var tick_label = $Panel/VBoxContainer/TickLabel
 @onready var player_count_label = $Panel/VBoxContainer/PlayerCountLabel
 @onready var mode_label = $Panel/VBoxContainer/ModeLabel
-@onready var round_label = $Panel/VBoxContainer/RoundLabel
+@ontml:parameter name="round_label = $Panel/VBoxContainer/RoundLabel
 @onready var weapon_label = $Panel/VBoxContainer/WeaponLabel
 @onready var frag_label = $FragLabel
 @onready var round_message = $RoundMessage
@@ -14,6 +14,7 @@ extends CanvasLayer
 var scores = {}
 
 var weapon_textures = {}
+var followed_player_name = ""
 
 func _ready():
 	weapon_textures["Flechette"] = load("res://assets/weapons/32/flechette.png")
@@ -91,14 +92,14 @@ func show_frag(killer: String, victim: String, killer_color: Color = Color.WHITE
 	
 	if frag_label:
 		frag_label.text = killer + " FRAGGED " + victim + "!"
-		frag_label.modulate = killer_color.lightened(0.3)
+		frag_label.modulate = killer_color.lightened(0.4)
 		frag_label.visible = true
 		
 		var tween = create_tween()
-		tween.tween_property(frag_label, "scale", Vector2(1.2, 1.2), 0.1)
-		tween.tween_property(frag_label, "scale", Vector2(1.0, 1.0), 0.1)
+		tween.tween_property(frag_label, "scale", Vector2(1.3, 1.3), 0.08)
+		tween.tween_property(frag_label, "scale", Vector2(1.0, 1.0), 0.12)
 		
-		await get_tree().create_timer(2.5).timeout
+		await get_tree().create_timer(2.8).timeout
 		if is_instance_valid(frag_label):
 			frag_label.visible = false
 			frag_label.modulate = Color.WHITE
@@ -125,31 +126,48 @@ func show_round_end(winner: String, reason: String):
 	if weapon_icon:
 		weapon_icon.visible = false
 	
+	followed_player_name = ""
+	
 	if round_message:
 		var message = reason.to_upper()
 		if winner != "":
-			message += "\nWINNER: " + winner
+			message += "\n\nWINNER: " + winner + "!"
 		
 		round_message.text = message
 		round_message.visible = true
 		
 		var tween = create_tween()
-		tween.tween_property(round_message, "scale", Vector2(1.3, 1.3), 0.2)
+		tween.tween_property(round_message, "scale", Vector2(1.4, 1.4), 0.15)
 		tween.tween_property(round_message, "scale", Vector2(1.0, 1.0), 0.2)
 		
 		await get_tree().create_timer(4.0).timeout
 		if is_instance_valid(round_message):
 			round_message.visible = false
 
-func set_followed_weapon(weapon_name: String):
+func set_followed_weapon(weapon_name: String, player_name: String = ""):
 	if not weapon_label or not weapon_icon:
 		return
+	
+	followed_player_name = player_name
 	
 	if weapon_name == "" or not weapon_textures.has(weapon_name):
 		weapon_label.text = ""
 		weapon_icon.visible = false
 		return
 	
-	weapon_label.text = "Weapon: " + weapon_name
+	var weapon_desc = ""
+	match weapon_name:
+		"Flechette":
+			weapon_desc = "FLECHETTE (balanced)"
+		"Rail":
+			weapon_desc = "RAIL (sniper)"
+		"Scatter":
+			weapon_desc = "SCATTER (close)"
+	
+	var display_text = weapon_desc
+	if player_name != "":
+		display_text = player_name + "\n" + weapon_desc
+	
+	weapon_label.text = display_text
 	weapon_icon.texture = weapon_textures[weapon_name]
 	weapon_icon.visible = true
