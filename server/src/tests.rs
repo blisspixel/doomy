@@ -698,7 +698,7 @@ fn test_join_leave_event_serialization() {
 #[test]
 fn join_leave_events_survive_tick() {
     use crate::protocol::GameEvent;
-    let mut state = GameState::new(GameConfig::default());
+    let mut state = GameState::new();
     state.push_event(GameEvent::PlayerJoined {
         player: "AgentA".to_string(),
         role: "agent".to_string(),
