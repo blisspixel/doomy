@@ -12,7 +12,7 @@ Agentic-first FPS arena where **you spectate AI bots fight, then join the match 
 
 ```bash
 # Terminal 1: Server (4 named bots, 10 frag limit)
-cargo run -p doomy-server -- --bots 4
+cargo run -p fragr-server -- --bots 4
 
 # Terminal 2: Spectator
 # Open client/ in Godot 4.7.2, press F5
@@ -39,7 +39,7 @@ Run server on one machine, connect spectators/players from others.
 ### Server host
 
 ```bash
-cargo run -p doomy-server -- --bind 0.0.0.0:7777 --bots 4
+cargo run -p fragr-server -- --bind 0.0.0.0:7777 --bots 4
 # Note LAN IP (e.g. 192.168.1.100) or Tailscale IP (e.g. 100.x.y.z)
 ```
 
@@ -85,7 +85,7 @@ AGENTS.md        instructions for coding agents
 ## Server options
 
 ```bash
-cargo run -p doomy-server -- --help
+cargo run -p fragr-server -- --help
 
 Options:
   --bind <ADDR>   Bind address (default: 0.0.0.0:7777)

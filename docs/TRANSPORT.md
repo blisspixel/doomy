@@ -65,7 +65,7 @@ UDP with custom protocol (e.g., `renet`, `laminar`, or hand-rolled) provides:
 |--------|------|------|
 | `renet` | Battle-tested, channels, reliable + unreliable | Rust-first; Godot needs custom GDScript wrapper |
 | `laminar` | Rust + clean API | Less mature, GDScript integration unclear |
-| Custom UDP | Full control, tailored to Doomy | More work, reinvent reliability layer |
+| Custom UDP | Full control, tailored to fragr | More work, reinvent reliability layer |
 | GDExtension | Native Rust in Godot | Build complexity, cross-platform pain |
 
 **Recommendation (TBD after spike):** Try `renet` with GDScript `PacketPeerUDP` wrapper first. If painful, fall back to simple custom UDP with manual ack/sequencing.

@@ -14,8 +14,8 @@ use tracing_subscriber::EnvFilter;
 use uuid::Uuid;
 
 #[derive(Parser)]
-#[command(name = "doomy-server")]
-#[command(about = "Doomy authoritative game server")]
+#[command(name = "fragr-server")]
+#[command(about = "fragr authoritative game server")]
 struct Args {
     #[arg(long, default_value = "0.0.0.0:7777")]
     bind: String,
@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new("info,doomy_server=debug")),
+                .unwrap_or_else(|_| EnvFilter::new("info,fragr_server=debug")),
         )
         .init();
 

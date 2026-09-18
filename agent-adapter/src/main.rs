@@ -10,8 +10,8 @@ use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
-#[command(name = "doomy-agent-adapter")]
-#[command(about = "Doomy agent adapter - MCP server and bot client")]
+#[command(name = "fragr-agent-adapter")]
+#[command(about = "fragr agent adapter - MCP server and bot client")]
 struct Args {
     #[command(subcommand)]
     command: Commands,
@@ -62,7 +62,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new("info,doomy_agent_adapter=debug")),
+                .unwrap_or_else(|_| EnvFilter::new("info,fragr_agent_adapter=debug")),
         )
         .with_writer(std::io::stderr)
         .init();
@@ -216,7 +216,7 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
                         "tools": {}
                     },
                     "serverInfo": {
-                        "name": "doomy-agent-adapter",
+                        "name": "fragr-agent-adapter",
                         "version": "0.1.0"
                     }
                 })),
