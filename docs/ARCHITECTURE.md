@@ -13,7 +13,7 @@
 ## 1. Goals / non-goals (v0)
 
 ### Goals
-- **Playable Doom-like feel** in Godot 4.x: small arena, FPS camera, shoot/move, deathmatch-lite.
+- **Playable feel** in Godot 4.x: Rock & Roll Racing carnival scrap × late-night conspiracy seasoning × first-online LAN rush (feeling only, not IP). Small arena, FPS camera, shoot/move, deathmatch-lite. Agents and humans same scrap. Do not brand as Doom.
 - **Solo AND multiplayer, both first-class**: authoritative **Rust** game server; clients are thin presenters. Instant fun solo (you + bots on one machine), and self-host for peers (LAN or Tailscale). Not a LAN-only demo.
 - **Agent-first play**: clawbots / MCP-compatible agents drive players via an **agent-play adapter**; humans default to **spectating** (Fortnite let’s-play vibe).
 - **Optional human join**: same client can become a player (keyboard/mouse) without a second codebase. Join and leave mid-match.
@@ -109,7 +109,7 @@ All game truth lives in **fragr-server**. Godot never simulates combat/HP; it in
 - **Spectators:** same snapshot stream; server ignores input from `spectator` role.
 
 ### How agents issue actions (agent-play path)
-**Best current approach for 2026 fragr:** dedicated **MCP server adapter** in front of the game session (pattern proven by doom-mcp, minecraft-mcp, nethack-mcp style stacks).
+**Best current approach for 2026 fragr:** dedicated **MCP server adapter** in front of the game session (pattern proven by game MCP adapter stacks (minecraft-mcp / nethack-mcp style; not a Doom product path)).
 
 - Process: `fragr-agent-adapter` (Rust or TypeScript; prefer **Rust** to share protocol types with server, or TS if Buildy wants FastMCP speed - **recommend Rust** for one language on server side).
 - Transport to agents: **MCP over stdio** (local clawbots / any MCP client) - zero cloud.
