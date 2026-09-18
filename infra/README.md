@@ -4,7 +4,7 @@ Native IaC to run the fragr Rust **authoritative game server** on GCP cheaply, w
 
 ## Product intent
 
-- **Run your own server** (home, LAN, Tailscale, any box) without this folder. Minecraft-shaped ops.
+- **Run your own server** (home LAN, cheap VPS, or GCP) without requiring Tailscale for strangers/agents. Minecraft-shaped ops. See `docs/HOME-LAN.md` and `docs/CHEAP-VPS.md`.
 - This folder is the **cloud path**: Terraform to stand up a billable-aware deployment when Nick/Chief approve spend.
 - LAN/Tailscale are optional buddy paths, not the only story.
 
@@ -46,8 +46,10 @@ Until Nick explicitly accepts a paid PoC:
 infra/
   README.md           # this contract
   docs/
-    ZERO-COST.md      # checklist + sources
-    DURABLE-HOST.md   # durable self-host recipe (GCE + systemd + public game port primary, Tailscale private/dev, cost ceiling)
+    HOME-LAN.md       # home box: LAN + optional public port-forward (no Tailscale-required)
+    CHEAP-VPS.md      # generic cheap VM public join (no Tailscale-required)
+    ZERO-COST.md      # GCP checklist + sources
+    DURABLE-HOST.md   # GCP durable GCE recipe (systemd + public 6767 primary, Tailscale private/dev, cost ceiling)
   terraform/          # modules land in follow-up PRs; plan-only
 ```
 
