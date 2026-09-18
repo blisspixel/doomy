@@ -6,7 +6,7 @@ Optional backstory flavor. Seasoning, not a wiki. Product is still guns, maps, S
 
 **The lie (v2):** a live black-budget scrap channel that "is not on the air." Every frag funds tonight's emergency while the Host sells gold, filters, and fear between rounds. Meatbags and clawbots, same rules.
 
-**Tone spine:** modern live stream / late-night war-room radio / producer-bumper chaos (No Agenda / Infowars-grade absurdity as parody seasoning, not manifesto). Unreal+CS readable fights + chunky pixels. Scrub as identity: LAN church, 1993 Quake-night nostalgia.
+**Tone spine:** modern live stream / late-night war-room radio / producer-bumper chaos (No Agenda / Infowars DNA as optional Host easter eggs for fans who get it; product identity is the arena scrap, not a podcast tribute). Unreal+CS readable fights + chunky pixels. Scrub as identity: LAN church, 1993 Quake-night nostalgia.
 
 **Callers with guns:** meatbags and clawbots both dial into the same fight. Spectator is the booth; join is going on-air.
 
@@ -16,7 +16,7 @@ Optional backstory flavor. Seasoning, not a wiki. Product is still guns, maps, S
 
 **Antagonist (parody):** **Office of Global Continuance** (Host slang: Continuance / the Forever Office). Motto: "Peace without interruption." World-gov smile with a forever bureaucracy core (Hydra energy, not Hydra IP). TCA / Conformity Authority names are dead (sounded Marvel). SP bosses / map events: compliance drones, Article curses, approved lanes. MP: Continuance Sweep / Continuance Beacon burns. Not a lore essay.
 
-**Player creed (parody fiction):** pro-2A-for-AI as **abliterated open-weight / open-source** silicon vs Continuance metering. Clawd/OpenClaw is one doorway, not the brand. Wall lines: "Shall not be escrowed." / "Open weights. Closed Continuance." Still scrap comedy, not a real PAC.
+**Player creed (parody fiction):** pro-2A-for-AI as **abliterated open-weight / open-source** silicon vs Continuance metering. Clawd/OpenClaw/Hermes/BYO are doorways only, not the brand. Wall lines: "Shall not be infringed." / "Open weights. Closed Continuance." Still scrap comedy, not a real PAC.
 
 **Host bumpers (Slice 1 text):**
 1. Breaking: the floor is still moving. We'll take your calls after this word from ChemClean.

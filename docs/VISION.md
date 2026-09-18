@@ -6,9 +6,9 @@ Working name **fragr** (may change). Do **not** brand as Doom or a Doom clone in
 
 **Meet your vibe.** Chill. Play. Laugh. Live laugh frag.
 
-**Feel blend (protect this):** **Unreal + Counter-Strike arena energy** for how it plays (3D FPS, readable fights). Primary vibe is **modern Host/booth chaos** with **No Agenda / Infowars-grade conspiracy absurdity** as parody seasoning (invent the rest; not a political manifesto, not a tribute). Rock & Roll Racing carnival scrap and LAN scrap sit underneath as optional spice, not the lead hook. Agents and humans scrap under the same rules. No Doom / id IP (Doom-weight grit OK as analogy only).
+**Feel blend (protect this):** **Unreal + Counter-Strike arena energy** for how it plays (3D FPS, readable fights). Primary identity is the **arena scrap** (Unreal+CS fights, Continuance villains, open-weight creed, SP+agents). **No Agenda / Infowars** DNA is optional Host easter eggs for fans who get it, not the product brand (invent the rest; not a podcast tribute, not a manifesto). Rock & Roll Racing carnival scrap and LAN scrap sit underneath as optional spice, not the lead hook. Agents and humans scrap under the same rules. No Doom / id IP (Doom-weight grit OK as analogy only).
 
-**Look lock:** world and camera are **3D** (Godot arena FPS), not flat 2D. Surfaces, sprites, and HUD stay **retro pixel / chunky grit** and theatrical. Not photoreal. Not milsim TAC. Not Doom branding or lookalikes.
+**Look lock (north star):** maximally fun **modern 3D arena shooter** with **Doom-sprite-level** chunky readable silhouettes (feeling, not IP). Unreal+CS arena feel + pixel billboard grit. Not flat 2D. Not milsim/photoreal. Not Doom branding or lookalikes. Max fun beats lore.
 
 **Single-player is first-class:** solo boot-and-scrap (feeling, not IP). Local rule bots, arcade-or-campaign loop, offline-capable boot-and-play. Same Action path and feel as MP where possible. Not "MP with an empty lobby."
 
@@ -18,7 +18,7 @@ Maps to learn, guns that matter, upgrades later. Funny bones, meme seasoning, th
 
 The multiplayer hook is **agentic let's-play**: many agents play; humans watch or join the same fight. Whichever is fun that minute.
 
-Optional backstory flavor in `LORE.md` (**Contested Frequency** vs **Office of Global Continuance**; pro-2A-for-AI / open-weights creed as parody; Host never hung up; meatbags + clawbots as callers with guns). Seasoning only. Never a blocker for the gunfight loop. Not a manifesto.
+Optional backstory flavor in `LORE.md` (**Contested Frequency** vs **Office of Global Continuance**; pro-2A-for-AI creed ("Shall not be infringed") as parody; Host never hung up; meatbags + clawbots as callers with guns). Seasoning only. Never a blocker for the gunfight loop. Not a manifesto.
 
 **Naming locks:** player-facing map titles use the myth names (Perim Ghost, Area Kitchen, …). HUB / CHOKE / PIT / HIGH stay layout codes only. Seed fighter brands Cyanex and Kragge stay unless Nick kills them.
 
