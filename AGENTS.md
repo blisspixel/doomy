@@ -43,6 +43,8 @@ If prose and code disagree, code wins; fix the prose in the same change. Keep pl
 | Concern | Home |
 |---|---|
 | Sim tick, hit detection, movement, pickups, boss, bots | `server/src/sim.rs` |
+| Tick loop shared by the binary and harnesses | `server/src/run.rs` (`run_server`, `ServerOptions`) |
+| Agent playtest harness and metrics | `tools/playtest` |
 | Session glue, rosters, `min_bots`, broadcast | `server/src/session.rs` |
 | Wire types and Host line generators | `server/src/protocol.rs`, mirrored in `docs/protocol.md` |
 | WebSocket accept and per-client plumbing | `server/src/net.rs` |
@@ -84,6 +86,7 @@ cargo test --workspace
 cargo llvm-cov --workspace --locked --fail-under-lines 80
 cargo build --workspace --release
 cargo deny check licenses bans sources   # advisories are reported, not blocking
+cargo run -p fragr-playtest -- --agents 4 --rounds 1 --frag-limit 3 --time-limit-seconds 45 --assert --report .agents/playtest/ci.json
 ```
 
 Godot (the `godot` CI job runs this; locally point `GODOT_BIN` at a 4.7.2-stable binary):

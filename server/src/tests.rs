@@ -3472,13 +3472,16 @@ fn test_killstreak_emits_at_2_3_5_and_resets_on_death() {
     let mut seen_tiers: Vec<String> = Vec::new();
     for n in 1..=5 {
         // Wait out respawn if target died last frag.
-        for _ in 0..70 {
+        for _ in 0..100 {
             let tidx = state
                 .players
                 .iter()
                 .position(|p| p.id == target_id)
                 .unwrap();
-            if state.players[tidx].respawn_timer.is_none() && state.players[tidx].hp > 0 {
+            if state.players[tidx].respawn_timer.is_none()
+                && state.players[tidx].hp > 0
+                && !state.spawn_shields.contains_key(&target_id)
+            {
                 break;
             }
             state.tick(0.05);
@@ -4127,4 +4130,101 @@ fn warmup_rule_bot_taunt_path_can_emit_speak() {
         state.try_rule_bot_taunt(bot_id, BotTauntKind::Warmup),
         SpeakOutcome::RateLimited
     );
+}
+
+#[test]
+fn test_sim_respawn_lands_far_from_living_fighters() {
+    use crate::sim::SPAWN_SHIELD_TICKS;
+    let mut state = GameState::new();
+    state.start_round();
+    let a = Uuid::new_v4();
+    let b = Uuid::new_v4();
+    state.add_player(a, "A".into(), Role::Agent);
+    state.add_player(b, "B".into(), Role::Agent);
+    // Park B on the east ring slot and let A's respawn timer run out.
+    for p in state.players.iter_mut() {
+        if p.id == b {
+            p.x = 15.0;
+            p.z = 0.0;
+        }
+        if p.id == a {
+            p.respawn_timer = Some(1);
+        }
+    }
+    state.tick(0.05);
+    let a_p = state.players.iter().find(|p| p.id == a).unwrap();
+    assert!(a_p.respawn_timer.is_none(), "A should have respawned");
+    let dist = ((a_p.x - 15.0).powi(2) + a_p.z.powi(2)).sqrt();
+    assert!(dist > 20.0, "respawn lands on the far side, got {dist}");
+    assert_eq!(
+        state.spawn_shields.get(&a).copied(),
+        Some(SPAWN_SHIELD_TICKS)
+    );
+    assert!(
+        !state.spawn_shields.contains_key(&b),
+        "joins are not shielded"
+    );
+}
+
+#[test]
+fn test_sim_spawn_shield_blocks_damage_for_one_second() {
+    use crate::sim::SPAWN_SHIELD_TICKS;
+    let mut state = GameState::new();
+    state.start_round();
+    let shooter = Uuid::new_v4();
+    let target = Uuid::new_v4();
+    state.add_player(shooter, "Shooter".into(), Role::Agent);
+    state.add_player(target, "Victim".into(), Role::Agent);
+    // Kill the victim and let it respawn: the shield is keyed by id, so it can
+    // then be moved into the clear hub lane the choke tests use.
+    for p in state.players.iter_mut() {
+        if p.id == target {
+            p.respawn_timer = Some(1);
+        }
+    }
+    state.tick(0.05);
+    assert!(state.spawn_shields.contains_key(&target));
+    for p in state.players.iter_mut() {
+        if p.id == shooter {
+            p.x = -5.0;
+            p.z = 0.0;
+            p.yaw = 0.0;
+            p.weapon = WeaponType::Flechette;
+            p.fire_cooldown = 0;
+        }
+        if p.id == target {
+            p.x = 5.0;
+            p.z = 0.0;
+        }
+    }
+    state.set_action(
+        shooter,
+        Action {
+            fire: true,
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+    let hp = state.players.iter().find(|p| p.id == target).unwrap().hp;
+    assert_eq!(hp, 100, "a shielded fighter takes no damage");
+    for _ in 0..SPAWN_SHIELD_TICKS {
+        state.set_action(shooter, Action::default());
+        state.tick(0.05);
+    }
+    assert!(!state.spawn_shields.contains_key(&target), "shield expires");
+    for p in state.players.iter_mut() {
+        if p.id == shooter {
+            p.fire_cooldown = 0;
+        }
+    }
+    state.set_action(
+        shooter,
+        Action {
+            fire: true,
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+    let hp = state.players.iter().find(|p| p.id == target).unwrap().hp;
+    assert!(hp < 100, "the shot lands once the shield is down, hp {hp}");
 }
