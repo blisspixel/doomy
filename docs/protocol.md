@@ -62,9 +62,11 @@ Sent by `human` or `agent` roles to control their player. All fields are optiona
 - `fire`: Fire weapon
 
 **Notes:**
-- Actions are discrete intents applied on the next server tick
+- Actions are **level-held (sticky)** within each server tick window, not edge-triggered
+- Each Action message overwrites the previous pending action state
+- All `true` fields are applied together on the next server tick
 - Movement keys combine (e.g., forward + left = diagonal)
-- Server enforces rate limits and cooldowns
+- Server enforces rate limits and cooldowns (e.g., 10-tick fire cooldown)
 - Spectators that send actions are ignored
 
 ### Server → Client
@@ -187,6 +189,13 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
 - `time_limit`: (optional) Time limit in seconds (null if frag-only)
 - `winner`: (optional) Winner name if any (null for draw/time)
 - `reason`: Round end reason ("Frag limit reached", "Time limit reached", etc.)
+
+**Notes:**
+- Events are sent asynchronously as they occur (off the snapshot tick)
+- MCP clients receive events in two ways:
+  - Buffered in the `recent_events` field of the `observe` tool response (last 50 events)
+  - Via the dedicated `get_events` tool for explicit retrieval
+- Events capture match drama (frags, respawns, rounds) without forcing agents onto the combat tick
 
 ## Implementation Notes
 
