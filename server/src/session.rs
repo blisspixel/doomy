@@ -16,6 +16,8 @@ pub struct GameSession {
     pub client_to_player: HashMap<Uuid, Uuid>,
     /// Player-targeted control messages (e.g. speak rate-limit Error). Drained by the game loop.
     pub pending_unicasts: Vec<(Uuid, ServerMessage)>,
+    /// Target rule-bot count. Solo scrap and empty-arena recovery refill up to this.
+    pub min_bots: usize,
 }
 
 impl GameSession {
@@ -25,10 +27,12 @@ impl GameSession {
             bots: Vec::new(),
             client_to_player: HashMap::new(),
             pending_unicasts: Vec::new(),
+            min_bots: 0,
         }
     }
 
     /// Spawn named bots into the arena (same configs as the production binary).
+    /// Raises `min_bots` to at least the resulting rule-bot count so solo stays stocked.
     pub fn spawn_bots(&mut self, count: usize) {
         let bot_configs = [
             ("Rusher", crate::sim::BotBehavior::Aggressive),
@@ -41,18 +45,51 @@ impl GameSession {
             ("Striker", crate::sim::BotBehavior::Balanced),
         ];
 
+        let start_index = self.bots.len();
         for i in 0..count {
             let bot_id = Uuid::new_v4();
+            let config_index = start_index + i;
             let (bot_name, behavior) = bot_configs
-                .get(i)
+                .get(config_index % bot_configs.len())
                 .unwrap_or(&("Bot", crate::sim::BotBehavior::Balanced));
+            let display_name = if config_index < bot_configs.len() {
+                bot_name.to_string()
+            } else {
+                format!("{bot_name}-{}", config_index / bot_configs.len() + 1)
+            };
             self.state
-                .add_player(bot_id, bot_name.to_string(), Role::Agent);
+                .add_player(bot_id, display_name.clone(), Role::Agent);
             let bot_controller = BotController::new(bot_id, *behavior);
             self.bots.push(bot_controller.clone());
             self.state.bots.push(bot_controller);
-            tracing::info!("Spawned bot: {} ({:?}, {})", bot_name, behavior, bot_id);
+            tracing::info!("Spawned bot: {} ({:?}, {})", display_name, behavior, bot_id);
         }
+        if self.bots.len() > self.min_bots {
+            self.min_bots = self.bots.len();
+        }
+    }
+
+    /// Set the floor for rule-bot count and refill immediately if below it.
+    pub fn set_min_bots(&mut self, min_bots: usize) {
+        self.min_bots = min_bots;
+        self.ensure_min_bots();
+    }
+
+    /// Spawn rule bots until `bots.len() >= min_bots`. No-op when already stocked or min is 0.
+    pub fn ensure_min_bots(&mut self) {
+        if self.min_bots == 0 {
+            return;
+        }
+        let have = self.bots.len();
+        if have >= self.min_bots {
+            return;
+        }
+        let need = self.min_bots - have;
+        tracing::info!(
+            "Arena below min_bots ({have}/{}); spawning {need} rule bot(s)",
+            self.min_bots
+        );
+        self.spawn_bots(need);
     }
 
     /// Apply a net-layer game command (join, leave, or action).
@@ -147,6 +184,7 @@ impl GameSession {
 
     /// Run one sim tick: bot AI, physics, then collect snapshot + event messages to broadcast.
     pub fn tick_messages(&mut self, dt: f32) -> Vec<ServerMessage> {
+        self.ensure_min_bots();
         for bot in &self.bots {
             let action = bot.update(&self.state);
             self.state.set_action(bot.player_id, action);
@@ -358,6 +396,7 @@ mod session_tests {
         session.spawn_bots(4);
         assert_eq!(session.state.players.len(), 4);
         assert_eq!(session.bots.len(), 4);
+        assert_eq!(session.min_bots, 4);
         let names: Vec<_> = session
             .state
             .players
@@ -366,6 +405,48 @@ mod session_tests {
             .collect();
         assert!(names.contains(&"Rusher"));
         assert!(names.contains(&"Sniper"));
+    }
+
+    #[test]
+    fn ensure_min_bots_refills_empty_arena() {
+        let mut session = GameSession::new();
+        session.set_min_bots(4);
+        assert_eq!(session.bots.len(), 4);
+        assert_eq!(session.state.players.len(), 4);
+
+        // Simulate emptied rule-bot roster (solo must not stay empty).
+        session.bots.clear();
+        session.state.bots.clear();
+        session.state.players.clear();
+        session.ensure_min_bots();
+        assert_eq!(session.bots.len(), 4);
+        assert_eq!(session.state.players.len(), 4);
+    }
+
+    #[test]
+    fn ensure_min_bots_noop_when_stocked_or_zero() {
+        let mut session = GameSession::new();
+        session.ensure_min_bots();
+        assert!(session.bots.is_empty());
+
+        session.spawn_bots(2);
+        let before = session.bots.len();
+        session.ensure_min_bots();
+        assert_eq!(session.bots.len(), before);
+
+        session.set_min_bots(2);
+        session.ensure_min_bots();
+        assert_eq!(session.bots.len(), 2);
+    }
+
+    #[test]
+    fn tick_messages_ensures_min_bots_before_ai() {
+        let mut session = GameSession::new();
+        session.min_bots = 3;
+        assert!(session.bots.is_empty());
+        let _ = session.tick_messages(0.05);
+        assert_eq!(session.bots.len(), 3);
+        assert!(session.state.players.len() >= 3);
     }
 
     #[test]
