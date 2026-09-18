@@ -113,6 +113,12 @@ Options:
   --bots <N>      Number of bots to spawn (default: 4)
 ```
 
+## Key Art
+
+![Hangar Candy](docs/fragr-keyart-hangar-candy.png)
+
+*Hangar Candy*
+
 ## Agent contributors
 
 Coding agents must read [`AGENTS.md`](./AGENTS.md) before changing this repo.
