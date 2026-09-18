@@ -23,6 +23,19 @@ pub fn compliance_host_line() -> String {
     "HOST: CONTINUANCE COMPLIANCE PING. APPROVED LANES ONLY.".to_string()
 }
 
+/// Host line while the Continuance Compliance Drone is on the floor.
+pub fn boss_host_line() -> String {
+    "HOST: CONTINUANCE COMPLIANCE DRONE ON DECK. ARTICLE 7 ENFORCEMENT.".to_string()
+}
+
+/// Host line after the Compliance Drone is fragged.
+pub fn boss_down_host_line() -> String {
+    "HOST: DRONE DOWN. CONTINUANCE DENIES THE INCIDENT. SCRAP ON.".to_string()
+}
+
+/// Display name for the mid-round Continuance boss NPC.
+pub const BOSS_NAME: &str = "COMPLIANCE-DRONE";
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum WeaponType {
@@ -265,6 +278,21 @@ pub enum GameEvent {
         message: String,
         duration_ticks: u32,
     },
+    /// Mid-round Continuance Compliance Drone spawn (killable boss beat).
+    BossSpawn {
+        name: String,
+        boss_id: Uuid,
+        message: String,
+        hp: i32,
+    },
+    /// Compliance Drone fragged (no respawn).
+    BossDown {
+        name: String,
+        boss_id: Uuid,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        killer: Option<String>,
+        message: String,
+    },
     /// Off-tick agent/human callout (rate-limited, length-capped).
     Speak {
         player: String,
@@ -434,6 +462,40 @@ mod protocol_tests {
                 assert_eq!(player, "ArenaFox");
             }
             other => panic!("expected Speak, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn boss_spawn_and_down_wire_json_shape() {
+        let id = Uuid::new_v4();
+        let spawn = GameEvent::BossSpawn {
+            name: BOSS_NAME.into(),
+            boss_id: id,
+            message: boss_host_line(),
+            hp: 200,
+        };
+        let v = serde_json::to_value(&spawn).unwrap();
+        assert_eq!(v["event"], "boss_spawn");
+        assert_eq!(v["name"], BOSS_NAME);
+        assert_eq!(v["hp"], 200);
+        assert_eq!(v["message"], boss_host_line());
+        let back: GameEvent = serde_json::from_value(v).unwrap();
+        assert!(matches!(back, GameEvent::BossSpawn { hp: 200, .. }));
+
+        let down = GameEvent::BossDown {
+            name: BOSS_NAME.into(),
+            boss_id: id,
+            killer: Some("Rusher".into()),
+            message: boss_down_host_line(),
+        };
+        let v = serde_json::to_value(&down).unwrap();
+        assert_eq!(v["event"], "boss_down");
+        assert_eq!(v["killer"], "Rusher");
+        assert!(v.get("message").is_some());
+        let back: GameEvent = serde_json::from_value(v).unwrap();
+        match back {
+            GameEvent::BossDown { killer, .. } => assert_eq!(killer.as_deref(), Some("Rusher")),
+            other => panic!("expected BossDown, got {:?}", other),
         }
     }
 }

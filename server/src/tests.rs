@@ -1,10 +1,11 @@
 #[cfg(test)]
 use crate::protocol::{
-    compliance_host_line, default_host_line, default_mode_name, default_playlist, Action,
-    ClientMessage, GameEvent, PlayerScore, PlayerState, Role, ServerMessage, Snapshot, WeaponType,
+    boss_down_host_line, boss_host_line, compliance_host_line, default_host_line,
+    default_mode_name, default_playlist, Action, ClientMessage, GameEvent, PlayerScore,
+    PlayerState, Role, ServerMessage, Snapshot, WeaponType, BOSS_NAME,
 };
 #[cfg(test)]
-use crate::sim::{BotBehavior, BotController, GameState, MatchConfig, RoundState};
+use crate::sim::{BotBehavior, BotController, GameState, MatchConfig, RoundState, BOSS_MAX_HP};
 #[cfg(test)]
 use uuid::Uuid;
 
@@ -553,6 +554,7 @@ fn test_sim_match_config_custom() {
         end_delay_ticks: 20,
         compliance_ping_ticks: None,
         compliance_duration_ticks: 20 * 6,
+        boss_spawn_ticks: None,
     };
 
     assert_eq!(config.frag_limit, Some(5));
@@ -883,6 +885,7 @@ fn test_sim_all_bot_behaviors_coverage() {
         BotBehavior::Defensive,
         BotBehavior::Flanker,
         BotBehavior::Balanced,
+        BotBehavior::Compliance,
     ] {
         let bot = BotController::new(bot_id, behavior);
         let _ = bot.update(&state);
@@ -1774,6 +1777,7 @@ fn test_round_cycle_events_survive_ticks() {
         end_delay_ticks: 3,
         compliance_ping_ticks: None,
         compliance_duration_ticks: 20 * 6,
+        boss_spawn_ticks: None,
     };
 
     let a = uuid::Uuid::new_v4();
@@ -2507,6 +2511,7 @@ fn test_compliance_ping_fires_once_and_sets_pressure() {
         end_delay_ticks: 5,
         compliance_ping_ticks: Some(5),
         compliance_duration_ticks: 10,
+        boss_spawn_ticks: None,
     };
     let id = Uuid::new_v4();
     state.add_player(id, "Scrap".to_string(), Role::Human);
@@ -2578,6 +2583,7 @@ fn test_compliance_pressure_slows_movement() {
         end_delay_ticks: 5,
         compliance_ping_ticks: None,
         compliance_duration_ticks: 20,
+        boss_spawn_ticks: None,
     };
     let id = Uuid::new_v4();
     state.add_player(id, "Runner".to_string(), Role::Human);
@@ -2652,6 +2658,7 @@ fn test_snapshot_host_line_sticky_for_mid_join() {
         end_delay_ticks: 5,
         compliance_ping_ticks: Some(5),
         compliance_duration_ticks: 8,
+        boss_spawn_ticks: None,
     };
     state.add_player(Uuid::new_v4(), "Late".to_string(), Role::Human);
 
@@ -2698,4 +2705,171 @@ fn test_snapshot_host_line_defaults_when_absent_on_wire() {
     }"#;
     let snap: Snapshot = serde_json::from_str(raw).expect("legacy snapshot");
     assert_eq!(snap.host_line, default_host_line());
+}
+
+#[test]
+fn test_compliance_drone_spawns_once_with_pressure_and_host() {
+    let mut state = GameState::new();
+    let a = Uuid::new_v4();
+    state.add_player(a, "Rusher".into(), Role::Agent);
+    state.config = MatchConfig {
+        frag_limit: Some(99),
+        time_limit_ticks: Some(20 * 60),
+        warmup_ticks: 1,
+        end_delay_ticks: 20,
+        compliance_ping_ticks: None,
+        compliance_duration_ticks: 10,
+        boss_spawn_ticks: Some(3),
+    };
+    // Warmup -> Active
+    state.tick(0.05);
+    assert_eq!(state.round_state, RoundState::Active);
+    assert!(!state.boss_spawned);
+
+    state.tick(0.05); // round_ticks 1
+    state.tick(0.05); // 2
+    let _ = state.take_events();
+    state.tick(0.05); // 3: spawn
+    let events = state.take_events();
+    assert!(
+        events.iter().any(|e| matches!(
+            e,
+            GameEvent::BossSpawn { name, hp, .. }
+            if name == BOSS_NAME && *hp == BOSS_MAX_HP
+        )),
+        "expected BossSpawn, got {:?}",
+        events
+    );
+    assert!(state.boss_id.is_some());
+    assert!(state.boss_spawned);
+    let snap = state.snapshot();
+    assert_eq!(snap.pressure.as_deref(), Some("compliance_drone"));
+    assert_eq!(snap.host_line, boss_host_line());
+    assert!(snap.players.iter().any(|p| p.name == BOSS_NAME
+        && p.behavior.as_deref() == Some("Compliance")
+        && p.hp == BOSS_MAX_HP));
+
+    // Second spawn attempt is a no-op.
+    let before = state.players.len();
+    assert!(state.spawn_compliance_drone().is_none());
+    assert_eq!(state.players.len(), before);
+}
+
+#[test]
+fn test_compliance_drone_killable_emits_boss_down_no_respawn() {
+    let mut state = GameState::new();
+    let shooter = Uuid::new_v4();
+    state.add_player(shooter, "Rusher".into(), Role::Agent);
+    state.config = MatchConfig {
+        frag_limit: Some(99),
+        time_limit_ticks: Some(20 * 60),
+        warmup_ticks: 1,
+        end_delay_ticks: 20,
+        compliance_ping_ticks: None,
+        compliance_duration_ticks: 10,
+        boss_spawn_ticks: Some(1),
+    };
+    state.tick(0.05); // warmup -> Active
+    let _ = state.take_events();
+    state.tick(0.05); // spawn at tick 1
+    let _ = state.take_events();
+    let boss_id = state.boss_id.expect("boss alive");
+
+    // Point Rusher at boss and dump damage with Rail-level hits.
+    {
+        let boss = state.players.iter().find(|p| p.id == boss_id).unwrap();
+        let bx = boss.x;
+        let bz = boss.z;
+        let rusher = state.players.iter_mut().find(|p| p.id == shooter).unwrap();
+        rusher.x = bx - 5.0;
+        rusher.z = bz;
+        rusher.yaw = 0.0; // facing +x toward boss
+        rusher.weapon = WeaponType::Rail;
+        rusher.pending_action = Action {
+            fire: true,
+            ..Default::default()
+        };
+    }
+    // Keep firing until boss is down (Rail 75 dmg; 200 HP => 3 hits).
+    let mut saw_down = false;
+    for _ in 0..20 {
+        if let Some(r) = state.players.iter_mut().find(|p| p.id == shooter) {
+            r.fire_cooldown = 0;
+            r.pending_action.fire = true;
+        }
+        state.tick(0.05);
+        let events = state.take_events();
+        if events
+            .iter()
+            .any(|e| matches!(e, GameEvent::BossDown { .. }))
+        {
+            saw_down = true;
+            assert!(
+                events.iter().any(|e| matches!(
+                    e,
+                    GameEvent::BossDown {
+                        name,
+                        killer: Some(k),
+                        message,
+                        ..
+                    } if name == BOSS_NAME && k == "Rusher" && message == &boss_down_host_line()
+                )),
+                "boss_down shape bad: {:?}",
+                events
+            );
+            break;
+        }
+    }
+    assert!(saw_down, "expected BossDown after Rail volleys");
+    assert!(state.boss_id.is_none());
+    assert!(!state.players.iter().any(|p| p.name == BOSS_NAME));
+    assert_eq!(state.snapshot().pressure, None);
+    // Advance past normal respawn window: drone must not return.
+    for _ in 0..80 {
+        state.tick(0.05);
+        let _ = state.take_events();
+    }
+    assert!(!state
+        .players
+        .iter()
+        .any(|p| p.name == BOSS_NAME || p.is_boss));
+}
+
+#[test]
+fn test_boss_down_wire_json_and_compliance_ai_acts() {
+    let mut state = GameState::new();
+    let target = Uuid::new_v4();
+    state.add_player(target, "Sniper".into(), Role::Agent);
+    state.start_round();
+    state.spawn_compliance_drone().expect("spawn");
+    let boss_id = state.boss_id.unwrap();
+    let bot = state
+        .bots
+        .iter()
+        .find(|b| b.player_id == boss_id)
+        .cloned()
+        .expect("compliance controller");
+    let action = bot.update(&state);
+    // Should turn and/or fire toward the only scrap fighter.
+    assert!(
+        action.fire
+            || action.turn_left
+            || action.turn_right
+            || action.forward
+            || action.back
+            || action.left
+            || action.right,
+        "Compliance AI should produce intent, got {:?}",
+        action
+    );
+
+    let down = GameEvent::BossDown {
+        name: BOSS_NAME.into(),
+        boss_id,
+        killer: None,
+        message: boss_down_host_line(),
+    };
+    let v = serde_json::to_value(&down).unwrap();
+    assert_eq!(v["event"], "boss_down");
+    assert!(v.get("killer").is_none());
 }
