@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, cursor/slice1-arena-duel-8557]
   pull_request:
-    branches: [main]
+    branches: [main, cursor/slice1-arena-duel-8557]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
