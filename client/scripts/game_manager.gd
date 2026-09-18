@@ -184,11 +184,19 @@ func _on_snapshot_received(data):
 		hud.set_pressure("")
 	else:
 		hud.set_pressure(str(pressure))
-	# Sticky Host chrome always. Flash once only on mid-round join (Active/Ended),
-	# so Warmup still waits for RoundStart Host bumper instead of double-flashing.
+	# Sticky Host chrome always. Flash once on Warmup / Active / Ended join so
+	# pre-round Contested Frequency drama is readable (RoundStart still fights).
 	if host_line != "":
-		var flash = round_state == "Active" or round_state == "Ended"
-		if hud.set_host_line(host_line, flash):
+		var flash = round_state == "Warmup" or round_state == "Active" or round_state == "Ended"
+		var did_flash = hud.set_host_line(host_line, false)
+		if flash and not hud.host_line_seen:
+			hud.host_line_seen = true
+			if round_state == "Warmup" and hud.has_method("show_warmup_bumper"):
+				hud.show_warmup_bumper(host_line, int(round_time_left) if round_time_left != null else 0)
+			else:
+				hud.show_host_join(host_line)
+			did_flash = true
+		if did_flash:
 			if round_start_sound and round_start_sound.stream:
 				round_start_sound.play()
 	hud.set_tick(tick)

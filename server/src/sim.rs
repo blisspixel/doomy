@@ -1,8 +1,9 @@
 use crate::protocol::{
     boss_down_host_line, boss_host_line, compliance_host_line, default_host_line,
     default_mode_name, default_playlist, empty_mvp_host_line, killstreak_host_line, mvp_host_line,
-    roster_host_line, Action, GameEvent, PickupState, PlayerScore, PlayerState, Role, ShotResult,
-    Snapshot, WeaponType, BOSS_NAME, MODE_NAME, PLAYLIST_NAME,
+    roster_host_line, round_open_host_line, warmup_host_line, Action, GameEvent, PickupState,
+    PlayerScore, PlayerState, Role, ShotResult, Snapshot, WeaponType, BOSS_NAME, MODE_NAME,
+    PLAYLIST_NAME,
 };
 use std::collections::HashMap;
 use std::f32::consts::PI;
@@ -535,6 +536,8 @@ pub struct GameState {
     pub ended_mvp_frags: Option<u32>,
     /// Sticky Warmup / mid-join Host line naming dialed-in rule bots (None = default league line).
     pub roster_host_line: Option<String>,
+    /// Dialed-in rule-bot callsigns for Warmup / RoundStart Host drama.
+    pub roster_names: Vec<String>,
     /// Active Contested Frequency scrap layout.
     pub map: MapKind,
     /// When true, alternate map each start_round.
@@ -621,10 +624,7 @@ impl GameState {
             previous_winner,
             mode_name: default_mode_name(),
             playlist: default_playlist(),
-            host_line: self
-                .roster_host_line
-                .clone()
-                .unwrap_or_else(default_host_line),
+            host_line: round_open_host_line(self.map.name(), &self.roster_names),
         });
 
         tracing::info!(
@@ -1143,6 +1143,9 @@ impl GameState {
             self.config
                 .time_limit_ticks
                 .map(|limit| (limit.saturating_sub(self.round_ticks)) / 20)
+        } else if self.round_state == RoundState::Warmup {
+            let remaining = self.config.warmup_ticks.saturating_sub(self.round_ticks);
+            Some(remaining.div_ceil(20).max(1))
         } else {
             None
         };
@@ -1198,9 +1201,9 @@ impl GameState {
             } else if self.compliance_ticks_left > 0 {
                 compliance_host_line()
             } else if self.round_state == RoundState::Warmup {
-                self.roster_host_line
-                    .clone()
-                    .unwrap_or_else(default_host_line)
+                let remaining = self.config.warmup_ticks.saturating_sub(self.round_ticks);
+                let secs = remaining.div_ceil(20).max(1);
+                warmup_host_line(self.map.name(), &self.roster_names, secs)
             } else {
                 default_host_line()
             },
@@ -1223,6 +1226,7 @@ impl GameState {
     /// Refresh sticky Warmup Host roster line from current rule-bot display names.
     /// Clears when `names` is empty so mid-join falls back to the default league line.
     pub fn set_roster_host_line_from_names(&mut self, names: &[String]) {
+        self.roster_names = names.to_vec();
         if names.is_empty() {
             self.roster_host_line = None;
         } else {
@@ -1481,6 +1485,7 @@ impl Default for GameState {
             ended_mvp: None,
             ended_mvp_frags: None,
             roster_host_line: None,
+            roster_names: Vec::new(),
             map: MapKind::ArenaDuel,
             map_rotate: false,
         }

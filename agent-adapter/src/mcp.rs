@@ -1549,6 +1549,42 @@ mod mcp_tests {
     }
 
     #[test]
+    fn round_state_surfaces_warmup_host_drama() {
+        let mut state = ToolState {
+            connected: true,
+            player_id: Some(Uuid::nil()),
+            last_snapshot: Some(serde_json::json!({
+                "tick": 3,
+                "round_state": "Warmup",
+                "round_time_left": 2,
+                "map_id": 1,
+                "map_name": "Arena Duel",
+                "host_line": "HOST: CONTESTED FREQUENCY. ARENA DUEL TUNES IN. DEAD AIR DAN ON THE SCRAP. 2."
+            })),
+            ..Default::default()
+        };
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({"name":"round_state","arguments":{}})),
+            ),
+            &mut state,
+        );
+        let result = out.response.result.unwrap();
+        assert_eq!(result["round_state"], "Warmup");
+        assert_eq!(result["round_time_left"], 2);
+        assert!(result["host_line"]
+            .as_str()
+            .unwrap()
+            .contains("CONTESTED FREQUENCY"));
+        assert!(result["host_line"].as_str().unwrap().contains("ARENA DUEL"));
+        assert!(result["host_line"]
+            .as_str()
+            .unwrap()
+            .contains("ON THE SCRAP"));
+    }
+
+    #[test]
     fn round_state_surfaces_mvp_from_round_end() {
         let mut state = ToolState {
             connected: true,

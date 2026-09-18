@@ -211,13 +211,13 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
   - `score`: Kills in current round
   - `weapon`: Current weapon name ("Flechette", "Rail", or "Scatter")
 - `round_state`: (optional) Current round state ("Warmup", "Active", "Ended")
-- `round_time_left`: (optional) Seconds remaining in active round
+- `round_time_left`: (optional) Seconds left in Active (time limit) or Warmup countdown. Omitted while Ended.
 - `frag_limit`: (optional) Frag limit for current round
 - `shot_results`: (optional, omitted when empty) Per-tick fire outcomes for observe hit-confirm. Each entry: `shooter_id`, `shooter`, `hit`, optional `target_id`/`target`/`target_hp_after`, and `damage` (0 on miss).
 - `mode_name`: Contested Frequency (scrap league that denies it exists)
 - `playlist`: Arena Duel under the league lie
 - `pressure`: (optional) Live pressure beat id. `"compliance_drone"` while the Compliance Drone is alive; `"compliance"` during Continuance compliance ping slow.
-- `host_line`: Sticky Contested Frequency Host chrome for mid-join / mid-round observe. League Host line by default; during Warmup with rule bots dialed in, may name the scrap roster (callsigns). Switches to the compliance Host line while pressure is live. While Ended, carries the MVP Host bumper. Clients show this on join without waiting for the next `round_start`.
+- `host_line`: Sticky Contested Frequency Host chrome for mid-join / mid-round observe. League Host line by default while Active (no pressure). During Warmup, Contested Frequency bumper names the map, dialed-in scrap roster (callsigns), and countdown seconds. Switches to the compliance Host line while pressure is live. While Ended, carries the MVP Host bumper. Clients show this on join without waiting for the next `round_start`.
 - `mvp` / `mvp_frags`: (optional, present while Ended) Structured round MVP name and frag count for mid-join / `round_state` rehydrate. Omitted during Warmup and Active. Same selection as `round_end` MVP (top score / frags).
 - `pickups`: (optional, omitted when empty) Scrap layout: `map_id` (1 Arena Duel / 2 Compliance Yard) and `map_name`. Mid-map pads (weapons, health, armor). Each entry: `id`, `kind` (`"weapon"` / `"health"` / `"armor"`, default `"weapon"`), optional `weapon` (weapon pads), optional `amount` (health/armor pads), `x`/`y`/`z`, `available`, optional `respawn_in` (ticks until the pad returns). Health pads heal +40 (cap max HP); armor scrap grants +25 (cap 100). Touch claim is authoritative on the server; clients only render.
 
@@ -277,7 +277,7 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
   "previous_winner": "Bot1",
   "mode_name": "Contested Frequency",
   "playlist": "Arena Duel",
-  "host_line": "HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE. ARENA DUEL IS LIVE."
+  "host_line": "HOST: CONTESTED FREQUENCY. ARENA DUEL. DEAD AIR DAN, NIGHTFALL ON THE SCRAP. FIGHT!"
 }
 ```
 
@@ -477,7 +477,7 @@ MVP is the top scorer (same selection as `winner`). `mvp` / `mvp_frags` / `host_
 - **Collision**: Simple AABB with 0.5 unit radius
 
 ### Round System
-- **Warmup**: 3 seconds (60 ticks)
+- **Warmup**: 2 seconds (40 ticks) with Contested Frequency Host countdown drama on Snapshot
 - **Frag limit**: Default 10 kills
 - **Time limit**: Default 180 seconds (3600 ticks)
 - **End delay**: 5 seconds between rounds

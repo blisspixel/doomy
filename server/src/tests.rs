@@ -1,8 +1,9 @@
 #[cfg(test)]
 use crate::protocol::{
     boss_down_host_line, boss_host_line, compliance_host_line, default_host_line, default_map_id,
-    default_map_name, default_mode_name, default_playlist, mvp_host_line, Action, ClientMessage,
-    GameEvent, PlayerScore, PlayerState, Role, ServerMessage, Snapshot, WeaponType, BOSS_NAME,
+    default_map_name, default_mode_name, default_playlist, mvp_host_line, round_open_host_line,
+    warmup_host_line, Action, ClientMessage, GameEvent, PlayerScore, PlayerState, Role,
+    ServerMessage, Snapshot, WeaponType, BOSS_NAME,
 };
 #[cfg(test)]
 use crate::sim::{
@@ -2529,12 +2530,14 @@ fn test_snapshot_carries_contested_frequency_mode_identity() {
     assert_eq!(snap.mode_name, "Contested Frequency");
     assert_eq!(snap.playlist, "Arena Duel");
     assert!(snap.pressure.is_none());
-    assert_eq!(snap.host_line, default_host_line());
+    let expected_warm = warmup_host_line("Arena Duel", &[], 2);
+    assert_eq!(snap.host_line, expected_warm);
+    assert_eq!(snap.round_time_left, Some(2));
     let json = serde_json::to_value(&snap).unwrap();
     assert_eq!(json["mode_name"], "Contested Frequency");
     assert_eq!(json["playlist"], "Arena Duel");
     assert!(json.get("pressure").is_none() || json["pressure"].is_null());
-    assert_eq!(json["host_line"], default_host_line());
+    assert_eq!(json["host_line"], expected_warm);
 }
 
 #[test]
@@ -2698,12 +2701,14 @@ fn test_snapshot_host_line_sticky_for_mid_join() {
     };
     state.add_player(Uuid::new_v4(), "Late".to_string(), Role::Human);
 
-    // Warmup: league Host line sticky on Snapshot.
+    // Warmup: Contested Frequency countdown Host drama sticky on Snapshot.
     let warm = state.snapshot();
     assert!(warm.pressure.is_none());
-    assert_eq!(warm.host_line, default_host_line());
+    let expected_warm = warmup_host_line("Arena Duel", &[], 1); // warmup_ticks=2 -> 1s ceil
+    assert_eq!(warm.host_line, expected_warm);
+    assert_eq!(warm.round_time_left, Some(1));
     let warm_json = serde_json::to_value(&warm).unwrap();
-    assert_eq!(warm_json["host_line"], default_host_line());
+    assert_eq!(warm_json["host_line"], expected_warm);
 
     // Enter Active and fire compliance.
     state.tick(0.05);
@@ -3893,4 +3898,52 @@ fn test_protocol_snapshot_map_defaults_round_trip() {
     let snap: Snapshot = serde_json::from_value(json).unwrap();
     assert_eq!(snap.map_id, default_map_id());
     assert_eq!(snap.map_name, default_map_name());
+}
+
+#[test]
+fn test_warmup_host_drama_roster_map_countdown() {
+    let mut state = GameState::new();
+    state.config.warmup_ticks = 40; // 2s
+    state.set_roster_host_line_from_names(&["Dead Air Dan".into(), "Nightfall".into()]);
+    assert_eq!(state.round_state, RoundState::Warmup);
+
+    let snap = state.snapshot();
+    assert_eq!(snap.round_time_left, Some(2));
+    assert!(snap.host_line.contains("CONTESTED FREQUENCY"));
+    assert!(snap.host_line.contains("ARENA DUEL"));
+    assert!(snap.host_line.contains("DEAD AIR DAN"));
+    assert!(snap.host_line.contains("ON THE SCRAP"));
+    assert!(snap.host_line.contains("2."));
+    assert_eq!(
+        snap.host_line,
+        warmup_host_line("Arena Duel", &state.roster_names, 2)
+    );
+
+    // Advance one second of Warmup; countdown should drop.
+    for _ in 0..20 {
+        state.tick(0.05);
+    }
+    assert_eq!(state.round_state, RoundState::Warmup);
+    let mid = state.snapshot();
+    assert_eq!(mid.round_time_left, Some(1));
+    assert!(mid.host_line.ends_with("1."));
+
+    // Finish Warmup -> RoundStart fight bumper with map + roster.
+    for _ in 0..20 {
+        state.tick(0.05);
+    }
+    assert_eq!(state.round_state, RoundState::Active);
+    let start = state
+        .take_events()
+        .into_iter()
+        .find_map(|e| match e {
+            GameEvent::RoundStart { host_line, .. } => Some(host_line),
+            _ => None,
+        })
+        .expect("RoundStart");
+    assert_eq!(
+        start,
+        round_open_host_line("Arena Duel", &["Dead Air Dan".into(), "Nightfall".into()])
+    );
+    assert!(start.contains("FIGHT!"));
 }

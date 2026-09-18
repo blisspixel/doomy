@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `cursor/named-scrap-bots`
 **Spend:** $0. Loopback. No GCP apply, no ElevenLabs, no look_at/hit reopen.
-**Status:** In flight (NOW tip after Yard / Ended linger).
+**Status:** Shipped (#82 / `f58b2d0`).
 
 ## Goal
 
@@ -13,7 +13,7 @@ Product locks: Contested Frequency parody; port 6767; fail-under 80 unfiltered; 
 
 ## Tip priorities
 
-Yard Casino (`e8f79b5` / #80) and Ended linger + MVP rehydrate (`8c4f02c` / #81) shipped. **This is the NOW tip.**
+Shipped. Tip NOW: Warmup Host drama. See [`warmup-host-drama.md`](./warmup-host-drama.md).
 
 ## Non-goals
 

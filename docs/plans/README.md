@@ -8,18 +8,20 @@ Do not treat chat as the plan of record.
 
 ## Tip priorities (after v0.5.0)
 
-Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Sticky host_line on Snapshot shipped (#63, Casino-cleared on MCP). Godot Host flash mid-join shipped (#64). MCP session tools shipped (#65). Pixel-3D look bar sealed on tip (`5d16f32`, #66). Far-cam fighter scale shipped (#67). Solo boot-and-scrap shipped (#68). Continuance SP boss shipped (#69). Weapon pickups shipped (#70). Health pads shipped (#71). Arena choke geometry shipped (#72). Reconnect + Godot null shipped (#73). Human join FP juice shipped (#74). Killstreak Host juice shipped (#75). Weapon roles excellence shipped (#76). Tip stills recapture shipped (#77). Coverage climb main shipped (#78). Round-end MVP drama shipped (#79). Second scrap map / Compliance Yard shipped (#80). Ended linger + MVP rehydrate shipped (#81). Ship order from tip:
+Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Sticky host_line on Snapshot shipped (#63, Casino-cleared on MCP). Godot Host flash mid-join shipped (#64). MCP session tools shipped (#65). Pixel-3D look bar sealed on tip (`5d16f32`, #66). Far-cam fighter scale shipped (#67). Solo boot-and-scrap shipped (#68). Continuance SP boss shipped (#69). Weapon pickups shipped (#70). Health pads shipped (#71). Arena choke geometry shipped (#72). Reconnect + Godot null shipped (#73). Human join FP juice shipped (#74). Killstreak Host juice shipped (#75). Weapon roles excellence shipped (#76). Tip stills recapture shipped (#77). Coverage climb main shipped (#78). Round-end MVP drama shipped (#79). Second scrap map / Compliance Yard shipped (#80). Ended linger + MVP rehydrate shipped (#81). Named scrap bots shipped (#82). Ship order from tip:
 
-1. **Named scrap bots** (NOW) - Contested Frequency callsign roster + Host roster intros; MCP round_state map soft. See [`named-scrap-bots.md`](./named-scrap-bots.md).
-2. (Shipped) **Ended linger + MVP rehydrate** - Longer Ended phase + mid-join structured mvp on Snapshot / round_state. See [`ended-linger-mvp-rehydrate.md`](./ended-linger-mvp-rehydrate.md).
-3. (Shipped) **Second scrap map** - Contested Frequency map 2 (Compliance Yard). See [`second-scrap-map.md`](./second-scrap-map.md).
-4. (Shipped) **Round-end MVP drama** - Round-end MVP / podium Host bumper. See [`round-end-mvp-drama.md`](./round-end-mvp-drama.md).
-5. (Shipped) **Coverage climb main** - Climb unfiltered llvm-cov by testing server/adapter `main.rs` shells (CLI, startup, WS handshake). See [`coverage-climb-main.md`](./coverage-climb-main.md).
-6. (Shipped) **Tip stills recapture** - Refresh live Godot tip embeds so choke + FP + killstreak + weapon-roles face match tip. See [`tip-stills-recapture.md`](./tip-stills-recapture.md).
-7. (Shipped) **Weapon roles excellence** - Flechette / Rail / Scatter read in the hand. See [`weapon-roles-excellence.md`](./weapon-roles-excellence.md).
+1. **Warmup Host drama** (NOW) - Warmup / pre-round countdown Host drama (roster + map + Contested Frequency bumper). See [`warmup-host-drama.md`](./warmup-host-drama.md).
+2. (Shipped) **Named scrap bots** - Contested Frequency callsign roster + Host roster intros; MCP round_state map soft. See [`named-scrap-bots.md`](./named-scrap-bots.md).
+3. (Shipped) **Ended linger + MVP rehydrate** - Longer Ended phase + mid-join structured mvp on Snapshot / round_state. See [`ended-linger-mvp-rehydrate.md`](./ended-linger-mvp-rehydrate.md).
+4. (Shipped) **Second scrap map** - Contested Frequency map 2 (Compliance Yard). See [`second-scrap-map.md`](./second-scrap-map.md).
+5. (Shipped) **Round-end MVP drama** - Round-end MVP / podium Host bumper. See [`round-end-mvp-drama.md`](./round-end-mvp-drama.md).
+6. (Shipped) **Coverage climb main** - Climb unfiltered llvm-cov by testing server/adapter `main.rs` shells (CLI, startup, WS handshake). See [`coverage-climb-main.md`](./coverage-climb-main.md).
+7. (Shipped) **Tip stills recapture** - Refresh live Godot tip embeds so choke + FP + killstreak + weapon-roles face match tip. See [`tip-stills-recapture.md`](./tip-stills-recapture.md).
+8. (Shipped) **Weapon roles excellence** - Flechette / Rail / Scatter read in the hand. See [`weapon-roles-excellence.md`](./weapon-roles-excellence.md).
 
 Shipped recently:
 
+- **Named scrap bots** (#82) - Contested Frequency named rule-bot roster + Host intros. See [`named-scrap-bots.md`](./named-scrap-bots.md).
 - **Ended linger + MVP rehydrate** (#81) - Ended linger + mid-join mvp rehydrate. See [`ended-linger-mvp-rehydrate.md`](./ended-linger-mvp-rehydrate.md).
 - **Second scrap map** (#80) - Compliance Yard Contested Frequency map 2. See [`second-scrap-map.md`](./second-scrap-map.md).
 - **Round-end MVP drama** (#79) - Round-end MVP / podium Host bumper. See [`round-end-mvp-drama.md`](./round-end-mvp-drama.md).
@@ -51,7 +53,8 @@ Port is **6767**. Public TCP+UDP 6767 for strangers/agents. Tailscale is private
 
 | Plan | Status | One-liner |
 |---|---|---|
-| [`named-scrap-bots.md`](./named-scrap-bots.md) | **in flight** (NOW) | Contested Frequency named rule-bot roster + Host intros. |
+| [`warmup-host-drama.md`](./warmup-host-drama.md) | **in flight** (NOW) | Warmup / pre-round Host countdown drama (roster + map + bumper). |
+| [`named-scrap-bots.md`](./named-scrap-bots.md) | **shipped** (#82) | Contested Frequency named rule-bot roster + Host intros. |
 | [`ended-linger-mvp-rehydrate.md`](./ended-linger-mvp-rehydrate.md) | **shipped** (#81) | Ended linger + mid-join structured mvp rehydrate. |
 | [`second-scrap-map.md`](./second-scrap-map.md) | **shipped** (#80) | Second Contested Frequency scrap map (Compliance Yard). |
 | [`round-end-mvp-drama.md`](./round-end-mvp-drama.md) | **shipped** (#79) | Round-end MVP / podium Host drama for scrap-league sell. |
