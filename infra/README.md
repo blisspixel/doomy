@@ -12,7 +12,7 @@ Native IaC to run the fragr Rust **authoritative game server** on GCP cheaply, w
 
 Plan / draft only. **Do not `terraform apply` without written Nick/Chief spend ACK.** Default stops at `fmt` / `validate` / `plan`.
 
-Review gate: Gitty checks drafts against `/workspace/gitty-gcp-zero-fragr-2026-09-17.md` (QUALITY HOLD). Zero tool attribution in commits/PRs.
+Review gate: Gitty reviews drafts against the Researcher QUALITY HOLD brief for fragr GCP zero-cost (Gitty holds that brief). Zero tool attribution in commits/PRs.
 
 ## $0 default shape (HOLD)
 
@@ -23,6 +23,14 @@ Until Nick explicitly accepts a paid PoC:
 3. **Tight firewall:** game port(s) + **SSH via IAP only** (no world SSH).
 4. **HTTP agent-adapter (optional):** Cloud Run with **`min_instances=0`** + invoker IAM; private path to VM admin API. **Not** the raw game socket.
 5. **Never** put authoritative tick on Cloud Run/Functions as a free UDP front door (no inbound UDP). Slice 1 is WebSocket today; still prefer **GCE for long-lived authority**.
+
+## Identity and secrets (required before modules)
+
+- Separate least-privilege service accounts: adapter SA is not the VM SA.
+- Secrets in Secret Manager only. Never bake into images or commit `terraform.tfstate` / secret-bearing `.tfvars`.
+- Cloud Run: no `allUsers` invoker unless Nick explicitly ACKs. Adapter to game via private IP plus app auth (HMAC / mTLS / token). Open RFC1918 alone is not enough.
+- At Nick spend gate: budget alert / billing export. Free Tier NA egress (~1 GB) is an ESTIMATE crumb that blows up with real players.
+- No GKE "free cluster" as fake free compute. No Private Service Connect endpoints on day zero.
 
 ## Block before apply (unless Nick accepts paid PoC)
 
