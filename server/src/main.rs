@@ -110,9 +110,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 match cmd {
                     GameCommand::Connected { id, role, name, player_id } => {
                         if let Some(pid) = player_id {
-                            state.add_player(pid, name, role);
+                            state.add_player(pid, name.clone(), role);
                             client_to_player.insert(id, pid);
-                            tracing::info!("Player {} joined as {:?}", pid, role);
+                            let player_count = state.players.len();
+                            state.push_event(protocol::GameEvent::PlayerJoined {
+                                player: name.clone(),
+                                role: format!("{:?}", role).to_lowercase(),
+                                round_number: state.round_number,
+                                player_count,
+                            });
+                            tracing::info!("Player {} joined as {:?} (round {}, {} players)", pid, role, state.round_number, player_count);
                         } else {
                             tracing::info!("Spectator {} joined", name);
                         }
@@ -120,8 +127,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     GameCommand::Disconnected { id } => {
                         if let Some(player_id) = client_to_player.remove(&id) {
+                            let (player_name, player_score) = state.players.iter()
+                                .find(|p| p.id == player_id)
+                                .map(|p| (p.name.clone(), *state.scores.get(&p.id).unwrap_or(&0)))
+                                .unwrap_or_else(|| ("Unknown".to_string(), 0));
+                            let player_count_before = state.players.len();
                             state.remove_player(player_id);
-                            tracing::info!("Player {} left", player_id);
+                            state.push_event(protocol::GameEvent::PlayerLeft {
+                                player: player_name.clone(),
+                                score: player_score,
+                                round_number: state.round_number,
+                                player_count: player_count_before - 1,
+                            });
+                            tracing::info!("Player {} left (score: {}, round {}, {} players remain)", player_name, player_score, state.round_number, player_count_before - 1);
                         }
                     }
 
