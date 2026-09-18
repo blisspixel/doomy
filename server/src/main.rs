@@ -16,13 +16,35 @@ struct Args {
 
     #[arg(long, default_value = "4")]
     bots: usize,
+
+    /// Scrap map: 1/arena (Arena Duel) or 2/compliance-yard (Compliance Yard).
+    #[arg(long, default_value = "1")]
+    map: String,
+
+    /// Alternate Arena Duel and Compliance Yard each round.
+    #[arg(long, default_value_t = false)]
+    map_rotate: bool,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_tracing();
     let args = Args::parse();
-    run_server(args.bind, args.bots, std::future::pending::<()>(), None).await
+    let map = fragr_server::sim::MapKind::from_cli(&args.map).ok_or_else(|| {
+        format!(
+            "invalid --map {:?}; expected 1/arena or 2/compliance-yard",
+            args.map
+        )
+    })?;
+    run_server(
+        args.bind,
+        args.bots,
+        map,
+        args.map_rotate,
+        std::future::pending::<()>(),
+        None,
+    )
+    .await
 }
 
 fn init_tracing() {
@@ -39,6 +61,8 @@ fn init_tracing() {
 async fn run_server(
     bind: String,
     bots: usize,
+    map: fragr_server::sim::MapKind,
+    map_rotate: bool,
     shutdown: impl Future<Output = ()>,
     ready: Option<tokio::sync::oneshot::Sender<SocketAddr>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -54,8 +78,18 @@ async fn run_server(
         net_server.accept_loop().await;
     });
 
-    let mut session = GameSession::new();
+    let mut session = GameSession::with_map(map, map_rotate);
     session.spawn_bots(bots);
+    tracing::info!(
+        "Map: {} (id {}){}",
+        map.name(),
+        map.id(),
+        if map_rotate {
+            ", rotate each round"
+        } else {
+            ""
+        }
+    );
 
     let tick_duration = Duration::from_millis(50);
     let mut tick_interval = tokio::time::interval(tick_duration);
@@ -99,6 +133,8 @@ mod tests {
         let args = Args::try_parse_from(["fragr-server"]).expect("defaults");
         assert_eq!(args.bind, "0.0.0.0:6767");
         assert_eq!(args.bots, 4);
+        assert_eq!(args.map, "1");
+        assert!(!args.map_rotate);
     }
 
     #[test]
@@ -107,6 +143,16 @@ mod tests {
             .expect("custom");
         assert_eq!(args.bind, "127.0.0.1:0");
         assert_eq!(args.bots, 2);
+    }
+
+    #[test]
+    fn args_map_and_rotate() {
+        let args =
+            Args::try_parse_from(["fragr-server", "--map", "compliance-yard", "--map-rotate"])
+                .expect("map args");
+        assert_eq!(args.map, "compliance-yard");
+        assert!(args.map_rotate);
+        assert!(fragr_server::sim::MapKind::from_cli(&args.map).is_some());
     }
 
     #[tokio::test]
@@ -118,6 +164,8 @@ mod tests {
             run_server(
                 "127.0.0.1:0".to_string(),
                 1,
+                fragr_server::sim::MapKind::ArenaDuel,
+                false,
                 async move {
                     let _ = shutdown_rx.await;
                 },

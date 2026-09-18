@@ -46,6 +46,18 @@ theme_override_colors/font_color = Color(0.55, 0.7, 0.72, 1)
 text = "CONTESTED FREQUENCY // SOLO SCRAP"
 horizontal_alignment = 1
 
+[node name="MapRow" type="HBoxContainer" parent="Center/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MapLabel" type="Label" parent="Center/VBox/MapRow"]
+layout_mode = 2
+text = "Map:"
+
+[node name="MapOption" type="OptionButton" parent="Center/VBox/MapRow"]
+custom_minimum_size = Vector2(260, 0)
+layout_mode = 2
+
 [node name="SoloButton" type="Button" parent="Center/VBox"]
 custom_minimum_size = Vector2(320, 44)
 layout_mode = 2
@@ -80,7 +92,7 @@ custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 theme_override_font_sizes/font_size = 12
-text = "Offline Solo Scrap uses loopback 6767."
+text = "Offline Solo Scrap uses loopback 6767. Map select matches server --map / FRAGR_MAP."
 autowrap_mode = 3
 horizontal_alignment = 1
 

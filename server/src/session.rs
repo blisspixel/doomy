@@ -3,7 +3,7 @@
 
 use crate::net::{ClientSession, GameCommand};
 use crate::protocol::{self, Role, ServerMessage};
-use crate::sim::{BotController, GameState, SpeakOutcome};
+use crate::sim::{BotController, GameState, MapKind, SpeakOutcome};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -22,8 +22,12 @@ pub struct GameSession {
 
 impl GameSession {
     pub fn new() -> Self {
+        Self::with_map(MapKind::ArenaDuel, false)
+    }
+
+    pub fn with_map(map: MapKind, map_rotate: bool) -> Self {
         Self {
-            state: GameState::new(),
+            state: GameState::with_map(map, map_rotate),
             bots: Vec::new(),
             client_to_player: HashMap::new(),
             pending_unicasts: Vec::new(),

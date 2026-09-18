@@ -8,6 +8,8 @@ cd "$ROOT"
 
 BIND="${FRAGR_BIND:-127.0.0.1:6767}"
 BOTS="${FRAGR_BOTS:-4}"
+MAP="${FRAGR_MAP:-1}"
+MAP_ROTATE="${FRAGR_MAP_ROTATE:-0}"
 GODOT_BIN="${GODOT_BIN:-}"
 
 resolve_godot() {
@@ -46,8 +48,13 @@ if command -v fuser >/dev/null 2>&1; then
   fuser -k "${BIND##*:}/tcp" >/dev/null 2>&1 || true
 fi
 
-echo "Starting server on $BIND with $BOTS bots..."
-"$SERVER_BIN" --bind "$BIND" --bots "$BOTS" >/tmp/fragr-solo-server.log 2>&1 &
+MAP_ARGS=(--map "$MAP")
+if [ "$MAP_ROTATE" = "1" ] || [ "$MAP_ROTATE" = "true" ]; then
+  MAP_ARGS+=(--map-rotate)
+fi
+
+echo "Starting server on $BIND with $BOTS bots (map=$MAP rotate=$MAP_ROTATE)..."
+"$SERVER_BIN" --bind "$BIND" --bots "$BOTS" "${MAP_ARGS[@]}" >/tmp/fragr-solo-server.log 2>&1 &
 SERVER_PID=$!
 
 cleanup() {
@@ -78,6 +85,7 @@ done
 
 export FRAGR_SERVER="$BIND"
 export FRAGR_SOLO=1
+export FRAGR_MAP="$MAP"
 
 echo "Launching Solo Scrap (human on loopback). Server pid=$SERVER_PID"
 echo "Controls: WASD move, mouse look, LMB fire, L leave to spectate, ESC mouse"
