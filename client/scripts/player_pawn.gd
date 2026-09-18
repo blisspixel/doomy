@@ -30,15 +30,17 @@ var weapon_textures = {}
 var cyanex_texture: Texture2D
 var kragge_texture: Texture2D
 
+# Art bible muted brand tints (bone/gunmetal/rust/blood/ember + muted cyan/magenta).
+# Keep silhouettes readable: labels carry brand color; body stays near-white multiply.
 const BOT_COLORS = {
-	"Rusher": Color(1.0, 0.2, 0.2),
-	"Sniper": Color(0.2, 0.8, 1.0),
-	"Flanker": Color(1.0, 0.8, 0.0),
-	"Tank": Color(0.2, 1.0, 0.3),
-	"Scout": Color(1.0, 0.4, 0.8),
-	"Guard": Color(0.6, 0.3, 1.0),
-	"Hunter": Color(1.0, 0.6, 0.0),
-	"Striker": Color(0.3, 1.0, 1.0)
+	"Rusher": Color(0.75, 0.28, 0.22),
+	"Sniper": Color(0.35, 0.58, 0.62),
+	"Flanker": Color(0.82, 0.55, 0.22),
+	"Tank": Color(0.55, 0.48, 0.4),
+	"Scout": Color(0.62, 0.32, 0.42),
+	"Guard": Color(0.45, 0.38, 0.5),
+	"Hunter": Color(0.769, 0.4, 0.18),
+	"Striker": Color(0.4, 0.62, 0.64)
 }
 
 const KRAGGE_BOTS = ["Rusher", "Tank", "Hunter"]
@@ -174,17 +176,19 @@ func _update_weapon_sprite():
 	
 	weapon_sprite.texture = weapon_textures[current_weapon]
 	weapon_sprite.visible = true
-	weapon_sprite.modulate = player_color.lightened(0.3)
+	# Preserve weapon plate readability; light bone lift, not neon wash.
+	weapon_sprite.modulate = Color(1.05, 1.02, 0.98)
 
 func _update_body_color(hit: bool):
 	if not body:
 		return
 	
 	if hit:
-		body.modulate = Color(1.8, 0.3, 0.3)
-		body.scale = Vector3.ONE * 1.2
+		body.modulate = Color(1.55, 0.35, 0.28)
+		body.scale = Vector3.ONE * 1.12
 	else:
-		body.modulate = player_color
+		# Near-white multiply so Cyanex/Kragge pixel art reads; brand on label.
+		body.modulate = Color(1.0, 1.0, 1.0).lerp(player_color, 0.18)
 		body.scale = Vector3.ONE
 
 func show_muzzle_flash(weapon: String):
@@ -199,15 +203,15 @@ func show_muzzle_flash(weapon: String):
 		muzzle.modulate = Color(1.8, 1.8, 2.5)
 		muzzle.scale = Vector3.ONE * 2.5
 		if muzzle_glow:
-			muzzle_glow.light_color = Color(0.3, 0.8, 1.0)
+			muzzle_glow.light_color = Color(0.35, 0.58, 0.65)
 			muzzle_glow.light_energy = 4.0
 			muzzle_glow.omni_range = 5.0
 	else:
 		muzzle.texture = muzzle_flash_texture
-		muzzle.modulate = Color(2.0, 1.8, 1.0)
+		muzzle.modulate = Color(1.9, 1.35, 0.7)
 		muzzle.scale = Vector3.ONE * 2.0
 		if muzzle_glow:
-			muzzle_glow.light_color = Color(1.0, 0.85, 0.3)
+			muzzle_glow.light_color = Color(0.85, 0.45, 0.18)
 			muzzle_glow.light_energy = 3.5
 			muzzle_glow.omni_range = 4.0
 	
