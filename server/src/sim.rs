@@ -268,11 +268,20 @@ impl GameState {
 
 pub struct BotController {
     pub player_id: Uuid,
+    pub behavior: BotBehavior,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum BotBehavior {
+    Aggressive,
+    Defensive,
+    Flanker,
+    Balanced,
 }
 
 impl BotController {
-    pub fn new(player_id: Uuid) -> Self {
-        Self { player_id }
+    pub fn new(player_id: Uuid, behavior: BotBehavior) -> Self {
+        Self { player_id, behavior }
     }
 
     pub fn update(&self, state: &GameState) -> Action {
@@ -320,20 +329,97 @@ impl BotController {
 
         let mut action = Action::default();
 
-        if angle_diff.abs() > 0.3 {
-            if angle_diff > 0.0 {
-                action.turn_right = true;
-            } else {
-                action.turn_left = true;
+        match self.behavior {
+            BotBehavior::Aggressive => {
+                // Always chase, fire when close
+                if angle_diff.abs() > 0.2 {
+                    if angle_diff > 0.0 {
+                        action.turn_right = true;
+                    } else {
+                        action.turn_left = true;
+                    }
+                }
+                action.forward = true;
+                if angle_diff.abs() < 0.6 && nearest_dist < 35.0 {
+                    action.fire = true;
+                }
             }
-        }
+            
+            BotBehavior::Defensive => {
+                // Keep distance, strafe, precise shooting
+                if angle_diff.abs() > 0.15 {
+                    if angle_diff > 0.0 {
+                        action.turn_right = true;
+                    } else {
+                        action.turn_left = true;
+                    }
+                }
+                
+                if nearest_dist < 8.0 {
+                    action.back = true;
+                } else if nearest_dist > 15.0 {
+                    action.forward = true;
+                } else {
+                    // Strafe at optimal range
+                    if (state.tick % 40) < 20 {
+                        action.left = true;
+                    } else {
+                        action.right = true;
+                    }
+                }
+                
+                if angle_diff.abs() < 0.3 && nearest_dist < 25.0 {
+                    action.fire = true;
+                }
+            }
+            
+            BotBehavior::Flanker => {
+                // Circle around target, fire from sides
+                if angle_diff.abs() > 0.25 {
+                    if angle_diff > 0.0 {
+                        action.turn_right = true;
+                    } else {
+                        action.turn_left = true;
+                    }
+                }
+                
+                if nearest_dist > 10.0 {
+                    action.forward = true;
+                } else {
+                    // Circle strafe
+                    action.forward = true;
+                    if (state.tick % 60) < 30 {
+                        action.left = true;
+                        action.turn_left = true;
+                    } else {
+                        action.right = true;
+                        action.turn_right = true;
+                    }
+                }
+                
+                if angle_diff.abs() < 0.5 && nearest_dist < 30.0 {
+                    action.fire = true;
+                }
+            }
+            
+            BotBehavior::Balanced => {
+                // Standard chase and shoot
+                if angle_diff.abs() > 0.3 {
+                    if angle_diff > 0.0 {
+                        action.turn_right = true;
+                    } else {
+                        action.turn_left = true;
+                    }
+                }
 
-        if nearest_dist > 3.0 {
-            action.forward = true;
-        }
+                if nearest_dist > 5.0 {
+                    action.forward = true;
+                }
 
-        if angle_diff.abs() < 0.5 && nearest_dist < 30.0 {
-            action.fire = true;
+                if angle_diff.abs() < 0.5 && nearest_dist < 30.0 {
+                    action.fire = true;
+                }
+            }
         }
 
         action

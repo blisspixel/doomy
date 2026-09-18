@@ -47,14 +47,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut bots = Vec::new();
     let mut client_to_player = HashMap::new();
 
-    let bot_names = ["Rusher", "Sniper", "Flanker", "Tank", "Scout", "Guard", "Hunter", "Striker"];
+    let bot_configs = [
+        ("Rusher", sim::BotBehavior::Aggressive),
+        ("Sniper", sim::BotBehavior::Defensive),
+        ("Flanker", sim::BotBehavior::Flanker),
+        ("Tank", sim::BotBehavior::Balanced),
+        ("Scout", sim::BotBehavior::Flanker),
+        ("Guard", sim::BotBehavior::Defensive),
+        ("Hunter", sim::BotBehavior::Aggressive),
+        ("Striker", sim::BotBehavior::Balanced),
+    ];
     
     for i in 0..args.bots {
         let bot_id = Uuid::new_v4();
-        let bot_name = bot_names.get(i).unwrap_or(&"Bot").to_string();
-        state.add_player(bot_id, bot_name.clone(), Role::Agent);
-        bots.push(BotController::new(bot_id));
-        tracing::info!("Spawned bot: {} ({})", bot_name, bot_id);
+        let (bot_name, behavior) = bot_configs.get(i).unwrap_or(&("Bot", sim::BotBehavior::Balanced));
+        state.add_player(bot_id, bot_name.to_string(), Role::Agent);
+        bots.push(BotController::new(bot_id, *behavior));
+        tracing::info!("Spawned bot: {} ({:?}, {})", bot_name, behavior, bot_id);
     }
 
     let tick_duration = Duration::from_millis(50);
