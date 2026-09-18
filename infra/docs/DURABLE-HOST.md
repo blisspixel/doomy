@@ -1,0 +1,108 @@
+# Durable self-host recipe (fragr GCE)
+
+**Source:** Researcher HOLD brief for fragr GCP durable host.
+
+This is the durable, multi-hour-playable path for running a fragr server on GCP with predictable costs and restarts. For ephemeral testing, see ZERO-COST.md.
+
+## Recipe
+
+### GCE instance
+
+- **Machine:** Always Free eligible `e2-micro` (non-preemptible)
+- **Regions:** `us-west1`, `us-central1`, or `us-east1` only (Always Free tier)
+- **Boot disk:** Standard persistent disk, ≤30 GB (within Free Tier envelope)
+
+### Networking
+
+- **Ports:** TCP+UDP 7777 (game socket)
+- **SSH:** IAP tunnel only (no public 0.0.0.0/0:22)
+- **Front door choice:**
+  - **Prefer:** Tailscale Personal ($0) as front door, close public 7777 firewall. Clients connect via Tailnet IP.
+  - **Alternative:** Public external IP with 0.0.0.0/0:7777. See cost ceiling honesty below.
+
+### Systemd service
+
+Install the fragr-server binary to `/opt/fragr/fragr-server` and run via systemd with `Restart=always`. Sketch unit:
+
+```ini
+[Unit]
+Description=fragr authoritative game server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fragr
+WorkingDirectory=/opt/fragr
+ExecStart=/opt/fragr/fragr-server
+Restart=always
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Create a dedicated `fragr` user, place binary in `/opt/fragr/`, install unit to `/etc/systemd/system/fragr-server.service`, then `systemctl enable --now fragr-server.service`.
+
+## Cost ceiling honesty
+
+### Documented costs (ESTIMATE)
+
+| Item | ESTIMATE | Status |
+|------|----------|--------|
+| e2-micro VM | $0/mo | **Documented** (Always Free: 1 e2-micro/month in us-west1/us-central1/us-east1) |
+| 30 GB pd-standard | $0/mo | **Documented** (Always Free: 30 GB standard persistent disk) |
+| External IP (in-use) | ~$3.65/mo | **ESTIMATE** (1 ephemeral IP, ~730h/mo at $0.005/h, not counting 1-hour Free Tier crumb) |
+| External IP (reserved, unused) | ~$2.88/mo | **Documented** (not used in this recipe) |
+| Egress (sustained play) | Variable | **ESTIMATE** (Free Tier: 1 GB/mo NA egress crumb; 10 sustained players at 50 KB/s avg = 1.8 GB/h, blows crumb quickly) |
+
+**Free Tier IP honesty:** GCP Always Free includes 1 hour/month of external IP at no charge, not full-time free. After that crumb, expect $0.005/h for in-use ephemeral IP. At 730 hours/month, the ESTIMATE is ~$3.65/mo.
+
+### Steady-state ceiling
+
+- **Floor:** ~$4/mo (mostly external IP at $0.005/h for sustained durable host)
+- **Ceiling (normal):** ESTIMATE << $20/mo with light egress
+- **Project hard cap:** $50 total (Nick approval required to raise)
+
+Tailscale Personal ($0) as front door avoids the external IP charge and the egress blowup from public internet traffic. Recommended for durable multi-hour playtests.
+
+## Budget safeguards
+
+- **Budget alert:** Set at Nick $50 hard cap (or lower, e.g. $5 or $10 for early warning)
+- **Optional billing-disable:** Billing admins can configure project-level billing disable at threshold to prevent runaway charges
+
+Billable egress from 0.0.0.0/0 public play will blow the 1 GB Free Tier crumb quickly. Monitor in GCP Console.
+
+## Throw-outs (not this recipe)
+
+- **Cloud Run / Functions / GKE as tick host:** Authoritative server is long-lived, prefers GCE.
+- **Day-zero LB / unused static IP:** No forwarding rules or reserved addresses on day one.
+- **WS to renet mid-ship change:** Slice 1 transport is WebSocket. Do not scrap and rewrite to renet UDP mid-implementation unless Nick asks.
+- **Any terraform apply without Nick approval:** This is still plan-only until spend gate opens.
+
+## Regions (Always Free)
+
+Always Free `e2-micro` availability (as of Researcher brief):
+
+- `us-west1` (Oregon)
+- `us-central1` (Iowa)
+- `us-east1` (South Carolina)
+
+Do not deploy `e2-micro` outside these regions or you will be billed full price.
+
+## IP pricing sources
+
+- [Compute Engine Pricing: External IP addresses](https://cloud.google.com/compute/all-pricing#ipaddress)
+  - In-use ephemeral: $0.005/hour
+  - Reserved unused: $0.012/hour
+- [GCP Always Free Tier](https://cloud.google.com/free/docs/free-cloud-features#compute)
+  - 1 hour/month of external IP usage at no charge (crumb, not sustained-free)
+
+## Next steps
+
+1. Review this recipe vs the $50 hard cap.
+2. Get Nick/Chief approval before any `terraform apply`.
+3. If approved, stand up GCE with Tailscale Personal front door, close public 7777, validate systemd restart behavior.
+4. Monitor actual costs in GCP Billing Console; adjust if ceiling approaches.
