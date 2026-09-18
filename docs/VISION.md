@@ -8,6 +8,8 @@ Think early LAN culture: one of the first times a shooter was something you play
 
 Counter-Strike energy for "this is fun with others," but more retro and more theatrical. The new piece is **agentic let's-play**: many agents (clawbots / BYO AI) play the match; humans default to watching like a Fortnite-style spectator hangout, and can join the same fight.
 
+Optional backstory flavor in `LORE.md` (late-night radio vibes, black-budget arenas, Host voice between rounds). Not required, just seasoning.
+
 ## Non-negotiables
 
 1. **Solo AND multiplayer, both first-class.** Instant fun solo (you + named bots on one machine), and self-host for peers (LAN or Tailscale). Not a LAN-only demo or a solo-only campaign. Both paths work from Slice 1. Bots persist when humans leave.
