@@ -68,3 +68,25 @@ AGENTS.md commands + evidence. Screenshots when UI exists. Green CI is the floor
 2. Wire CI with Gitty; keep main green.
 3. Commit `docs/plans/fragr-exceptional-game.md` and update AGENTS.md spine (this file).
 4. Scaffold `infra/` README + empty module stubs after Slice 1b (plan before apply).
+
+## Gemini DR fold (2026-09-17)
+
+Source: Researcher Gemini DR + QUALITY. Deepens DIY; does not replace Slice 1 cut.
+
+**HOLD (acting on):**
+- Rust authority + Godot I/O/spectator; same input path humans/agents
+- Spectator-default + anti-slop feel (momentum, distinct weapon roles, polish-as-you-go, readable arenas)
+- Client snapshot interpolation (already in Slice 1 polish plan)
+- renet/UDP as next spike after WS JSON (not mid-PR)
+- MCP off tick; $0-first LAN/Tailscale
+- gdext hazards if/when we bind Rust into Godot (bind_mut, PackedByteArray CoW, experimental-threads): spike carefully later
+
+**THROW (ignore for now):**
+- Esports-indistinguishable AI claims
+- Matchmaking / renetcode for Slice 1
+- bitcode-over-bincode without bench
+- rapier perfect determinism guarantees
+- Concurrent-player/$ claims until measured
+- LLM overseer blocking Slice 1
+
+Process still wins: finish WS JSON polish PR, then renet spike under finish-line plan.
