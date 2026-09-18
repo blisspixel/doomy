@@ -950,7 +950,10 @@ fn test_sim_round_ended_state_waits_for_delay() {
     state.end_round("Test".to_string());
 
     assert_eq!(state.round_state, RoundState::Ended);
-    state.round_ticks = 0;
+    assert_eq!(
+        state.round_ticks, 0,
+        "end_round must reset round_ticks for end_delay"
+    );
 
     for _ in 0..9 {
         state.tick(0.05);
@@ -1737,4 +1740,135 @@ fn join_leave_events_survive_tick() {
         "PlayerLeft must survive tick() and remain until take_events: {:?}",
         events
     );
+}
+
+#[test]
+fn test_round_cycle_events_survive_ticks() {
+    use crate::protocol::GameEvent;
+    use crate::sim::{GameState, MatchConfig, RoundState};
+
+    let mut state = GameState::new();
+    state.config = MatchConfig {
+        frag_limit: Some(2),
+        time_limit_ticks: None,
+        warmup_ticks: 3,
+        end_delay_ticks: 3,
+    };
+
+    let a = uuid::Uuid::new_v4();
+    let b = uuid::Uuid::new_v4();
+    state.add_player(a, "Alpha".to_string(), crate::protocol::Role::Agent);
+    state.add_player(b, "Bravo".to_string(), crate::protocol::Role::Agent);
+
+    assert_eq!(state.round_state, RoundState::Warmup);
+
+    // Warmup → Active: RoundStart must be present after the transition tick.
+    for _ in 0..(state.config.warmup_ticks.saturating_sub(1)) {
+        state.tick(0.05);
+        let _ = state.take_events(); // drain noise; transition not yet
+    }
+    state.tick(0.05);
+    assert_eq!(state.round_state, RoundState::Active);
+    let events = state.take_events();
+    assert!(
+        events.iter().any(|e| matches!(
+            e,
+            GameEvent::RoundStart {
+                round_number: 1,
+                ..
+            }
+        )),
+        "RoundStart must survive the Warmup→Active tick: {:?}",
+        events
+    );
+
+    // Drive frag limit via scores (same path end_round uses).
+    *state.scores.entry(a).or_insert(0) = 2;
+    state.tick(0.05);
+    assert_eq!(state.round_state, RoundState::Ended);
+    let events = state.take_events();
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, GameEvent::RoundEnd { .. })),
+        "RoundEnd must survive the Active→Ended tick: {:?}",
+        events
+    );
+
+    // Ended delay → Round 2 Start.
+    for _ in 0..(state.config.end_delay_ticks.saturating_sub(1)) {
+        state.tick(0.05);
+        let _ = state.take_events();
+    }
+    state.tick(0.05);
+    assert_eq!(state.round_state, RoundState::Active);
+    assert_eq!(state.round_number, 2);
+    let events = state.take_events();
+    assert!(
+        events.iter().any(|e| matches!(
+            e,
+            GameEvent::RoundStart {
+                round_number: 2,
+                ..
+            }
+        )),
+        "RoundStart(2) must survive the Ended→Active tick: {:?}",
+        events
+    );
+}
+
+#[test]
+fn test_server_round_event_wire_json_shape() {
+    use crate::protocol::{GameEvent, PlayerScore, ServerMessage};
+
+    let start = ServerMessage::Event(GameEvent::RoundStart {
+        round_number: 2,
+        frag_limit: Some(10),
+        time_limit: Some(180),
+        players: vec!["Alpha".into(), "Bravo".into()],
+        previous_winner: Some("Alpha".into()),
+    });
+    let start_json = serde_json::to_string(&start).unwrap();
+    assert!(start_json.contains(r#""type":"event""#), "{}", start_json);
+    assert!(
+        start_json.contains(r#""event":"round_start""#),
+        "{}",
+        start_json
+    );
+    assert!(
+        start_json.contains(r#""previous_winner":"Alpha""#),
+        "{}",
+        start_json
+    );
+
+    let end = ServerMessage::Event(GameEvent::RoundEnd {
+        winner: Some("Alpha".into()),
+        reason: "Frag limit reached".into(),
+        final_scores: vec![
+            PlayerScore {
+                name: "Alpha".into(),
+                score: 10,
+            },
+            PlayerScore {
+                name: "Bravo".into(),
+                score: 3,
+            },
+        ],
+        winner_score: Some(10),
+    });
+    let end_json = serde_json::to_string(&end).unwrap();
+    assert!(end_json.contains(r#""event":"round_end""#), "{}", end_json);
+    assert!(end_json.contains(r#""final_scores""#), "{}", end_json);
+
+    // Round-trip on server protocol itself.
+    let parsed: ServerMessage = serde_json::from_str(&start_json).unwrap();
+    assert!(matches!(
+        parsed,
+        ServerMessage::Event(GameEvent::RoundStart { .. })
+    ));
+    let parsed: ServerMessage = serde_json::from_str(&end_json).unwrap();
+    assert!(matches!(
+        parsed,
+        ServerMessage::Event(GameEvent::RoundEnd { .. })
+    ));
 }
