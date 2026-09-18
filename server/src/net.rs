@@ -38,6 +38,10 @@ pub enum GameCommand {
         player_id: Uuid,
         text: String,
     },
+    SetDisplayBehavior {
+        player_id: Uuid,
+        behavior: String,
+    },
 }
 
 impl NetServer {
@@ -180,6 +184,17 @@ async fn handle_connection(
                                     player_id: pid,
                                     text: speak.text,
                                 });
+                            }
+                        }
+                        Ok(ClientMessage::SetDisplayBehavior(msg)) => {
+                            // Agent-only display chip; role gated in session/sim.
+                            if role == Role::Agent {
+                                if let Some(pid) = player_id {
+                                    let _ = game_tx.send(GameCommand::SetDisplayBehavior {
+                                        player_id: pid,
+                                        behavior: msg.behavior,
+                                    });
+                                }
                             }
                         }
                         _ => {}

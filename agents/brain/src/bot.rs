@@ -5,11 +5,13 @@
 
 use crate::budget::Budget;
 use crate::decision::{plan_from_answers, tactical_questions, Question};
-use crate::plan::{fallback_plan, micro_action, Plan, Source};
+use crate::plan::{fallback_plan, micro_action, Plan, Source, Stance};
 use crate::provider::{decide, decision_request, Provider, Transport};
 use crate::telemetry::{observe, RecentHits};
 use crate::Error;
-use fragr_server::protocol::{ClientMessage, GameEvent, Role, ServerMessage, Snapshot};
+use fragr_server::protocol::{
+    ClientMessage, GameEvent, Role, ServerMessage, SetDisplayBehavior, Snapshot,
+};
 use futures_util::{SinkExt, StreamExt};
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -69,6 +71,18 @@ enum Outcome {
 
 fn transport_err<E: std::fmt::Display>(err: E) -> Error {
     Error::Transport(err.to_string())
+}
+
+/// Wire JSON for SetDisplayBehavior when stance changes (including first publish).
+fn display_behavior_wire(published: &mut Option<Stance>, stance: Stance) -> Option<String> {
+    if published.as_ref() == Some(&stance) {
+        return None;
+    }
+    *published = Some(stance);
+    serde_json::to_string(&ClientMessage::SetDisplayBehavior(SetDisplayBehavior {
+        behavior: stance.name().to_string(),
+    }))
+    .ok()
 }
 
 fn lock(budget: &Mutex<Budget>) -> std::sync::MutexGuard<'_, Budget> {
@@ -134,6 +148,14 @@ pub async fn run_bot(
     .await
     .map_err(transport_err)?;
 
+    let mut published_stance: Option<Stance> = None;
+    let mut plan = Plan::default();
+    if let Some(wire) = display_behavior_wire(&mut published_stance, plan.stance) {
+        sink.send(Message::Text(wire))
+            .await
+            .map_err(transport_err)?;
+    }
+
     let mut summary = BotSummary {
         name: config.name.clone(),
         provider: config.provider.name().to_string(),
@@ -144,7 +166,6 @@ pub async fn run_bot(
     let mut my_name = config.name.clone();
     let mut last: Option<Snapshot> = None;
     let mut hits = RecentHits::default();
-    let mut plan = Plan::default();
     let mut paid_enabled = config.provider.is_paid();
     let questions = Arc::new(tactical_questions());
     let hz = config.decision_hz.clamp(MIN_DECISION_HZ, MAX_DECISION_HZ);
@@ -222,6 +243,11 @@ pub async fn run_bot(
                     let source = if config.provider.is_paid() { Source::Budget } else { Source::Local };
                     plan = fallback_plan(&telemetry, source);
                     summary.decisions_local += 1;
+                    if let Some(wire) = display_behavior_wire(&mut published_stance, plan.stance) {
+                        if sink.send(Message::Text(wire)).await.is_err() {
+                            break;
+                        }
+                    }
                     continue;
                 }
                 inflight = true;
@@ -247,6 +273,13 @@ pub async fn run_bot(
                             _ => summary.decisions_low_confidence += 1,
                         }
                         plan = decided;
+                        if let Some(wire) =
+                            display_behavior_wire(&mut published_stance, plan.stance)
+                        {
+                            if sink.send(Message::Text(wire)).await.is_err() {
+                                break;
+                            }
+                        }
                     }
                     Some(Outcome::Refused(err, fallback)) => {
                         summary.budget_refusals += 1;
@@ -255,11 +288,25 @@ pub async fn run_bot(
                         }
                         paid_enabled = false;
                         plan = fallback;
+                        if let Some(wire) =
+                            display_behavior_wire(&mut published_stance, plan.stance)
+                        {
+                            if sink.send(Message::Text(wire)).await.is_err() {
+                                break;
+                            }
+                        }
                     }
                     Some(Outcome::Failed(err, fallback)) => {
                         summary.decisions_failed += 1;
                         tracing::warn!("brain call failed, local rules this cycle: {err}");
                         plan = fallback;
+                        if let Some(wire) =
+                            display_behavior_wire(&mut published_stance, plan.stance)
+                        {
+                            if sink.send(Message::Text(wire)).await.is_err() {
+                                break;
+                            }
+                        }
                     }
                     None => break,
                 }
@@ -484,5 +531,66 @@ mod tests {
         ));
         let _ = shutdown.send(());
         let _ = Refusal::NoCap;
+    }
+
+    #[test]
+    fn display_behavior_wire_only_on_stance_change() {
+        let mut published = None;
+        let first = display_behavior_wire(&mut published, Stance::HoldAngle).unwrap();
+        assert!(first.contains("set_display_behavior"));
+        assert!(first.contains("hold_angle"));
+        assert!(display_behavior_wire(&mut published, Stance::HoldAngle).is_none());
+        let next = display_behavior_wire(&mut published, Stance::PushEnemy).unwrap();
+        assert!(next.contains("push_enemy"));
+        assert_eq!(published, Some(Stance::PushEnemy));
+    }
+
+    #[tokio::test]
+    async fn brain_publishes_stance_chip_on_join() {
+        let (url, shutdown) = boot_server(0).await;
+        let transport = Arc::new(FakeTransport::ok(push_answers()));
+        let stop = Arc::new(AtomicBool::new(false));
+        let bot = tokio::spawn(run_bot(
+            config(&url, Provider::Local, 2),
+            transport,
+            budget(0.0),
+            stop.clone(),
+        ));
+        // Spectator reads snapshots until Brain-1 shows a stance chip.
+        let (ws, _) = connect_async(&url).await.expect("spec connect");
+        let (mut sink, mut stream) = ws.split();
+        sink.send(Message::Text(
+            serde_json::to_string(&ClientMessage::Hello {
+                role: Role::Spectator,
+                name: "Spec".into(),
+            })
+            .unwrap(),
+        ))
+        .await
+        .unwrap();
+        let mut saw = false;
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+        while tokio::time::Instant::now() < deadline {
+            let Some(Ok(Message::Text(text))) = stream.next().await else {
+                break;
+            };
+            let Ok(ServerMessage::Snapshot(snap)) = serde_json::from_str(&text) else {
+                continue;
+            };
+            if let Some(p) = snap.players.iter().find(|p| p.name == "Brain-1") {
+                if p.behavior.as_deref() == Some("hold_angle")
+                    || p.behavior.as_deref() == Some("push_enemy")
+                    || p.behavior.as_deref() == Some("fall_back_heal")
+                    || p.behavior.as_deref() == Some("kite_distance")
+                {
+                    saw = true;
+                    break;
+                }
+            }
+        }
+        stop.store(true, Ordering::Relaxed);
+        let _ = bot.await;
+        let _ = shutdown.send(());
+        assert!(saw, "spectator never saw Brain-1 stance chip");
     }
 }
