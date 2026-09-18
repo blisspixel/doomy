@@ -28,7 +28,7 @@ script = ExtResource("5_hud")
 offset_left = 10.0
 offset_top = 10.0
 offset_right = 300.0
-offset_bottom = 120.0
+offset_bottom = 140.0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="HUD/Panel"]
 layout_mode = 1
@@ -53,6 +53,11 @@ text = "Tick: 0"
 [node name="PlayerCountLabel" type="Label" parent="HUD/Panel/VBoxContainer"]
 layout_mode = 2
 text = "Players: 0"
+
+[node name="ModeLabel" type="Label" parent="HUD/Panel/VBoxContainer"]
+layout_mode = 2
+text = "SPECTATING"
+theme_override_colors/font_color = Color(0.7, 0.9, 1, 1)
 
 [node name="FragLabel" type="Label" parent="HUD"]
 anchors_preset = 8

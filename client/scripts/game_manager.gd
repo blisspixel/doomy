@@ -36,13 +36,21 @@ func _ready():
 	net_client.connect_to_server(role, player_name)
 
 func _input(event):
-	if event is InputEventKey and event.pressed and event.keycode == KEY_J:
-		if not is_human_player:
-			print("Switching to human player mode...")
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_J and not is_human_player:
+			print("Joining as human player...")
 			net_client.disconnect_from_server()
 			await get_tree().create_timer(0.5).timeout
 			is_human_player = true
 			net_client.connect_to_server("human", "Human Player")
+			hud.set_mode("PLAYING")
+		elif event.keycode == KEY_L and is_human_player:
+			print("Leaving match, returning to spectator...")
+			net_client.disconnect_from_server()
+			await get_tree().create_timer(0.5).timeout
+			is_human_player = false
+			net_client.connect_to_server("spectator", "Spectator")
+			hud.set_mode("SPECTATING")
 
 func _process(_delta):
 	if is_human_player and net_client.connection_state == WebSocketPeer.STATE_OPEN:
