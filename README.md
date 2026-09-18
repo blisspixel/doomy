@@ -27,28 +27,39 @@ Live tip captures (Xvfb + Godot 4.7.2-stable + opengl3). See `docs/screenshots/R
 
 Mood / concept plates (not tip proof) live under `docs/screenshots/mood/`.
 
-## Quick Start (60 seconds to fun)
+## Quick Start: Solo Scrap (offline, loopback 6767)
+
+One command (server with bots + Godot human join). No Tailscale. No public host.
 
 ```bash
-# Terminal 1: Server (4 named bots, 10 frag limit)
-cargo run -p fragr-server -- --bots 4
-
-# Terminal 2: Spectator
-# Open client/ in Godot 4.7.2, press F5
-# Watch bots fight immediately
-# Press J to join, L to leave, F to toggle camera, ESC for mouse
+./tools/solo_scrap.sh
 ```
 
-**That is it.** Bots fight on loopback. No accounts, no cloud, no spend.
+Or two terminals:
+
+```bash
+# Terminal 1: local authoritative server (4 named rule bots)
+cargo run -p fragr-server -- --bind 127.0.0.1:6767 --bots 4
+
+# Terminal 2: Godot 4.7.2
+# Open client/ and press F5 -> Boot menu -> Solo Scrap (local bots)
+# Or: godot --path client res://scenes/main.tscn -- --solo
+```
+
+**Offline bar:** Solo Scrap is loopback `127.0.0.1:6767` only. Same Action path as multiplayer. Bots refill if the arena would otherwise sit empty (`min_bots`).
+
+**Boot menu:** Solo Scrap (default) | Spectate Local | Join Host (MP). Press L in-match to spectate; J to join again.
+
+**That is it.** Living opponents on one machine. No accounts, no cloud, no spend.
 
 ## Play Modes
 
 **fragr** supports two first-class experiences from day one:
 
-- **Solo + Bots**: Instant fun on one machine. Server spawns named bots that fight continuously. Watch or join. No network setup, no waiting for other humans.
-- **Multiplayer**: Self-host and invite peers (LAN or Tailscale). Humans, agents, and spectators share the same arena. Join mid-match, leave to spectate, bots persist. Not a LAN-only demo - multiplayer is a first-class supported path.
+- **Solo Scrap (first-class):** Offline boot-and-scrap on loopback **6767**. `./tools/solo_scrap.sh` or Boot menu -> Solo Scrap. Local rule bots always present (server `--bots` / `min_bots`). Same Action path and feel as MP. Not an empty lobby.
+- **Multiplayer:** Self-host and invite peers (LAN or Tailscale). Humans, agents, and spectators share the same arena. Join mid-match, leave to spectate, bots persist. Not a LAN-only demo.
 
-Both modes use the same server and client. No separate codepaths or feature gaps.
+Both modes use the same server and client. No separate combat rules.
 
 ## Why it is fun
 
@@ -116,9 +127,11 @@ AGENTS.md        instructions for coding agents
 cargo run -p fragr-server -- --help
 
 Options:
-  --bind <ADDR>   Bind address (default: 0.0.0.0:6767)
-  --bots <N>      Number of bots to spawn (default: 4)
+  --bind <ADDR>   Bind address (default: 0.0.0.0:6767; solo uses 127.0.0.1:6767)
+  --bots <N>      Rule bots to spawn and keep stocked via min_bots (default: 4)
 ```
+
+Solo helper: `./tools/solo_scrap.sh` (builds server, binds loopback, launches Godot with `--solo`).
 
 ## Key Art
 

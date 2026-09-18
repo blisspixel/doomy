@@ -12,10 +12,9 @@ func _run_capture() -> void:
 	if out_dir.is_empty():
 		out_dir = ProjectSettings.globalize_path("res://../docs/screenshots")
 
-	var main_setting: Variant = ProjectSettings.get_setting("application/run/main_scene")
-	if typeof(main_setting) == TYPE_STRING and String(main_setting).length() > 0:
-		change_scene_to_file(String(main_setting))
-		await create_timer(0.5).timeout
+	# Always load the arena presenter. Boot menu is the editor main_scene for humans.
+	change_scene_to_file("res://scenes/main.tscn")
+	await create_timer(0.5).timeout
 
 	# Warm shaders / connect / first frames (avoid pink placeholders).
 	await create_timer(2.0).timeout
