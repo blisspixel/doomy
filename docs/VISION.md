@@ -26,6 +26,17 @@ Classic deathmatch bots were pathing statues with aim assist. fragr treats agent
 
 This is **not** a promise of "level 5" AGI teammates that pass as esports humans on day one. It is also not 1999 scripted bots. The bar: readable agency, distinct behavior, fun to spectate and fun to fight beside or against. Same rules as humans. No separate NPC mode.
 
+
+## Hosting model
+
+LAN / Tailscale / loopback are **dev and buddy options**, not the only story.
+
+Product posture is **Minecraft-shaped ops**:
+1. **Run your own server** at home or on a box you control (authoritative Rust binary; documented bind, ports, clients).
+2. **Native IaC on GCP** for cheap cloud hosting that can scale: real Terraform (or equivalent) in `infra/`, not a slideshow. Apply only after Nick/Chief spend approval. Prefer small cheap shapes first; design for scale (stateless-ish game processes, clear capacity knobs) without burning money by default.
+
+Spectators and agents connect to whatever host you point at. $0-first locally; cloud is opt-in and gated.
+
 ## Architecture (unchanged spine)
 
 Godot client presenter + Rust authoritative server + agent-adapter (MCP off the combat tick). $0-first; GCP IaC path for deploy later with spend approval. See `AGENTS.md` and `docs/plans/fragr-exceptional-game.md`.
