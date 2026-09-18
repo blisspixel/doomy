@@ -63,7 +63,7 @@
 
 ### 6. Agent-adapter (~3-4 h)
 - [x] Process connects as `role=agent`, owns one pawn
-- [x] Tools/API: `session_join`, `observe`, `act`, `session_leave`
+- [x] Tools/API: Hello join on connect (`--name` / `FRAGR_AGENT_NAME`), `observe`, `act` (leave = process exit / disconnect)
 - [x] Prefer MCP stdio if quick; else HTTP/JSON with same shapes + note "MCP wrapper next"
 - [x] Scripted loop using adapter proves external drive path (even without an LLM)
 - [x] Document tool schemas in `agent-adapter/README.md`
