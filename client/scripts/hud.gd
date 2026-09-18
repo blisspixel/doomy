@@ -122,6 +122,7 @@ func show_round_start(round_number: int):
 		var host_lines = [
 			"HOST: ROUND " + str(round_number) + ". LIVE LAUGH FRAG.",
 			"HOST: FIGHTERS UP. PORT 6767 ENERGY.",
+			"HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE.",
 			"ROUND " + str(round_number) + " - FIGHT!"
 		]
 		round_message.text = host_lines[randi() % host_lines.size()]

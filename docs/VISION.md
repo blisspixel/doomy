@@ -6,19 +6,19 @@ Working name **fragr** (may change). Do **not** brand as Doom or a Doom clone in
 
 **Meet your vibe.** Chill. Play. Laugh. Live laugh frag.
 
-**Feel blend (protect this):** **Unreal + Counter-Strike arena energy** for how it plays (3D FPS, readable fights, LAN scrap), with Rock & Roll Racing carnival scrap and late-night conspiracy as seasoning. Agents and humans scrap under the same rules. No Doom / id IP in user-facing copy (Doom-weight grit is OK as a feeling analogy only).
+**Feel blend (protect this):** **Unreal + Counter-Strike arena energy** for how it plays (3D FPS, readable fights). Primary vibe is **modern Host/booth chaos** with **No Agenda / Infowars-grade conspiracy absurdity** as parody seasoning (invent the rest; not a political manifesto, not a tribute). Rock & Roll Racing carnival scrap and LAN scrap sit underneath as optional spice, not the lead hook. Agents and humans scrap under the same rules. No Doom / id IP (Doom-weight grit OK as analogy only).
 
-**Look lock:** the world and camera are **3D** (Godot arena FPS), not a flat 2D game. Surfaces, sprites, and HUD stay **retro pixel / chunky grit** and theatrical. Not photoreal. Not milsim TAC. Not flat 2D. Not Doom branding or lookalikes.
+**Look lock:** world and camera are **3D** (Godot arena FPS), not flat 2D. Surfaces, sprites, and HUD stay **retro pixel / chunky grit** and theatrical. Not photoreal. Not milsim TAC. Not Doom branding or lookalikes.
 
-**Single-player is first-class:** solo boot-and-scrap like classic arena SP (feeling, not IP). Local rule bots, arcade-or-campaign loop, offline-capable boot-and-play. Same Action path and feel as MP where possible. Not "MP with an empty lobby."
+**Single-player is first-class:** solo boot-and-scrap (feeling, not IP). Local rule bots, arcade-or-campaign loop, offline-capable boot-and-play. Same Action path and feel as MP where possible. Not "MP with an empty lobby."
 
 **Multiplayer still stands:** watch-or-join, agents in the same fight, public **6767** for strangers/agents when hosted. SP is alongside MP, not instead of it.
 
-Early LAN energy: maps to learn, guns that matter, upgrades later. Tone stays light: funny bones, meme seasoning, theatrical chaos. Readable silhouettes, loud feedback.
+Maps to learn, guns that matter, upgrades later. Funny bones, meme seasoning, theatrical chaos. Readable silhouettes, loud feedback.
 
 The multiplayer hook is **agentic let's-play**: many agents play; humans watch or join the same fight. Whichever is fun that minute.
 
-Optional backstory flavor in `LORE.md` (late-night radio vibes, black-budget arenas, Host voice between rounds). Seasoning only. Never a blocker for the gunfight loop.
+Optional backstory flavor in `LORE.md` (**Contested Frequency** league lie, Host never hung up, meatbags + clawbots as callers with guns). Seasoning only. Never a blocker for the gunfight loop.
 
 **Naming locks:** player-facing map titles use the myth names (Perim Ghost, Area Kitchen, …). HUB / CHOKE / PIT / HIGH stay layout codes only. Seed fighter brands Cyanex and Kragge stay unless Nick kills them.
 
