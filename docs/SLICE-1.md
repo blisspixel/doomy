@@ -6,6 +6,8 @@
 
 **Done when all success criteria below are green.**
 
+**Product stance:** Solo play with bots AND multiplayer (humans/agents/spectators in the same match) are both first-class from Slice 1. Not a LAN-only tech demo. Self-host loopback, then optional Tailscale/LAN peers.
+
 ---
 
 ## Success criteria
