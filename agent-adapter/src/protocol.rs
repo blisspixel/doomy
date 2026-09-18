@@ -30,6 +30,7 @@ pub enum WeaponType {
 pub enum ClientMessage {
     Hello { role: Role, name: String },
     Action(Action),
+    Speak(Speak),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -64,6 +65,13 @@ pub struct LookAt {
     pub z: Option<f32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub player_id: Option<Uuid>,
+}
+
+/// Off-tick callout / taunt (control plane, not sticky Action).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct Speak {
+    pub text: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -198,5 +206,10 @@ pub enum GameEvent {
     CompliancePing {
         message: String,
         duration_ticks: u32,
+    },
+    Speak {
+        player: String,
+        player_id: Uuid,
+        text: String,
     },
 }

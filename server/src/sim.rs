@@ -13,6 +13,10 @@ const PLAYER_RADIUS: f32 = 0.5;
 const RESPAWN_DELAY_TICKS: u32 = 60;
 const HITSCAN_RANGE: f32 = 100.0;
 const PLAYER_MAX_HP: i32 = 100;
+/// Max Unicode scalars in a speak/taunt line (after trim).
+pub const SPEAK_MAX_CHARS: usize = 80;
+/// Min ticks between successful speaks for one player (~3s at 20 Hz).
+pub const SPEAK_COOLDOWN_TICKS: u64 = 60;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RoundState {
@@ -78,6 +82,8 @@ pub struct Player {
     pub just_fired: bool,
     pub role: Role,
     pub weapon: WeaponType,
+    /// Tick of last successful speak (rate limit).
+    pub last_speak_tick: Option<u64>,
 }
 
 impl GameState {
@@ -194,6 +200,7 @@ impl GameState {
             just_fired: false,
             role,
             weapon: WeaponType::default(),
+            last_speak_tick: None,
         });
 
         self.scores.entry(id).or_insert(0);
@@ -605,6 +612,41 @@ impl GameState {
             "Compliance ping fired (duration {} ticks)",
             self.config.compliance_duration_ticks
         );
+    }
+
+    /// Validate and emit an off-tick speak event. Returns true if broadcast.
+    pub fn try_speak(&mut self, player_id: Uuid, raw_text: &str) -> bool {
+        let trimmed: String = raw_text.trim().chars().take(SPEAK_MAX_CHARS + 1).collect();
+        if trimmed.is_empty() {
+            return false;
+        }
+        if trimmed.chars().count() > SPEAK_MAX_CHARS {
+            return false;
+        }
+        if trimmed.chars().any(|c| c.is_control()) {
+            return false;
+        }
+
+        let tick = self.tick;
+        let player = match self.players.iter_mut().find(|p| p.id == player_id) {
+            Some(p) => p,
+            None => return false,
+        };
+
+        if let Some(last) = player.last_speak_tick {
+            if tick.saturating_sub(last) < SPEAK_COOLDOWN_TICKS {
+                return false;
+            }
+        }
+
+        let name = player.name.clone();
+        player.last_speak_tick = Some(tick);
+        self.events.push(GameEvent::Speak {
+            player: name,
+            player_id,
+            text: trimmed,
+        });
+        true
     }
 
     pub fn take_events(&mut self) -> Vec<GameEvent> {

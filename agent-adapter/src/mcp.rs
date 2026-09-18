@@ -1,7 +1,7 @@
 //! MCP request dispatch for observe / act / get_events (and initialize / tools/list).
 //! Kept free of stdin/WebSocket I/O so behavioral unit tests can cover the real tool paths.
 
-use crate::protocol::{self, Action};
+use crate::protocol::{self, Action, Speak};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
@@ -38,11 +38,13 @@ pub struct ToolState {
     pub player_id: Option<Uuid>,
 }
 
-/// Outcome of handling one MCP request. `pending_action` is set when `act` validated.
+/// Outcome of handling one MCP request.
+/// `pending_action` is set when `act` validated; `pending_speak` when `speak` validated.
 #[derive(Debug)]
 pub struct HandleOutcome {
     pub response: McpResponse,
     pub pending_action: Option<Action>,
+    pub pending_speak: Option<Speak>,
 }
 
 const ACT_ALLOWED_KEYS: &[&str] = &[
@@ -186,6 +188,55 @@ pub fn validate_act_arguments(arguments: &Value) -> Result<Action, String> {
     })
 }
 
+pub const SPEAK_MAX_CHARS: usize = 80;
+
+/// Validate MCP `speak` arguments. Returns a Speak payload or a clear schema error.
+pub fn validate_speak_arguments(arguments: &Value) -> Result<Speak, String> {
+    let obj = match arguments.as_object() {
+        Some(o) => o,
+        None => return Err("schema error: speak arguments must be an object".to_string()),
+    };
+
+    let mut unknowns: Vec<&str> = obj
+        .keys()
+        .filter(|k| k.as_str() != "text")
+        .map(|k| k.as_str())
+        .collect();
+    unknowns.sort();
+    if !unknowns.is_empty() {
+        let listed = unknowns
+            .iter()
+            .map(|k| format!("'{}'", k))
+            .collect::<Vec<_>>()
+            .join(", ");
+        return Err(format!("schema error: unknown speak field(s) {}", listed));
+    }
+
+    let text_val = obj
+        .get("text")
+        .ok_or_else(|| "schema error: speak requires 'text'".to_string())?;
+    let raw = text_val
+        .as_str()
+        .ok_or_else(|| "schema error: speak.text must be a string".to_string())?;
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Err("schema error: speak.text must be non-empty".to_string());
+    }
+    if trimmed.chars().count() > SPEAK_MAX_CHARS {
+        return Err(format!(
+            "schema error: speak.text max length is {} characters",
+            SPEAK_MAX_CHARS
+        ));
+    }
+    if trimmed.chars().any(|c| c.is_control()) {
+        return Err("schema error: speak.text must not contain control characters".to_string());
+    }
+
+    Ok(Speak {
+        text: trimmed.to_string(),
+    })
+}
+
 pub fn build_observe_result(state: &ToolState) -> Value {
     match state.last_snapshot.as_ref() {
         Some(snapshot) => {
@@ -266,13 +317,25 @@ fn tools_list_result() -> Value {
             },
             {
                 "name": "get_events",
-                "description": "Get recent game events (player joins/leaves, frags, respawns, round start/end). Includes last 50 events.",
+                "description": "Get recent game events (player joins/leaves, frags, respawns, round start/end, speaks). Includes last 50 events.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "clear": {"type": "boolean", "default": false, "description": "Clear events after retrieving"}
                     },
                     "required": []
+                }
+            },
+            {
+                "name": "speak",
+                "description": "Send a short off-tick taunt/callout (rate-limited, max 80 chars). Not on the combat Action tick. Spectators see it; it appears in recent_events/get_events.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "text": {"type": "string", "description": "Callout text (trimmed, max 80 chars, no control characters)"}
+                    },
+                    "required": ["text"],
+                    "additionalProperties": false
                 }
             }
         ]
@@ -301,6 +364,7 @@ pub fn handle_mcp_request(request: McpRequest, state: &mut ToolState) -> HandleO
                 error: None,
             },
             pending_action: None,
+            pending_speak: None,
         },
 
         "tools/list" => HandleOutcome {
@@ -311,6 +375,7 @@ pub fn handle_mcp_request(request: McpRequest, state: &mut ToolState) -> HandleO
                 error: None,
             },
             pending_action: None,
+            pending_speak: None,
         },
 
         "tools/call" => {
@@ -322,6 +387,7 @@ pub fn handle_mcp_request(request: McpRequest, state: &mut ToolState) -> HandleO
                 .unwrap_or("");
 
             let mut pending_action = None;
+            let mut pending_speak = None;
             let result = match tool_name {
                 "observe" => build_observe_result(state),
 
@@ -340,6 +406,34 @@ pub fn handle_mcp_request(request: McpRequest, state: &mut ToolState) -> HandleO
                                 "content": [{
                                     "type": "text",
                                     "text": "Action sent successfully"
+                                }]
+                            })
+                        }
+                        Err(msg) => serde_json::json!({
+                            "content": [{
+                                "type": "text",
+                                "text": msg
+                            }],
+                            "isError": true
+                        }),
+                    }
+                }
+
+                "speak" => {
+                    let arguments = request
+                        .params
+                        .as_ref()
+                        .and_then(|p| p.get("arguments"))
+                        .cloned()
+                        .unwrap_or(Value::Null);
+
+                    match validate_speak_arguments(&arguments) {
+                        Ok(speak) => {
+                            pending_speak = Some(speak);
+                            serde_json::json!({
+                                "content": [{
+                                    "type": "text",
+                                    "text": "Speak sent successfully"
                                 }]
                             })
                         }
@@ -385,6 +479,7 @@ pub fn handle_mcp_request(request: McpRequest, state: &mut ToolState) -> HandleO
                     error: None,
                 },
                 pending_action,
+                pending_speak,
             }
         }
 
@@ -399,6 +494,7 @@ pub fn handle_mcp_request(request: McpRequest, state: &mut ToolState) -> HandleO
                 }),
             },
             pending_action: None,
+            pending_speak: None,
         },
     }
 }
@@ -662,5 +758,80 @@ mod mcp_tests {
         let args = serde_json::json!({"look_at": {"x": 1.0}});
         let err = validate_act_arguments(&args).unwrap_err();
         assert!(err.contains("look_at"), "{err}");
+    }
+
+    #[test]
+    fn speak_valid_sets_pending_speak() {
+        let mut state = ToolState::default();
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({
+                    "name": "speak",
+                    "arguments": {"text": "  nice scrap  "}
+                })),
+            ),
+            &mut state,
+        );
+        let speak = out.pending_speak.expect("pending speak");
+        assert_eq!(speak.text, "nice scrap");
+        assert!(out.pending_action.is_none());
+    }
+
+    #[test]
+    fn speak_schema_errors() {
+        let mut state = ToolState::default();
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({
+                    "name": "speak",
+                    "arguments": {"text": "hi", "laser": true}
+                })),
+            ),
+            &mut state,
+        );
+        assert!(out.pending_speak.is_none());
+        let result = out.response.result.unwrap();
+        assert_eq!(result["isError"], true);
+        assert!(result["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("schema error"));
+
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({
+                    "name": "speak",
+                    "arguments": {"text": ""}
+                })),
+            ),
+            &mut state,
+        );
+        assert!(out.pending_speak.is_none());
+
+        let long = "x".repeat(SPEAK_MAX_CHARS + 1);
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({
+                    "name": "speak",
+                    "arguments": {"text": long}
+                })),
+            ),
+            &mut state,
+        );
+        assert!(out.pending_speak.is_none());
+    }
+
+    #[test]
+    fn tools_list_includes_speak() {
+        let mut state = ToolState::default();
+        let list = handle_mcp_request(req("tools/list", None), &mut state);
+        let result = list.response.result.unwrap();
+        let tools = result["tools"].as_array().unwrap();
+        let names: Vec<_> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
+        assert!(names.contains(&"speak"), "names={:?}", names);
     }
 }
