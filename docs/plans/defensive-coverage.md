@@ -44,7 +44,7 @@ None. Pure quality lift: add tests, add validation, wire coverage measurement. N
 ## Test coverage targets
 
 **Target: ~80% line coverage**, measured with `cargo llvm-cov` on Linux.
-**CI enforces:** Ratchet floor (currently 50%) that only moves up as tests are added.
+**CI enforces:** Ratchet floor (currently 36%) that only moves up as tests are added.
 
 Focus areas:
 

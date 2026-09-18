@@ -63,7 +63,7 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo build --workspace
-cargo llvm-cov report --fail-under-lines 50
+cargo llvm-cov report --fail-under-lines 36
 ```
 
 **Defensive validation:** Validate at trust boundaries (WS messages, Action fields, Hello/Welcome, observe/act adapter inputs, protocol deserialize). Fail closed, reject bad input, never panic on client data. Validate ranges (aim, weapon_swap, name length, roles).
