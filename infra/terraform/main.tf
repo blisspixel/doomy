@@ -65,9 +65,24 @@ resource "google_compute_subnetwork" "subnet" {
   private_ip_google_access = true
 }
 
-# Firewall: Allow game port from all
-resource "google_compute_firewall" "game_port" {
-  name    = "fragr-allow-game"
+# Firewall: Allow game port from all (TCP for WebSocket, UDP for future renet)
+resource "google_compute_firewall" "game_port_tcp" {
+  name    = "fragr-allow-game-tcp"
+  network = google_compute_network.vpc.name
+
+  allow {
+    protocol = "tcp"
+    ports    = [tostring(var.game_port)]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["fragr-game-server"]
+
+  description = "Allow TCP game traffic (WebSocket) on port ${var.game_port}"
+}
+
+resource "google_compute_firewall" "game_port_udp" {
+  name    = "fragr-allow-game-udp"
   network = google_compute_network.vpc.name
 
   allow {
@@ -78,7 +93,7 @@ resource "google_compute_firewall" "game_port" {
   source_ranges = ["0.0.0.0/0"]
   target_tags   = ["fragr-game-server"]
 
-  description = "Allow UDP game traffic on port ${var.game_port}"
+  description = "Allow UDP game traffic (future renet) on port ${var.game_port}"
 }
 
 # Firewall: Allow IAP SSH

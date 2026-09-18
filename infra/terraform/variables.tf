@@ -61,7 +61,7 @@ variable "boot_disk_size_gb" {
 }
 
 variable "game_port" {
-  description = "UDP port for game server"
+  description = "Game server port (TCP for WebSocket, UDP for future renet)"
   type        = number
   default     = 7777
 
