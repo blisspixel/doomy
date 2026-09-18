@@ -8,7 +8,7 @@
 ### Details
 - Protocol: WebSocket over TCP
 - Format: JSON text messages
-- Address: Server binds `0.0.0.0:7777` by default (LAN + Tailscale capable)
+- Address: Server binds `0.0.0.0:6767` by default (LAN + Tailscale capable)
 - Client: Loopback default, accepts `FRAGR_SERVER` env var for remote connections
 - Tick rate: ~20 Hz server broadcast
 - Multi-peer: Multiple spectators/players can connect to same match
