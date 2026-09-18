@@ -67,7 +67,14 @@ cargo run -p fragr-audiogen -- tts --name radio/news/generic-01-count --voice <v
   --text "[sighs] Good evening. The Continuance lost count again." --stability 0.5
 ```
 
-`voices` prints the account's default voices with ids for casting. Default voices retire at the end of 2026, so cast from that list rather than from ids copied out of old docs. Spec items of kind `tts` take `text`, `voice`, optional `model`, `stability`, `format`, `title`. The scripts for the news station live in `specs/radio-news-scripts.json` and become `tts` items once voices are cast.
+`voices` prints the account's default voices with ids for casting. Default voices retire at the end of 2026, so cast from that list rather than from ids copied out of old docs. Spec items of kind `tts` take `text`, `voice`, optional `model`, `stability`, `format`, `title`. The scripts for the news station live in `specs/radio-news-scripts.json`. Cast the speakers and convert them into a batch spec (no credits spent), then generate:
+
+```bash
+cargo run -p fragr-audiogen -- scripts --scripts tools/audiogen/specs/radio-news-scripts.json \n  --voice host=<id> --voice tina=<id> --voice phil=<id> --voice caller=<id1>,<id2>,<id3> \n  --out tools/audiogen/specs/radio-news.json
+cargo run -p fragr-audiogen -- batch --spec tools/audiogen/specs/radio-news.json --max-credits 20000
+```
+
+Caller clips (lines starting with `HOST:` and `CALLER:`) become multi-voice dialogues through the text-to-dialogue endpoint; spec items may also carry `lines` of `{voice_id, text}` directly. Match templates with `{placeholders}` are skipped until round-end data exists. Beds and the sung station ID are music items in `specs/radio-news-beds.json`.
 
 Everything in a spec file (see `specs/sfx-core.json`):
 
