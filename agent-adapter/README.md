@@ -21,8 +21,8 @@ cargo run -- mcp --server ws://127.0.0.1:6767 --name ArenaFox
 # or: FRAGR_AGENT_NAME=ArenaFox cargo run -- mcp
 ```
 
-Connect via MCP client (stdio) and use the `observe` and `act` tools.
-Hello joins with `--name` / `FRAGR_AGENT_NAME` (default `MCP Agent`). There is no separate `session_join` tool; join is the WebSocket Hello on adapter start.
+Connect via MCP client (stdio) and use the tools below.
+Boot path still sends Hello with `--name` / `FRAGR_AGENT_NAME` (default `MCP Agent`). First-class `join` / `leave` / `round_state` tools are also available (idempotent join; leave disconnects cleanly).
 
 ### Scripted Bot (standalone test)
 
@@ -186,6 +186,71 @@ All fields are optional. `clear` (boolean, default false): clear event buffer af
 - Events are also included in `observe` output under `recent_events`
 - Set `clear: true` to acknowledge events and reset buffer
 
+### `join`
+
+Ensure the agent is in the arena (Hello / Welcome). Optional `name`; when omitted, reuses `--name` / `FRAGR_AGENT_NAME`.
+
+**Input schema:**
+```json
+{
+  "name": "ArenaFox"
+}
+```
+
+All fields optional. Unknown fields -> schema error (`isError: true`). Empty name -> schema error.
+
+**Behavior:**
+- Already joined -> success, idempotent (`Already joined as '...'`)
+- Not connected -> adapter reconnects, sends Hello, awaits Welcome
+- Boot Hello-on-start remains valid; `join` is first-class for re-join after `leave`
+
+### `leave`
+
+Clean WebSocket disconnect from the arena.
+
+**Input schema:**
+```json
+{}
+```
+
+No fields. Unknown fields -> schema error (`isError: true`).
+
+**Behavior:**
+- Connected -> success; clears local session; closes WebSocket
+- Not connected -> `isError: true` (`leave rejected: not connected`)
+
+### `round_state`
+
+Current round summary without scraping full `observe`.
+
+**Input schema:**
+```json
+{}
+```
+
+No fields. Unknown fields -> schema error (`isError: true`).
+
+**Output (example):**
+```json
+{
+  "connected": true,
+  "self_player_id": "550e8400-e29b-41d4-a716-446655440000",
+  "session_name": "ArenaFox",
+  "round_state": "Active",
+  "round_number": 3,
+  "round_time_left": 90,
+  "frag_limit": 10,
+  "mode_name": "Contested Frequency",
+  "playlist": "Arena Duel",
+  "host_line": "HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE. ARENA DUEL IS LIVE.",
+  "pressure": null,
+  "last_round_start": {"event": "round_start", "round_number": 3},
+  "last_round_end": null
+}
+```
+
+Fields come from the last snapshot plus the most recent `round_start` / `round_end` in the events buffer.
+
 ## Architecture
 
 ```
@@ -210,11 +275,12 @@ game server (fragr-server)
 The adapter speaks the same WebSocket JSON protocol as the Godot client and human players. See `docs/protocol.md` for full message schemas.
 
 **Connection flow:**
-1. Adapter connects to game server WebSocket
+1. Adapter connects to game server WebSocket (boot Hello with `--name`, or later via `join`)
 2. Sends `Hello` with `role=agent` and name
 3. Receives `Welcome` with assigned `player_id`
-4. Begins receiving `Snapshot` messages at ~20 Hz (cached for `observe`)
-5. MCP client calls `act` tool, adapter sends `Action` message to server
+4. Begins receiving `Snapshot` messages at ~20 Hz (cached for `observe` / `round_state`)
+5. MCP client calls `act` / `speak`; adapter forwards on the open socket
+6. `leave` closes the socket cleanly; `join` reconnects and Hellos again
 
 ## Implementation Notes
 
@@ -225,7 +291,7 @@ The adapter speaks the same WebSocket JSON protocol as the Godot client and huma
 
 ## Hardening (completed)
 
-- [x] Session lifecycle: `Hello` / `Welcome` / clean disconnect
+- [x] Session lifecycle: boot Hello / Welcome; first-class `join` / `leave` tools; clean disconnect
 - [x] Observe returns full snapshot with round state, scores, time remaining
 - [x] Act validates action schema and forwards to server
 - [x] Scripted bot mode for end-to-end testing without MCP client
@@ -258,4 +324,7 @@ Example `test_input.jsonl`:
 {"jsonrpc":"2.0","id":2,"method":"tools/list"}
 {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"observe","arguments":{}}}
 {"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"act","arguments":{"forward":true,"fire":true}}}
+{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"round_state","arguments":{}}}
+{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"leave","arguments":{}}}
+{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"join","arguments":{"name":"ArenaFox"}}}
 ```

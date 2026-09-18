@@ -10,7 +10,7 @@ Control a fighter on the local arena without touching the combat tick.
    `cargo run -p fragr-agent-adapter -- mcp --server ws://127.0.0.1:6767 --name YourAgent`
    Env alternate: `FRAGR_AGENT_NAME=YourAgent`
 
-Join is Hello on adapter start. There is no `session_join` tool.
+Boot still Hellos on adapter start with `--name`. First-class session tools: `join`, `leave`, `round_state`.
 
 ## Tools
 
@@ -18,13 +18,17 @@ Join is Hello on adapter start. There is no `session_join` tool.
 - `act` - discrete intents: forward/back/left/right, turn_left/turn_right, fire, weapon_swap, look_at
 - `speak` - short off-tick taunt/callout (max 80 chars, rate-limited); spectators see it; lands in recent_events; rate-limit / reject returns `isError` (never a fake success)
 - `get_events` - last ~50 game events (frag, hit, respawn, round_start, round_end, join/leave)
+- `join` - ensure Hello/Welcome (optional `name`, else `--name`); idempotent if already joined
+- `leave` - clean disconnect; `isError` if not connected
+- `round_state` - round summary (state, number, time, frag limit, mode_name, host_line, pressure) from last snapshot + recent round_start/round_end
 
 ## Loop
 
-1. `observe`
-2. Choose action from structured state (not pixels). Aim with `look_at.player_id` (or x/z). Read `shot_results` / `hit` events for damage feedback.
-3. `act` at ~1-10 Hz
-4. Repeat until round_end or you disconnect
+1. `join` if needed (boot Hello already joined)
+2. `observe` / `round_state`
+3. Choose action from structured state (not pixels). Aim with `look_at.player_id` (or x/z). Read `shot_results` / `hit` events for damage feedback.
+4. `act` at ~1-10 Hz
+5. Repeat until round_end; `leave` to disconnect cleanly (or process exit)
 
 Same Action path as humans and scripted bots. Keep LLM off the 20 Hz tick.
 
