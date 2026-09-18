@@ -47,6 +47,9 @@ const TTS_MODELS: [&str; 4] = [
 ];
 /// The v3 per-request limit. Other models allow more, but v3 is the default.
 const TTS_TEXT_MAX_CHARS: usize = 5_000;
+/// Text to dialogue: v3 only, at most ten voices, two thousand characters across all lines.
+const DIALOGUE_TEXT_MAX_CHARS: usize = 2_000;
+const DIALOGUE_MAX_VOICES: usize = 10;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Method {
@@ -268,29 +271,44 @@ pub struct TtsParams {
     pub format: String,
     #[serde(default)]
     pub title: Option<String>,
+    /// When present the clip is rendered as a multi-voice dialogue; `text` and
+    /// `voice_id` then only describe it for the manifest.
+    #[serde(default)]
+    pub lines: Vec<DialogueLine>,
+}
+
+/// One line of a multi-voice clip (`POST /v1/text-to-dialogue`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DialogueLine {
+    pub voice_id: String,
+    pub text: String,
+}
+
+fn valid_voice_id(id: &str) -> bool {
+    !id.is_empty()
+        && id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
 }
 
 impl TtsParams {
     pub fn validate(&self) -> Result<(), Error> {
-        if self.text.trim().is_empty() {
-            return Err(Error::InvalidArgument("tts text is empty".to_string()));
-        }
-        let chars = self.text.chars().count();
-        if chars > TTS_TEXT_MAX_CHARS {
-            return Err(Error::InvalidArgument(format!(
-                "tts text is {chars} characters; the limit is {TTS_TEXT_MAX_CHARS}"
-            )));
-        }
-        let valid_voice = !self.voice_id.is_empty()
-            && self
-                .voice_id
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
-        if !valid_voice {
-            return Err(Error::InvalidArgument(format!(
-                "tts voice id '{}' is not a valid ElevenLabs voice id",
-                self.voice_id
-            )));
+        if self.lines.is_empty() {
+            if self.text.trim().is_empty() {
+                return Err(Error::InvalidArgument("tts text is empty".to_string()));
+            }
+            let chars = self.text.chars().count();
+            if chars > TTS_TEXT_MAX_CHARS {
+                return Err(Error::InvalidArgument(format!(
+                    "tts text is {chars} characters; the limit is {TTS_TEXT_MAX_CHARS}"
+                )));
+            }
+            if !valid_voice_id(&self.voice_id) {
+                return Err(Error::InvalidArgument(format!(
+                    "tts voice id '{}' is not a valid ElevenLabs voice id",
+                    self.voice_id
+                )));
+            }
         }
         if !TTS_MODELS.contains(&self.model.as_str()) {
             return Err(Error::InvalidArgument(format!(
@@ -306,6 +324,40 @@ impl TtsParams {
                 )));
             }
         }
+        if !self.lines.is_empty() {
+            if self.model != DEFAULT_TTS_MODEL {
+                return Err(Error::InvalidArgument(format!(
+                    "dialogue needs the {DEFAULT_TTS_MODEL} model, got '{}'",
+                    self.model
+                )));
+            }
+            let mut voices = std::collections::BTreeSet::new();
+            let mut total = 0usize;
+            for line in &self.lines {
+                if line.text.trim().is_empty() {
+                    return Err(Error::InvalidArgument("dialogue line is empty".to_string()));
+                }
+                if !valid_voice_id(&line.voice_id) {
+                    return Err(Error::InvalidArgument(format!(
+                        "dialogue voice id '{}' is not a valid ElevenLabs voice id",
+                        line.voice_id
+                    )));
+                }
+                voices.insert(line.voice_id.as_str());
+                total += line.text.chars().count();
+            }
+            if voices.len() > DIALOGUE_MAX_VOICES {
+                return Err(Error::InvalidArgument(format!(
+                    "dialogue uses {} voices; the limit is {DIALOGUE_MAX_VOICES}",
+                    voices.len()
+                )));
+            }
+            if total > DIALOGUE_TEXT_MAX_CHARS {
+                return Err(Error::InvalidArgument(format!(
+                    "dialogue is {total} characters; the limit is {DIALOGUE_TEXT_MAX_CHARS}"
+                )));
+            }
+        }
         parse_format(&self.format).map(|_| ())
     }
 }
@@ -314,6 +366,28 @@ impl TtsParams {
 /// setting because the v3 model ignores the others.
 pub fn tts_request(params: &TtsParams) -> Result<Request, Error> {
     params.validate()?;
+    if !params.lines.is_empty() {
+        let inputs: Vec<serde_json::Value> = params
+            .lines
+            .iter()
+            .map(|line| serde_json::json!({ "text": line.text, "voice_id": line.voice_id }))
+            .collect();
+        let mut body = serde_json::Map::new();
+        body.insert("inputs".into(), inputs.into());
+        body.insert("model_id".into(), params.model.clone().into());
+        if let Some(stability) = params.stability {
+            body.insert(
+                "settings".into(),
+                serde_json::json!({ "stability": stability }),
+            );
+        }
+        return Ok(Request {
+            method: Method::Post,
+            path: "/v1/text-to-dialogue".to_string(),
+            query: vec![("output_format".to_string(), params.format.clone())],
+            body: Some(serde_json::Value::Object(body)),
+        });
+    }
     let mut body = serde_json::Map::new();
     body.insert("text".into(), params.text.clone().into());
     body.insert("model_id".into(), params.model.clone().into());
@@ -682,14 +756,19 @@ impl Job {
 /// from the track name so re-running a spec never reshuffles lengths.
 pub fn pick_length_ms(name: &str, lo: u32, hi: u32) -> u32 {
     let (lo, hi) = if lo <= hi { (lo, hi) } else { (hi, lo) };
+    let span = u64::from(hi - lo) + 1;
+    let offset = u32::try_from(name_hash(name) % span).unwrap_or(0);
+    lo + (offset / 1000) * 1000
+}
+
+/// FNV-1a over the asset name: stable across runs and platforms.
+fn name_hash(name: &str) -> u64 {
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
     for byte in name.bytes() {
         hash ^= u64::from(byte);
         hash = hash.wrapping_mul(0x0100_0000_01b3);
     }
-    let span = u64::from(hi - lo) + 1;
-    let offset = u32::try_from(hash % span).unwrap_or(0);
-    lo + (offset / 1000) * 1000
+    hash
 }
 
 /// Published rates: music is 900 credits per minute, sound effects 40 credits
@@ -712,7 +791,15 @@ pub fn estimate_credits(job: &Job) -> u64 {
         }
         // Speech is one credit per character; the flash models bill about half.
         Job::Tts(params) => {
-            let chars = params.text.chars().count() as u64;
+            let chars = if params.lines.is_empty() {
+                params.text.chars().count()
+            } else {
+                params
+                    .lines
+                    .iter()
+                    .map(|line| line.text.chars().count())
+                    .sum()
+            } as u64;
             if params.model.starts_with("eleven_flash") {
                 chars.div_ceil(2)
             } else {
@@ -757,9 +844,14 @@ pub enum SpecItem {
     },
     Tts {
         name: String,
+        /// Spoken text for one voice, or the readable script when `lines` is set.
+        #[serde(default)]
         text: String,
-        /// ElevenLabs voice id from the `voices` command.
-        voice: String,
+        /// ElevenLabs voice id from the `voices` command (optional when `lines` is set).
+        voice: Option<String>,
+        /// Multi-voice clip: each line names its voice and is rendered as a dialogue.
+        #[serde(default)]
+        lines: Vec<DialogueLine>,
         model: Option<String>,
         stability: Option<f64>,
         format: Option<String>,
@@ -815,19 +907,35 @@ impl SpecItem {
             SpecItem::Tts {
                 text,
                 voice,
+                lines,
                 model,
                 stability,
                 format,
                 title,
                 ..
-            } => Job::Tts(TtsParams {
-                text,
-                voice_id: voice,
-                model: model.unwrap_or_else(|| DEFAULT_TTS_MODEL.to_string()),
-                stability,
-                format: format.unwrap_or_else(|| DEFAULT_TTS_FORMAT.to_string()),
-                title,
-            }),
+            } => {
+                let script = if text.is_empty() && !lines.is_empty() {
+                    lines
+                        .iter()
+                        .map(|line| line.text.clone())
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                } else {
+                    text
+                };
+                let voice_id = voice
+                    .or_else(|| lines.first().map(|line| line.voice_id.clone()))
+                    .unwrap_or_default();
+                Job::Tts(TtsParams {
+                    text: script,
+                    voice_id,
+                    model: model.unwrap_or_else(|| DEFAULT_TTS_MODEL.to_string()),
+                    stability,
+                    format: format.unwrap_or_else(|| DEFAULT_TTS_FORMAT.to_string()),
+                    title,
+                    lines,
+                })
+            }
         }
     }
 }
@@ -1067,6 +1175,113 @@ impl Generator<'_> {
     }
 }
 
+/// Voice casting for a scripts file: speaker name to one or more voice ids.
+/// Speakers with several ids rotate deterministically by item name.
+pub type VoiceCast = BTreeMap<String, Vec<String>>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ScriptsSummary {
+    pub written: usize,
+    pub skipped: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct ScriptsFile {
+    items: Vec<ScriptItem>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct ScriptItem {
+    name: String,
+    class: String,
+    speaker: String,
+    title: String,
+    text: String,
+}
+
+fn pick_voice(cast: &VoiceCast, speaker: &str, name: &str) -> Result<String, Error> {
+    let voices = cast
+        .get(speaker)
+        .filter(|voices| !voices.is_empty())
+        .ok_or_else(|| {
+            Error::Spec(format!(
+                "no voice cast for speaker '{speaker}' (pass --voice {speaker}=<id>)"
+            ))
+        })?;
+    let index = usize::try_from(name_hash(name) % voices.len() as u64).unwrap_or(0);
+    Ok(voices[index].clone())
+}
+
+/// Turn a scripts file into a batch spec. Single-speaker items become `tts`
+/// entries, caller clips (lines starting with `HOST:` or `CALLER:`) become
+/// dialogues, and templates with `{placeholders}` are skipped because they
+/// need match data at round end.
+pub fn scripts_to_spec(
+    scripts_json: &str,
+    cast: &VoiceCast,
+    stability: f64,
+) -> Result<(String, ScriptsSummary), Error> {
+    let scripts: ScriptsFile = serde_json::from_str(scripts_json)
+        .map_err(|err| Error::Spec(format!("unreadable scripts file: {err}")))?;
+    let mut items = Vec::new();
+    let mut skipped = Vec::new();
+    for item in &scripts.items {
+        validate_name(&item.name)?;
+        if item.text.contains('{') {
+            skipped.push(item.name.clone());
+            continue;
+        }
+        if item.class == "caller" {
+            let host = pick_voice(cast, "host", &item.name)?;
+            let caller = pick_voice(cast, "caller", &item.name)?;
+            let mut lines = Vec::new();
+            for raw in item.text.lines() {
+                let line = raw.trim();
+                if line.is_empty() {
+                    continue;
+                }
+                if let Some(rest) = line.strip_prefix("HOST:") {
+                    lines.push(serde_json::json!({ "voice_id": host, "text": rest.trim() }));
+                } else if let Some(rest) = line.strip_prefix("CALLER:") {
+                    lines.push(serde_json::json!({ "voice_id": caller, "text": rest.trim() }));
+                } else {
+                    return Err(Error::Spec(format!(
+                        "caller item '{}' has a line without HOST: or CALLER:",
+                        item.name
+                    )));
+                }
+            }
+            if lines.is_empty() {
+                return Err(Error::Spec(format!(
+                    "caller item '{}' has no lines",
+                    item.name
+                )));
+            }
+            items.push(serde_json::json!({
+                "kind": "tts",
+                "name": item.name,
+                "title": item.title,
+                "lines": lines,
+                "stability": stability,
+            }));
+        } else {
+            let voice = pick_voice(cast, &item.speaker, &item.name)?;
+            items.push(serde_json::json!({
+                "kind": "tts",
+                "name": item.name,
+                "title": item.title,
+                "text": item.text,
+                "voice": voice,
+                "stability": stability,
+            }));
+        }
+    }
+    let written = items.len();
+    let spec = serde_json::json!({ "out_dir": DEFAULT_OUT_DIR, "items": items });
+    let text = serde_json::to_string_pretty(&spec).map_err(|err| Error::Spec(err.to_string()))?;
+    Ok((format!("{text}\n"), ScriptsSummary { written, skipped }))
+}
+
 /// What the binary asks the library to do, after argument parsing.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Command {
@@ -1084,6 +1299,13 @@ pub enum Command {
     },
     Quota,
     Voices,
+    /// Turn a scripts file into a batch spec using the given voice cast; no network.
+    Scripts {
+        scripts_json: String,
+        cast: VoiceCast,
+        stability: f64,
+        out: PathBuf,
+    },
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -1164,6 +1386,33 @@ pub fn run_command(
             )?;
             let subscription = parse_subscription(&response.body)?;
             writeln!(out, "{}", describe_subscription(&subscription))?;
+            Ok(())
+        }
+        Command::Scripts {
+            scripts_json,
+            cast,
+            stability,
+            out: out_path,
+        } => {
+            let (spec_json, summary) = scripts_to_spec(scripts_json, cast, *stability)?;
+            if let Some(parent) = out_path.parent() {
+                if !parent.as_os_str().is_empty() {
+                    fs::create_dir_all(parent)?;
+                }
+            }
+            fs::write(out_path, spec_json)?;
+            writeln!(
+                out,
+                "wrote {} with {} items ({} skipped: {})",
+                out_path.display(),
+                summary.written,
+                summary.skipped.len(),
+                if summary.skipped.is_empty() {
+                    "none".to_string()
+                } else {
+                    summary.skipped.join(", ")
+                }
+            )?;
             Ok(())
         }
         Command::Voices => {
@@ -2291,6 +2540,7 @@ mod tests {
             stability: Some(0.5),
             format: DEFAULT_TTS_FORMAT.to_string(),
             title: Some("Bulletin".to_string()),
+            lines: Vec::new(),
         }
     }
 
@@ -2451,6 +2701,183 @@ mod tests {
         assert_eq!(entry.voice.as_deref(), Some("JBFqnCBsd6RMkjVDRZzb"));
         assert_eq!(entry.prompt, "Good evening.");
         assert_eq!(entry.file, "radio/news/generic-01.mp3");
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    fn dialogue(lines: &[(&str, &str)]) -> TtsParams {
+        TtsParams {
+            text: String::new(),
+            voice_id: lines.first().map(|l| l.0.to_string()).unwrap_or_default(),
+            lines: lines
+                .iter()
+                .map(|(voice, text)| DialogueLine {
+                    voice_id: voice.to_string(),
+                    text: text.to_string(),
+                })
+                .collect(),
+            ..tts("script")
+        }
+    }
+
+    #[test]
+    fn dialogue_request_matches_api_shape() {
+        let params = dialogue(&[
+            ("hostvoice", "Go ahead, caller."),
+            ("callervoice", "Am I on?"),
+        ]);
+        let request = tts_request(&params).unwrap();
+        assert_eq!(request.path, "/v1/text-to-dialogue");
+        let body = request.body.unwrap();
+        assert_eq!(body["model_id"], "eleven_v3");
+        assert_eq!(body["settings"]["stability"], 0.5);
+        assert_eq!(body["inputs"][0]["voice_id"], "hostvoice");
+        assert_eq!(body["inputs"][1]["text"], "Am I on?");
+        let quiet = TtsParams {
+            stability: None,
+            ..dialogue(&[("a", "x")])
+        };
+        assert!(tts_request(&quiet)
+            .unwrap()
+            .body
+            .unwrap()
+            .get("settings")
+            .is_none());
+    }
+
+    #[test]
+    fn dialogue_validation() {
+        assert!(dialogue(&[("a", " ")]).validate().is_err());
+        assert!(dialogue(&[("bad/id", "x")]).validate().is_err());
+        assert!(TtsParams {
+            model: "eleven_multilingual_v2".into(),
+            ..dialogue(&[("a", "x")])
+        }
+        .validate()
+        .is_err());
+        let long = "y".repeat(2001);
+        assert!(dialogue(&[("a", &long)]).validate().is_err());
+        let many: Vec<(String, String)> = (0..11)
+            .map(|i| (format!("v{i}"), "x".to_string()))
+            .collect();
+        let many_refs: Vec<(&str, &str)> =
+            many.iter().map(|(a, b)| (a.as_str(), b.as_str())).collect();
+        assert!(dialogue(&many_refs).validate().is_err());
+        assert!(dialogue(&[("a", "x"), ("b", "y")]).validate().is_ok());
+    }
+
+    #[test]
+    fn spec_parses_dialogue_items() {
+        let json = r#"{"items": [
+            {"kind": "tts", "name": "radio/news/caller-01-larak", "title": "Larak Calls In",
+             "lines": [{"voice_id": "h1", "text": "Go ahead."}, {"voice_id": "c1", "text": "Am I on?"}], "stability": 0.5}
+        ]}"#;
+        let spec = parse_spec(json).unwrap();
+        match spec.items[0].clone().into_job() {
+            Job::Tts(params) => {
+                assert_eq!(params.lines.len(), 2);
+                assert_eq!(params.voice_id, "h1");
+                assert_eq!(params.text, "Go ahead.\nAm I on?");
+                assert_eq!(estimate_credits(&Job::Tts(params.clone())), 17);
+                assert_eq!(tts_request(&params).unwrap().path, "/v1/text-to-dialogue");
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+    }
+
+    const SCRIPTS: &str = r#"{
+        "station": "news",
+        "speakers": {"host": {"description": "dry"}},
+        "items": [
+            {"name": "radio/news/generic-01-count", "class": "generic", "speaker": "host", "title": "Count", "text": "The Continuance lost count."},
+            {"name": "radio/news/caller-01-larak", "class": "caller", "speaker": "caller", "title": "Larak", "text": "HOST: Go ahead.\nCALLER: Am I on?\n\nHOST: You are."},
+            {"name": "radio/news/caller-02-diego", "class": "caller", "speaker": "caller", "title": "Diego", "text": "HOST: Next.\nCALLER: Hi."},
+            {"name": "radio/news/match-01-winner", "class": "match", "speaker": "host", "title": "Winner", "text": "{winner} took {map}."}
+        ]
+    }"#;
+
+    fn cast() -> VoiceCast {
+        let mut cast = VoiceCast::new();
+        cast.insert("host".into(), vec!["hostvoice".into()]);
+        cast.insert("caller".into(), vec!["c1".into(), "c2".into()]);
+        cast
+    }
+
+    #[test]
+    fn scripts_become_a_spec() {
+        let (json, summary) = scripts_to_spec(SCRIPTS, &cast(), 0.4).unwrap();
+        assert_eq!(summary.written, 3);
+        assert_eq!(
+            summary.skipped,
+            vec!["radio/news/match-01-winner".to_string()]
+        );
+        let spec = parse_spec(&json).unwrap();
+        assert_eq!(spec.out_dir.as_deref(), Some(DEFAULT_OUT_DIR));
+        match spec.items[0].clone().into_job() {
+            Job::Tts(params) => {
+                assert_eq!(params.voice_id, "hostvoice");
+                assert_eq!(params.text, "The Continuance lost count.");
+                assert_eq!(params.stability, Some(0.4));
+                assert!(params.lines.is_empty());
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match spec.items[1].clone().into_job() {
+            Job::Tts(params) => {
+                assert_eq!(params.lines.len(), 3);
+                assert_eq!(params.lines[0].voice_id, "hostvoice");
+                assert_eq!(params.lines[0].text, "Go ahead.");
+                assert!(["c1", "c2"].contains(&params.lines[1].voice_id.as_str()));
+                assert_eq!(params.lines[2].text, "You are.");
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        // Casting is stable across runs.
+        let (again, _) = scripts_to_spec(SCRIPTS, &cast(), 0.4).unwrap();
+        assert_eq!(json, again);
+    }
+
+    #[test]
+    fn scripts_report_bad_input() {
+        assert!(scripts_to_spec("{", &cast(), 0.5).is_err());
+        let mut no_host = cast();
+        no_host.remove("host");
+        let err = scripts_to_spec(SCRIPTS, &no_host, 0.5).unwrap_err();
+        assert!(err.to_string().contains("no voice cast for speaker 'host'"));
+        let bad_line = SCRIPTS.replace("CALLER: Am I on?", "Am I on?");
+        let err = scripts_to_spec(&bad_line, &cast(), 0.5).unwrap_err();
+        assert!(err.to_string().contains("without HOST: or CALLER:"));
+        let unknown = SCRIPTS.replace(
+            "\"speaker\": \"host\", \"title\": \"Count\"",
+            "\"speaker\": \"ghost\", \"title\": \"Count\"",
+        );
+        assert!(scripts_to_spec(&unknown, &cast(), 0.5).is_err());
+    }
+
+    #[test]
+    fn run_command_scripts_writes_spec_file() {
+        let dir = temp_dir("scripts");
+        let out = dir.join("news/radio-news.json");
+        let command = Command::Scripts {
+            scripts_json: SCRIPTS.to_string(),
+            cast: cast(),
+            stability: 0.5,
+            out: out.clone(),
+        };
+        let transport = FakeTransport::new(Vec::new());
+        let mut printed = Vec::new();
+        run_command(
+            &command,
+            &RunOptions::default(),
+            &transport,
+            "",
+            &mut printed,
+            &mut no_sleep(),
+        )
+        .unwrap();
+        let text = String::from_utf8(printed).unwrap();
+        assert!(text.contains("with 3 items (1 skipped: radio/news/match-01-winner)"));
+        assert!(parse_spec(&fs::read_to_string(&out).unwrap()).is_ok());
+        assert!(transport.seen.borrow().is_empty());
         fs::remove_dir_all(&dir).unwrap();
     }
 

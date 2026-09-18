@@ -133,7 +133,7 @@ Decisions and rationale: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Wire fo
 client/          Godot 4.7.2-stable client (GDScript)
 server/          Rust authoritative WebSocket server
 agent-adapter/   MCP observe/act control plane
-tools/           Solo Scrap launcher, screenshot capture, audio generators
+tools/           Solo Scrap launcher, screenshot capture, audio pipeline
 docs/            vision, roadmap, architecture, protocol, art bible, plans
 infra/           GCP Terraform and self-host guides (plan-only until approved)
 AGENTS.md        operating rules for coding agents and contributors

@@ -1,6 +1,6 @@
 # Plan: Contested Frequency radio
 
-**Status:** shipped (2026-09-18): music library and effects landed; news voices still to cast
+**Status:** shipped (2026-09-18): music library, effects, and the spoken news station
 **Branch:** `feat/radio-stations`
 **Spend:** ElevenLabs credits from Nick's monthly plan, developer-side only. No runtime API calls. No other spend.
 
@@ -77,6 +77,6 @@ Music costs about 900 credits per minute. One hundred forty tracks averaging fou
 ## Success criteria
 
 - [x] Seven music stations with at least twenty tracks each, two to six minutes, mostly with lyrics on theme, committed with provenance.
-- [ ] News station with a sting, an underscore bed, a sung ID, and at least twenty spoken bulletins in the five classes.
+- [x] News station with a sting, an underscore bed, a sung ID, and forty spoken bulletins in five classes (match templates wait on round-end data).
 - [x] Radio plays in Solo Scrap and spectate, switches stations and tracks with the keys, ducks under Host lines, and never repeats within twelve plays.
 - [ ] Docs updated: `client/assets/audio/README.md`, `README.md` controls, this plan marked shipped, roadmap item ticked.

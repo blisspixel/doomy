@@ -1,0 +1,29 @@
+{
+  "out_dir": "client/assets/audio",
+  "items": [
+    {
+      "kind": "music",
+      "name": "radio/news/bed-01-sting",
+      "title": "Contested Frequency News sting",
+      "prompt": "News broadcast theme sting, 12 seconds, 120 BPM in B-flat major, brass fanfare over an urgent tom pattern, teletype clicks, a shortwave tuning sweep on beat one, 1980s AM network newscast production, compressed and nearly mono. Instrumental only. Three-note ascending brass motif, timpani hit, resolve on a sustained chord with a filtered static tail of two seconds for a voice to enter over. No vocals, no drums after the hit. It must sound official and slightly wrong, like a real newsroom run by a late-night conspiracy show.",
+      "length_ms": 12000,
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/news/bed-02-underscore",
+      "title": "Newsroom underscore bed",
+      "prompt": "Newsroom talk bed, 90 seconds, 96 BPM in D minor, low pulsing synth bass, soft ticking hi-hat, sparse electric piano stabs, distant teletype and shortwave static textures, late-night cable-news underscore with a cheap 1990s synth feel. Instrumental only, loopable, no melody that competes with speech, flat dynamics, sits under a voice at low volume. Constant motion, a subtle filter sweep every 16 bars, no drum fills. This plays under spoken bulletins, so leave the midrange empty. No vocals, no builds, no ending.",
+      "length_ms": 90000,
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/news/bed-03-sung-id",
+      "title": "We Are Not On The Air (station ID)",
+      "prompt": "Radio station jingle, 10 seconds, 128 BPM in C major, tight 1970s vocal-group harmony, brass hits, one snare crack, bright and clean jingle-house production. A four-part mixed choir sings the station ID once with crisp diction and clear vowels, then a big final chord with slap-back echo. Hook: \"Contested Frequency, we are not on the air.\" The ID line is the only lyric, sung straight and cheerful with no irony in the delivery; the joke is in the words. Two-second ring-out for the Host to talk over. No verse, no instrumental intro, start on the vocal.",
+      "length_ms": 10000,
+      "instrumental": false
+    }
+  ]
+}
