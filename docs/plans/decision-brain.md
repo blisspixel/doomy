@@ -1,6 +1,6 @@
 # Plan: decision brain agent
 
-**Status:** in flight (2026-09-18)
+**Status:** shipped (#102, 2026-09-18)
 **Branch:** `feat/decision-brain`
 **Spend:** $0 by default. Paid providers need an explicit per-run cap on the command line; the pre-approved ceiling for developer sessions is 5 dollars per run. Never in CI.
 
