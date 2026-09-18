@@ -17,6 +17,9 @@ Status words: **planned**, **in flight**, **shipped** (merged to `main`, PR numb
 
 | Plan | Status | One-liner |
 |---|---|---|
+| [`buttery-controls.md`](./buttery-controls.md) | **planned** | Client-owned yaw, prediction and reconciliation, timeline interpolation, 60 Hz sim, lag compensation, gamepad curves, transport spike, all with pass numbers. |
+| [`public-server-hardening.md`](./public-server-hardening.md) | **planned** | Frame caps, accept limits, HMAC join tickets, name rules, Caddy TLS, status endpoint and benchmark mode. |
+| [`agent-door-2026.md`](./agent-door-2026.md) | **planned** | MCP 2026-07-28 compliance with legacy clients kept, the rmcp decision, a team blackboard before A2A. |
 | [`decision-brain.md`](./decision-brain.md) | **shipped** (#102) | Decision-brain agent: Jev (TypeSafe or OpenRouter) sets intent a few times a second, local controller plays every tick, hard spend cap with a ledger. |
 | [`radio-stations.md`](./radio-stations.md) | **shipped** (library) | Contested Frequency radio: eight stations, generated library, client player with ducking. |
 | [`look-pass-boomer.md`](./look-pass-boomer.md) | **planned** | Boomer shooter look pass: low-res render target, dither, atlas, eight-direction sprites, weapon view models, HUD grid. |
