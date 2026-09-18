@@ -48,7 +48,7 @@ Product locks:
 ## Protocol (summary)
 
 - `Welcome`: `mode_name`, `playlist` (defaults for old clients).
-- `Snapshot`: `mode_name`, `playlist`, optional `pressure`.
+- `Snapshot`: `mode_name`, `playlist`, optional `pressure`, sticky `host_line` (see sticky-host-line-mid-join).
 - `round_start`: `mode_name`, `playlist`, `host_line`.
 - `compliance_ping`: `message`, `duration_ticks`.
 

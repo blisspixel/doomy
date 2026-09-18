@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::protocol::{
-    default_host_line, default_mode_name, default_playlist, Action, ClientMessage, GameEvent,
-    PlayerScore, PlayerState, Role, ServerMessage, Snapshot, WeaponType,
+    compliance_host_line, default_host_line, default_mode_name, default_playlist, Action,
+    ClientMessage, GameEvent, PlayerScore, PlayerState, Role, ServerMessage, Snapshot, WeaponType,
 };
 #[cfg(test)]
 use crate::sim::{BotBehavior, BotController, GameState, MatchConfig, RoundState};
@@ -250,6 +250,7 @@ fn test_protocol_snapshot_serialization() {
         mode_name: default_mode_name(),
         playlist: default_playlist(),
         pressure: None,
+        host_line: default_host_line(),
     };
     let json = serde_json::to_value(&snapshot).unwrap();
     assert_eq!(json["tick"], 123);
@@ -268,6 +269,7 @@ fn test_protocol_snapshot_empty_players() {
         mode_name: default_mode_name(),
         playlist: default_playlist(),
         pressure: None,
+        host_line: default_host_line(),
     };
     let json = serde_json::to_string(&snapshot).unwrap();
     assert!(json.contains(r#""tick":0"#));
@@ -2128,6 +2130,7 @@ async fn test_net_ws_action_forwarded_for_agent() {
             mode_name: default_mode_name(),
             playlist: default_playlist(),
             pressure: None,
+            host_line: default_host_line(),
         });
         broadcast_to_clients(&clients, &[snap]).await;
         let msg = tokio::time::timeout(std::time::Duration::from_secs(2), stream.next())
@@ -2486,10 +2489,12 @@ fn test_snapshot_carries_contested_frequency_mode_identity() {
     assert_eq!(snap.mode_name, "Contested Frequency");
     assert_eq!(snap.playlist, "Arena Duel");
     assert!(snap.pressure.is_none());
+    assert_eq!(snap.host_line, default_host_line());
     let json = serde_json::to_value(&snap).unwrap();
     assert_eq!(json["mode_name"], "Contested Frequency");
     assert_eq!(json["playlist"], "Arena Duel");
     assert!(json.get("pressure").is_none() || json["pressure"].is_null());
+    assert_eq!(json["host_line"], default_host_line());
 }
 
 #[test]
@@ -2546,6 +2551,7 @@ fn test_compliance_ping_fires_once_and_sets_pressure() {
 
     let snap = state.snapshot();
     assert_eq!(snap.pressure.as_deref(), Some("compliance"));
+    assert_eq!(snap.host_line, compliance_host_line());
 
     // Second fire must not happen.
     for _ in 0..20 {
@@ -2611,7 +2617,7 @@ fn test_compliance_pressure_slows_movement() {
 #[test]
 fn test_compliance_ping_wire_json_shape() {
     let event = GameEvent::CompliancePing {
-        message: "HOST: CONTINUANCE COMPLIANCE PING. APPROVED LANES ONLY.".into(),
+        message: compliance_host_line(),
         duration_ticks: 120,
     };
     let msg = ServerMessage::Event(event);
@@ -2633,4 +2639,63 @@ fn test_welcome_includes_mode_identity() {
     let json = serde_json::to_value(&welcome).unwrap();
     assert_eq!(json["mode_name"], "Contested Frequency");
     assert_eq!(json["playlist"], "Arena Duel");
+}
+
+#[test]
+fn test_snapshot_host_line_sticky_for_mid_join() {
+    // Mid-join / observe must see Host chrome without waiting for RoundStart.
+    let mut state = GameState::new();
+    state.config = MatchConfig {
+        frag_limit: Some(99),
+        time_limit_ticks: Some(20 * 60),
+        warmup_ticks: 2,
+        end_delay_ticks: 5,
+        compliance_ping_ticks: Some(5),
+        compliance_duration_ticks: 8,
+    };
+    state.add_player(Uuid::new_v4(), "Late".to_string(), Role::Human);
+
+    // Warmup: league Host line sticky on Snapshot.
+    let warm = state.snapshot();
+    assert!(warm.pressure.is_none());
+    assert_eq!(warm.host_line, default_host_line());
+    let warm_json = serde_json::to_value(&warm).unwrap();
+    assert_eq!(warm_json["host_line"], default_host_line());
+
+    // Enter Active and fire compliance.
+    state.tick(0.05);
+    state.tick(0.05);
+    let _ = state.take_events();
+    for _ in 0..5 {
+        state.tick(0.05);
+    }
+    let _ = state.take_events();
+    assert!(state.compliance_ticks_left > 0);
+
+    let during = state.snapshot();
+    assert_eq!(during.pressure.as_deref(), Some("compliance"));
+    assert_eq!(during.host_line, compliance_host_line());
+    let during_json = serde_json::to_value(&during).unwrap();
+    assert_eq!(during_json["host_line"], compliance_host_line());
+
+    // After pressure ends, Snapshot returns to league Host line.
+    while state.compliance_ticks_left > 0 {
+        state.tick(0.05);
+    }
+    let after = state.snapshot();
+    assert!(after.pressure.is_none());
+    assert_eq!(after.host_line, default_host_line());
+}
+
+#[test]
+fn test_snapshot_host_line_defaults_when_absent_on_wire() {
+    // Old Snapshot without host_line still deserializes (mid-join clients / adapters).
+    let raw = r#"{
+        "tick": 1,
+        "players": [],
+        "mode_name": "Contested Frequency",
+        "playlist": "Arena Duel"
+    }"#;
+    let snap: Snapshot = serde_json::from_str(raw).expect("legacy snapshot");
+    assert_eq!(snap.host_line, default_host_line());
 }

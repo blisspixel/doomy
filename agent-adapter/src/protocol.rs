@@ -134,6 +134,8 @@ pub struct Snapshot {
     pub playlist: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pressure: Option<String>,
+    #[serde(default = "default_host_line")]
+    pub host_line: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
