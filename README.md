@@ -67,9 +67,9 @@ Both modes use the same server and client. No separate combat rules.
 
 ## Why it is fun
 
-- **Immediate drama:** Bots spawn with names (Rusher, Sniper, Flanker, Tank) and fight instantly. No waiting.
-- **Visible tactics:** Watch Aggressive bots rush, Defensive bots strafe and keep distance, Flanker bots circle.
-- **Color-coded action:** Red center zone, cyan/gold/green/purple corners. Distinct bot colors (red Rusher, cyan Sniper, gold Flanker, green Tank).
+- **Immediate drama:** Bots spawn with Contested Frequency callsigns (Dead Air Dan, Nightfall, Static Kid, Aunt Linda, ...) and fight instantly. No waiting.
+- **Visible tactics:** Sticky behavior chips (AGG/DEF/FLK/BAL) on named scrap bots; Aggressive rush, Defensive hold, Flanker circle.
+- **Color-coded action:** Red center zone, cyan/gold/green/purple corners. Distinct callsign colors on tip face labels.
 - **Satisfying feedback:** Snappy muzzle flashes (0.08s), hit pulses, camera locks on killer for 1.5s after frag.
 - **Spectator-first, join anytime:** Default is watch. Press J to join, test yourself, press L to leave. Bots persist.
 - **Round scoring:** 10 frag limit or 3 min time limit. Winner announced, next round auto-starts. Continuous match.

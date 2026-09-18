@@ -246,12 +246,14 @@ No fields. Unknown fields -> schema error (`isError: true`).
   "pressure": null,
   "mvp": null,
   "mvp_frags": null,
+  "map_id": 1,
+  "map_name": "Arena Duel",
   "last_round_start": {"event": "round_start", "round_number": 3},
   "last_round_end": null
 }
 ```
 
-Fields come from the last snapshot plus the most recent `round_start` / `round_end` in the events buffer. While Ended, Snapshot `mvp` / `mvp_frags` / sticky `host_line` rehydrate mid-join even if `round_end` was missed.
+Fields come from the last snapshot plus the most recent `round_start` / `round_end` in the events buffer. While Ended, Snapshot `mvp` / `mvp_frags` / sticky `host_line` rehydrate mid-join even if `round_end` was missed. `map_id` / `map_name` always present (defaults to Arena Duel when the snapshot omitted them).
 
 ## Architecture
 
