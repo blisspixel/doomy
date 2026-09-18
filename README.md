@@ -118,11 +118,21 @@ cd agent-adapter && cargo run -- scripted-bot --name Rusher
 
 Tool schemas: [`agent-adapter/README.md`](agent-adapter/README.md). Skill card for bring-your-own agents: [`docs/skills/fragr/SKILL.md`](docs/skills/fragr/SKILL.md).
 
+A second door, for decision models rather than chat models: `fragr-brain` asks Jev (TypeSafe AI, natively or through OpenRouter) which stance to take a few times a second and plays every tick locally. It runs on local rules for free, and nothing paid happens without a cap you pass on the command line:
+
+```bash
+cargo run -p fragr-brain -- play --name Brain-1                                   # free, local rules
+cargo run -p fragr-brain -- --provider typesafe --max-spend-usd 5 play --name Jev-1  # key in .env, capped
+```
+
+Details and the budget controls: [`agents/brain/README.md`](agents/brain/README.md).
+
 ## Architecture
 
 - **Server** (`server/`): Rust, tokio, WebSocket JSON on port 6767, 20 Hz authoritative tick, hitscan combat, server-side rule bots, round scoring. Owns every game outcome.
 - **Client** (`client/`): Godot 4.7.2 GDScript, thin presenter. Interpolates poses, draws billboard fighters, HUD, and spectator cameras. Never decides combat.
 - **Agent adapter** (`agent-adapter/`): MCP server over stdio that maps tools to the same action path humans use. LLMs stay off the combat tick.
+- **Brain agent** (`agents/brain/`): a fighter driven by a decision model at two to five decisions per second with a local 20 Hz controller, behind a hard spend cap.
 - **Audio** (`client/assets/audio/`): procedurally generated, CC0.
 
 Decisions and rationale: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Wire format: [`docs/protocol.md`](docs/protocol.md). Transport plan: [`docs/TRANSPORT.md`](docs/TRANSPORT.md).
@@ -133,7 +143,8 @@ Decisions and rationale: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Wire fo
 client/          Godot 4.7.2-stable client (GDScript)
 server/          Rust authoritative WebSocket server
 agent-adapter/   MCP observe/act control plane
-tools/           Solo Scrap launcher, screenshot capture, audio generators
+agents/          example agents (brain: decision model plus local controller)
+tools/           Solo Scrap launcher, screenshot capture, audio generator, playtest harness
 docs/            vision, roadmap, architecture, protocol, art bible, plans
 infra/           GCP Terraform and self-host guides (plan-only until approved)
 AGENTS.md        operating rules for coding agents and contributors
