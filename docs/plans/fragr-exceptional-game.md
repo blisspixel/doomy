@@ -123,7 +123,7 @@ Boring bots, opaque agency, empty server when humans leave, LLM on the gunfight 
 
 AGENTS.md commands + evidence. Screenshots when UI exists. Green CI is the floor.
 
-## Gemini DR fold (still holds)
+## Research fold (still holds)
 
 **HOLD (acting on):**
 - Rust authority + Godot I/O/spectator; same input path humans/agents

@@ -2,151 +2,126 @@
 
 ![fragr wordmark](docs/fragr-logo.png)
 
-Agentic-first **3D** FPS arena (retro pixel grit) where you can **solo boot-and-scrap** with local bots, or **watch or join** AI fights in multiplayer, whichever is more fun. Named fighters with distinct behaviors keep the arena alive. Press J anytime to play as human, or stay in spectator and enjoy the show. Press L to leave back to spectate.
+fragr is a retro-styled 3D arena shooter where AI agents and humans fight under the same rules. Boot it and four named bots are already scrapping. Watch the match, press J to jump in, press L to step back out. Play offline against local bots, or host a server so friends, strangers, and their agents can play or watch together.
 
-**First 10 seconds:** 4 bots spawn and immediately engage. Muzzle flashes, hit feedback, killfeed. Camera follows the action.  
-**First frag:** Typically within 5 seconds of round start. Bright feedback, scoreboard updates, camera locks on killer.  
-**First minute:** Round scoring (10 frag limit or 3 min), bots use Aggressive/Defensive/Flanker/Balanced tactics, spectator auto-cycles between fighters.  
-**Press J:** Join as human (WASD + mouse + LMB). Your shots count. Bots react to you.  
-**Press L:** Leave back to spectate. Bots keep fighting. Continuous match, community-server feel.
+It is the 1993 LAN-party feeling rebuilt for 2026: a Rust authoritative server, a Godot client that only presents, and an MCP adapter so any agent can observe and act like a player.
 
+## What runs today
 
-Logo (`docs/fragr-logo.png`, gold bone-white + dark purple outline) is canonical; square mark (`docs/fragr-logo-mark.png`) is the alt. Gold twin: `docs/fragr-logo-GOLD.png`.
+- **Solo Scrap:** offline on loopback, four named rule bots with visible tactics (Aggressive, Defensive, Flanker, Balanced).
+- **Watch or join:** spectator by default with a director camera. Join mid-match as a human, leave back to spectate. Bots keep the server alive.
+- **Contested Frequency match loop:** 10-frag or 3-minute rounds, warmup and round-end Host bumpers, killstreak callouts, a mid-round Compliance Drone boss.
+- **Guns and maps:** three weapon roles (Flechette, Rail, Scatter), weapon and health pads, two maps (Arena Duel, Compliance Yard).
+- **Agent door:** MCP tools `join`, `leave`, `observe`, `act`, `speak`, `get_events`, `round_state`. Structured state, no vision model required.
+
+This is a playable vertical slice, not a finished game. The build order and what is still missing live in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Screenshots
 
-Live tip captures (Xvfb + Godot 4.7.2-stable + opengl3). See `docs/screenshots/README.md`. Reproducible path: `tools/capture_tip_screenshots.sh` with a loopback `fragr-server --bots 4`.
+Live captures from the current build (Godot 4.7.2-stable against a loopback server with four bots). Details and the regeneration script are in [`docs/screenshots/README.md`](docs/screenshots/README.md).
 
-![Arena Overview (tip)](docs/screenshots/01_arena_overview_16x9.png)
+![Arena overview](docs/screenshots/01_arena_overview_16x9.png)
 
-![Host flash mid-join (tip)](docs/screenshots/08_tip_host_flash_midjoin_16x9.png)
+![Human join, first person](docs/screenshots/10_tip_human_join_fp_16x9.png)
 
-![Human join FP juice (tip)](docs/screenshots/10_tip_human_join_fp_16x9.png)
+![Weapons and frags](docs/screenshots/09_tip_weapons_frags_16x9.png)
 
-![Weapons / frags (tip)](docs/screenshots/09_tip_weapons_frags_16x9.png)
+![Host flash on mid-join](docs/screenshots/08_tip_host_flash_midjoin_16x9.png)
 
-![Compliance pressure (tip)](docs/screenshots/07_tip_compliance_pressure_16x9.png)
+## Quick start
 
-Mood / concept plates (not tip proof) live under `docs/screenshots/mood/`.
-
-## Quick Start: Solo Scrap (offline, loopback 6767)
-
-One command (server with bots + Godot human join). No Tailscale. No public host.
+Requirements: Rust stable and Godot 4.7.2-stable. No accounts, no cloud, no spend.
 
 ```bash
 ./tools/solo_scrap.sh
 ```
 
-Or two terminals:
+That builds the server, binds it to `127.0.0.1:6767` with four bots, and launches the Godot client in Solo Scrap. Or run the two halves yourself:
 
 ```bash
-# Terminal 1: local authoritative server (4 named rule bots)
+# Terminal 1: authoritative server with four named rule bots
 cargo run -p fragr-server -- --bind 127.0.0.1:6767 --bots 4
-# Map 2 (Compliance Yard): add --map 2
-# Or: FRAGR_MAP=2 ./tools/solo_scrap.sh
 
-# Terminal 2: Godot 4.7.2
-# Open client/ and press F5 -> Boot menu -> Solo Scrap (local bots)
-# Or: godot --path client res://scenes/main.tscn -- --solo
+# Terminal 2: open client/ in Godot 4.7.2 and press F5, then pick Solo Scrap
+# Headless alternative: godot --path client res://scenes/main.tscn -- --solo
 ```
 
-**Offline bar:** Solo Scrap is loopback `127.0.0.1:6767` only. Same Action path as multiplayer. Bots refill if the arena would otherwise sit empty (`min_bots`).
+**Controls:** WASD to move, mouse to look, left mouse to fire, J to join, L to leave back to spectate, F to cycle the spectator camera, Esc to release the mouse.
 
-**Boot menu:** Solo Scrap (default) | Spectate Local | Join Host (MP). Map picker: 1 Arena Duel (default) or 2 Compliance Yard (match server `--map` / `FRAGR_MAP`). Press L in-match to spectate; J to join again.
+**Boot menu:** Solo Scrap (default), Spectate Local, Join Host. The map picker selects Arena Duel or Compliance Yard and must match the server's `--map`.
 
-**That is it.** Living opponents on one machine. No accounts, no cloud, no spend.
-
-## Play Modes
-
-**fragr** supports two first-class experiences from day one:
-
-- **Solo Scrap (first-class):** Offline boot-and-scrap on loopback **6767**. `./tools/solo_scrap.sh` or Boot menu -> Solo Scrap. Local rule bots always present (server `--bots` / `min_bots`). Same Action path and feel as MP. Not an empty lobby.
-- **Multiplayer (public OR local):** Self-host with public TCP+UDP **6767** (Minecraft-shaped) for strangers and agents, or keep it on LAN/loopback for buddies. Humans, agents, and spectators share the same arena. Join mid-match, leave to spectate, bots persist. Not a LAN-only demo. Not Tailscale-required.
-
-Both modes use the same server and client. No separate combat rules.
-
-## Why it is fun
-
-- **Immediate drama:** Bots spawn with Contested Frequency callsigns (Dead Air Dan, Nightfall, Static Kid, Aunt Linda, ...) and fight instantly. No waiting.
-- **Visible tactics:** Sticky behavior chips (AGG/DEF/FLK/BAL) on named scrap bots; Aggressive rush, Defensive hold, Flanker circle.
-- **Color-coded action:** Red center zone, cyan/gold/green/purple corners. Distinct callsign colors on tip face labels.
-- **Satisfying feedback:** Snappy muzzle flashes (0.08s), hit pulses, camera locks on killer for 1.5s after frag.
-- **Spectator-first, join anytime:** Default is watch. Press J to join, test yourself, press L to leave. Bots persist.
-- **Round scoring:** 10 frag limit or 3 min time limit. Winner announced, next round auto-starts. Continuous match.
-- **Zero friction:** Loopback Solo Scrap, or self-host public/LAN on **6767**. No accounts required. Local play is $0; public host is opt-in under the $50 cap (spend ACK).
-
-## Multi-machine (public self-host or LAN)
-
-Primary multiplayer story: run the authoritative server on a box you control and open **TCP+UDP 6767** (Minecraft-shaped). Strangers and agents join with no VPN. LAN works the same bind for buddies on your network. See `infra/docs/HOME-LAN.md`, `infra/docs/CHEAP-VPS.md`, and `infra/docs/DURABLE-HOST.md` (plan-only until spend ACK).
-
-### Server host
+## Host a server
 
 ```bash
 cargo run -p fragr-server -- --bind 0.0.0.0:6767 --bots 4
-# Note LAN IP (e.g. 192.168.1.100) or public IP / DNS after port-forward or VPS firewall
 ```
 
-### Client (another machine)
+Clients on other machines set `FRAGR_SERVER` to `your-host:6767` before launching the client. Open TCP 6767 to the internet for strangers and agents, or keep it on your LAN for friends. UDP 6767 is reserved for the planned low-latency transport.
+
+Hosting guides: [`infra/docs/HOME-LAN.md`](infra/docs/HOME-LAN.md) for a home box, [`infra/docs/CHEAP-VPS.md`](infra/docs/CHEAP-VPS.md) for a small VM, and [`infra/`](infra/README.md) for the GCP Terraform path. Cloud deployment stays plan-only until spend is approved.
+
+## Server options
+
+```text
+--bind <ADDR>   Bind address (default 0.0.0.0:6767; Solo Scrap uses 127.0.0.1:6767)
+--bots <N>      Rule bots to spawn and keep stocked (default 4)
+--map <ID>      1 or arena = Arena Duel (default), 2 or compliance-yard = Compliance Yard
+--map-rotate    Alternate maps between rounds
+```
+
+`cargo run -p fragr-server -- --help` is the source of truth if this table drifts.
+
+## Play as an agent
 
 ```bash
-export FRAGR_SERVER="192.168.1.100:6767"  # or YOUR_PUBLIC:6767
-# Open client/ in Godot 4.7.2, press F5
+cd agent-adapter && cargo run -- mcp --name ArenaFox
 ```
 
-**Tailscale Personal (optional, private/dev smoke only):** Useful for operator smoke when you are away from home. Not the stranger/agent join path. Do not close public 6767 and ship Tailscale-only. Install from [tailscale.com](https://tailscale.com) if you want that overlay.
-
-## Agent adapter (MCP-compatible)
+Point any MCP client at that process over stdio. Agents get structured observations (own pose and health, visible fighters, pickups, round state) and send the same discrete actions humans do. A scripted example bot ships alongside it:
 
 ```bash
-cd agent-adapter && cargo run -- mcp --name ArenaFox  # or scripted-bot --name MyBot
+cd agent-adapter && cargo run -- scripted-bot --name Rusher
 ```
 
-External agents (clawbots, MCP clients) can observe and act via structured JSON (no vision API, no LLM required for bots). Session tools: `join`, `leave`, `round_state` (plus `observe` / `act` / `speak` / `get_events`).
+Tool schemas: [`agent-adapter/README.md`](agent-adapter/README.md). Skill card for bring-your-own agents: [`docs/skills/fragr/SKILL.md`](docs/skills/fragr/SKILL.md).
 
 ## Architecture
 
-- **Server**: Rust tokio + WebSocket JSON, 20 Hz authoritative tick, hitscan combat, server-side bots, round scoring
-- **Client**: Godot 4.7.2 GDScript, thin presenter with pose interpolation, intent chips on named bots, procedural audio (CC0)
-- **Protocol**: WebSocket JSON on port **6767** (on purpose; see `docs/protocol.md`)
-- **Match loop**: Frag limit (default 10) or time limit (default 3min), scoreboard tracks per-round kills, bots persist when humans leave
-- **Audio**: Procedurally generated sounds (fire, hit, frag, round transitions) released under CC0 1.0 Universal (see `client/assets/audio/README.md`)
-- **Spend**: Local Solo Scrap / LAN is **$0**. Public self-host sits under the **$50** hard cap and needs Nick/Chief spend ACK (GCP IaC stays plan-only until then). Tailscale Personal is optional private/dev smoke, not the product spend story.
+- **Server** (`server/`): Rust, tokio, WebSocket JSON on port 6767, 20 Hz authoritative tick, hitscan combat, server-side rule bots, round scoring. Owns every game outcome.
+- **Client** (`client/`): Godot 4.7.2 GDScript, thin presenter. Interpolates poses, draws billboard fighters, HUD, and spectator cameras. Never decides combat.
+- **Agent adapter** (`agent-adapter/`): MCP server over stdio that maps tools to the same action path humans use. LLMs stay off the combat tick.
+- **Audio** (`client/assets/audio/`): procedurally generated, CC0.
 
-See `docs/ARCHITECTURE.md` for stack decisions and `docs/SLICE-1.md` for definition of done.
+Decisions and rationale: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Wire format: [`docs/protocol.md`](docs/protocol.md). Transport plan: [`docs/TRANSPORT.md`](docs/TRANSPORT.md).
 
 ## Repository layout
 
 ```text
-client/          Godot 4.7.2-stable (GDScript)
+client/          Godot 4.7.2-stable client (GDScript)
 server/          Rust authoritative WebSocket server
-agent-adapter/   MCP observe-act control plane
-docs/            architecture, protocol, vision, plans
-infra/           GCP IaC for scale (plan-only, no apply without approval)
-AGENTS.md        instructions for coding agents
+agent-adapter/   MCP observe/act control plane
+tools/           Solo Scrap launcher, screenshot capture, audio generators
+docs/            vision, roadmap, architecture, protocol, art bible, plans
+infra/           GCP Terraform and self-host guides (plan-only until approved)
+AGENTS.md        operating rules for coding agents and contributors
 ```
 
-## Server options
+## Documentation
 
-```bash
-cargo run -p fragr-server -- --help
+- [`docs/VISION.md`](docs/VISION.md): what the game should feel like and the non-negotiables.
+- [`docs/ROADMAP.md`](docs/ROADMAP.md): order of operations from local proof to public servers to cloud scale, plus the fun bar.
+- [`docs/ART_STORY_BIBLE.md`](docs/ART_STORY_BIBLE.md): look, palette, and tone.
+- [`docs/LORE.md`](docs/LORE.md): optional flavor. Seasoning, never a blocker.
+- [`docs/plans/README.md`](docs/plans/README.md): index of bounded work plans and their status.
 
-Options:
-  --bind <ADDR>   Bind address (default: 0.0.0.0:6767; solo uses 127.0.0.1:6767)
-  --bots <N>      Rule bots to spawn and keep stocked via min_bots (default: 4)
-```
-
-Solo helper: `./tools/solo_scrap.sh` (builds server, binds loopback, launches Godot with `--solo`).
-
-## Key Art
+## Key art
 
 ![fragr key art](docs/fragr-keyart-v4-no-codes.png)
 
-*Tip face: no-codes key art (layout codes HUB/CHOKE/PIT/HIGH stay map-only). Hangar Candy mood plate kept at `docs/fragr-keyart-hangar-candy.png`.*
+## Contributing
 
-## Agent contributors
-
-Coding agents must read [`AGENTS.md`](./AGENTS.md) before changing this repo.
+Read [`AGENTS.md`](./AGENTS.md) first. It holds the constraints, the canonical seams, and the verification commands that every change must pass. It applies to humans and coding agents alike.
 
 ## License
 
-Private personal project under [blisspixel](https://github.com/blisspixel).
+Apache License 2.0. See [`LICENSE`](./LICENSE). Audio provenance and the CC0 status of the procedural fallback set are documented in [`client/assets/audio/README.md`](client/assets/audio/README.md).

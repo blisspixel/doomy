@@ -1,7 +1,9 @@
 [package]
 name = "fragr-agent-adapter"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
 tokio = { version = "1.40", features = ["full"] }
@@ -9,8 +11,11 @@ tokio-tungstenite = "0.24"
 futures-util = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-clap = { version = "=4.4.18", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-uuid = { version = "=1.8.0", features = ["v4", "serde"] }
+uuid = { version = "1.26", features = ["v4", "serde"] }
 getrandom = "=0.2.15"
+
+[lints]
+workspace = true

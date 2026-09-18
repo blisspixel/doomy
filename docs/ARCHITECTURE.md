@@ -3,7 +3,7 @@
 **Working name:** fragr 
 **Owner GitHub:** blisspixel (Nick Seal) - personal only; stay out of work accounts 
 **Spend:** $0 assumed for this draft and for Slice 1. Hard cap $50 total if/when Chief/Nick approve spend. 
-**Status:** Draft for Buildy scaffolding - no repo created, no cloud, no spend.
+**Status:** Living decision record. Slice 1 shipped; see `ROADMAP.md` for sequencing.
 
 > **Buildy cut (2026-09-17):** Rust remains Slice 1 authority (not Godot HLMP listen-server). Adopt fun DoD from research: spectator-default, same-match join/leave, target >=4 rule bots, killfeed + follow/free cam, MCP off the combat tick (control plane only), local $0 then public self-host under $50 with spend ACK (Tailscale private/dev smoke only). WS JSON for this slice; UDP/renet is the next net spike. Full research: held by Buildy; QUALITY HOLD/THROW applied.
 

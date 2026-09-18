@@ -1,46 +1,26 @@
-# Audio Assets
+# Audio assets
 
-All audio files in this directory are procedurally generated in-repo using `tools/generate_audio.py`.
+Two pipelines feed this directory. Every file is an ordinary asset the client loads by name; nothing here calls a network at runtime.
 
-## License
+## Generated with `fragr-audiogen` (ElevenLabs, developer-only)
 
-**CC0 1.0 Universal (Public Domain)**
+Sound effects and music produced by `tools/audiogen` (see `tools/audiogen/README.md`). Provenance for each generated file lives in `audiogen-manifest.json` next to it: prompt, model, format, duration, channel count, byte size, generation time. Regenerate with the batch specs under `tools/audiogen/specs/`.
 
-All audio files are released into the public domain via CC0 1.0 Universal.
+Generated files are owned by the project under the ElevenLabs terms for the account that produced them and are distributed with the repository under its Apache 2.0 license. Sound effects are stereo 24 kHz 16-bit WAV by default (the API returns stereo PCM). Music is 44.1 kHz MP3.
 
-To the extent possible under law, the author(s) have dedicated all copyright and related rights to these audio files to the public domain worldwide. These files are distributed without any warranty.
+## Procedural fallback (CC0)
 
-Full license: https://creativecommons.org/publicdomain/zero/1.0/
+The original effect set was synthesised with `tools/generate_audio.py` (sine, square, noise, envelopes) and is dedicated to the public domain under CC0 1.0 Universal: https://creativecommons.org/publicdomain/zero/1.0/. Any file not listed in `audiogen-manifest.json` came from that generator. A Rust port of the generator is planned so the tree stays Rust and GDScript only.
 
-## Files
+## Files the client loads
 
-- `fire.wav` - Legacy / fallback weapon fire (kick + snap + crack, snappy arcade punch)
-- `hit.wav` - Legacy / fallback hit confirm (thwack + ding + thump)
-- `fire_flechette.wav` - Flechette fire (needle chatter)
-- `fire_rail.wav` - Rail fire (heavy charge crack + cold ring)
-- `fire_scatter.wav` - Scatter fire (chunky noise blast)
-- `hit_flechette.wav` - Flechette hit (needle thwack)
-- `hit_rail.wav` - Rail hit (deep thump + cold ding)
-- `hit_scatter.wav` - Scatter hit (chunky splat)
-- `frag.wav` - Frag/elimination sound (massive bass + explosion + rising sweep + sparkle cascade, sells the moment, 0.30s)
-- `round_start.wav` - Round start cue (charge-up + impact beep + punch, arcade excitement, 0.20s)
-- `round_end.wav` - Round end sound (victorious chord + bass thump, dramatic fanfare, 0.35s)
+| File | Used for |
+|---|---|
+| `fire.wav`, `hit.wav` | Fallback weapon fire and hit confirm |
+| `fire_flechette.wav`, `fire_rail.wav`, `fire_scatter.wav` | Per-weapon fire |
+| `hit_flechette.wav`, `hit_rail.wav`, `hit_scatter.wav` | Per-weapon hit |
+| `frag.wav` | Elimination stinger |
+| `round_start.wav`, `round_end.wav` | Round cues |
+| `music/` | Music beds and radio stations (planned wiring, see `docs/ROADMAP.md`) |
 
-## Generation
-
-To regenerate these audio files:
-
-```bash
-cd tools
-python3 generate_audio.py
-```
-
-No external dependencies required beyond Python 3 standard library (wave, struct, math, random).
-
-## Technical Details
-
-- Sample rate: 22050 Hz (mono)
-- Format: 16-bit PCM WAV
-- Total size: ~45 KB
-- Synthesis: Pure procedural (sine/square waves, white noise, frequency sweeps, chord synthesis, ADSR envelopes)
-- Design: Snappy arcade feel, not subtle corporate beeps
+Loading paths: `client/scripts/player_pawn.gd` (per-weapon fire and hit), `client/scripts/game_manager.gd` (frag and round cues). Import presets: keep WAV as samples, MP3 as streams, loop flags off unless the manifest marks a file as looping.

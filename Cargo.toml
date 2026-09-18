@@ -1,3 +1,19 @@
 [workspace]
-members = ["server", "agent-adapter"]
+members = ["server", "agent-adapter", "tools/audiogen"]
 resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/blisspixel/fragr"
+
+# Lint policy for every crate. Crates opt in with `[lints] workspace = true`.
+# Narrow, justified `#[allow]` at the use site is fine; weakening this table is not.
+[workspace.lints.rust]
+unsafe_code = "forbid"
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[workspace.lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"

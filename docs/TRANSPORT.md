@@ -8,14 +8,14 @@
 ### Details
 - Protocol: WebSocket over TCP
 - Format: JSON text messages
-- Address: Server binds `0.0.0.0:6767` by default (LAN + Tailscale capable)
+- Address: Server binds `0.0.0.0:6767` by default (loopback, LAN, or public host)
 - Client: Loopback default, accepts `FRAGR_SERVER` env var for remote connections
 - Tick rate: ~20 Hz server broadcast
 - Multi-peer: Multiple spectators/players can connect to same match
 - Pros: Simple, universal, easy to debug, works for all roles, multi-peer ready
 - Cons: Higher latency than UDP, more bandwidth than binary
 
-**Good enough for Slice 1.** Spectators do not need low latency, agents operate on slow control plane, and human play is acceptable with minor input lag. Second peer can spectate via LAN or Tailscale Personal ($0).
+**Good enough for Slice 1.** Spectators do not need low latency, agents operate on slow control plane, and human play is acceptable with minor input lag. A second peer spectates the same match over LAN or a public host.
 
 ## Planned: UDP/renet (Post-Slice 1)
 
