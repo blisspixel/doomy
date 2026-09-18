@@ -30,6 +30,30 @@ Working name: **fragr** (may change).
   - Remaining soft prisons: be honest in Testy notes; do not paper over.
 - Coverage floor: honest **80%** llvm-cov on tip (`81d3f1d`).
 
+## Chief dedicated-server bar
+
+Dedicated server must be rock-solid, secure, and cheap: home LAN **or** a small cloud VM. Not Tailscale-only. Not Cloud Run as the combat tick.
+
+1. **Hardening**
+   - Auth/session bounds (who may act; sticky session limits).
+   - Junk-act reject (**this PR**): unknown Action fields fail serde; MCP `act` allowlist returns `isError`.
+   - Rate limits and input validation on the wire.
+   - No trust of client sim; Rust authority owns truth.
+
+2. **Stability**
+   - Rust tick authority stays always-on.
+   - Clean join / leave / reconnect paths (join/leave Casino cleared on `2f38625`).
+   - Second-peer + public **6767** green for strangers/agents.
+
+3. **Cost**
+   - Single-process low-RAM home LAN path first.
+   - Cheap VPS / Always Free `e2-micro` ladder under the **$50** hard cap.
+   - `infra/` IaC remains **plan-only** until spend ACK.
+
+4. **Docs**
+   - Canonical port **6767** everywhere.
+   - Scrub leftover **7777** (mention only as "not 7777" historical note if needed).
+
 ## Next (after this PR)
 
 1. **Spectator face juice** - Host bumpers and readable HUD already starting; more watchability.
