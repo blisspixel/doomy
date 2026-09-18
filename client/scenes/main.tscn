@@ -109,3 +109,14 @@ theme_override_font_sizes/font_size = 56
 text = "ROUND 1 - FIGHT!"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="AudioPlayers" type="Node" parent="."]
+
+[node name="FragSound" type="AudioStreamPlayer" parent="AudioPlayers"]
+volume_db = -3.0
+
+[node name="RoundStartSound" type="AudioStreamPlayer" parent="AudioPlayers"]
+volume_db = -5.0
+
+[node name="RoundEndSound" type="AudioStreamPlayer" parent="AudioPlayers"]
+volume_db = -5.0

@@ -1,6 +1,6 @@
-# Doomy - Architecture & Vertical Slice Plan
+# fragr - Architecture & Vertical Slice Plan
 
-**Working name:** Doomy 
+**Working name:** fragr 
 **Owner GitHub:** blisspixel (Nick Seal) - personal only; stay out of work accounts 
 **Spend:** $0 assumed for this draft and for Slice 1. Hard cap $50 total if/when Chief/Nick approve spend. 
 **Status:** Draft for Buildy scaffolding - no repo created, no cloud, no spend.
@@ -14,9 +14,9 @@
 
 ### Goals
 - **Playable Doom-like feel** in Godot 4.x: small arena, FPS camera, shoot/move, deathmatch-lite.
-- **Multiplayer-first**: authoritative **Rust** game server; clients are thin presenters.
+- **Solo AND multiplayer, both first-class**: authoritative **Rust** game server; clients are thin presenters. Instant fun solo (you + bots on one machine), and self-host for peers (LAN or Tailscale). Not a LAN-only demo.
 - **Agent-first play**: clawbots / MCP-compatible agents drive players via an **agent-play adapter**; humans default to **spectating** (Fortnite let’s-play vibe).
-- **Optional human join**: same client can become a player (keyboard/mouse) without a second codebase.
+- **Optional human join**: same client can become a player (keyboard/mouse) without a second codebase. Join and leave mid-match.
 - **Community-server DNA** (Minecraft-ish): one persistent-ish session people can watch/join; home-hostable.
 - **Exceptional Slice 1**: something you can run tonight on loopback and *watch agents fight*, not a pitch.
 
@@ -40,7 +40,7 @@ flowchart TB
  end
 
  subgraph Server["Authoritative sim (Rust, home-host)"]
- GS["doomy-server<br/>tick loop + arena rules"]
+ GS["fragr-server<br/>tick loop + arena rules"]
  API["Session API<br/>WS / binary later"]
  end
 
@@ -65,7 +65,7 @@ flowchart TB
 | `spectator` | Godot (default) | nothing (or camera-only UI) | full/filtered snapshots |
 | `human` | Godot (opt-in) | same action schema as agents | snapshots |
 
-All game truth lives in **doomy-server**. Godot never simulates combat/HP; it interpolates rendered poses from snapshots.
+All game truth lives in **fragr-server**. Godot never simulates combat/HP; it interpolates rendered poses from snapshots.
 
 ---
 
@@ -79,7 +79,7 @@ All game truth lives in **doomy-server**. Godot never simulates combat/HP; it in
 - **Later (post-slice):** Optional UDP/`renet`-style channel for low-latency FPS once WS proves the loop. Do **not** block Slice 1 on custom UDP in GDScript.
 
 ### Server - Rust, **not** Bevy-as-client
-| Option | Verdict for Doomy |
+| Option | Verdict for fragr |
 |--------|-------------------|
 | **Custom tokio + WS + tick ECS-lite** | **Choose for Slice 1.** Thin, Godot-friendly, easy for MCP adapter. |
 | `renet` / `bevy_renet` | Strong UDP/netcode later; Godot client support is DIY. Defer. |
@@ -109,9 +109,9 @@ All game truth lives in **doomy-server**. Godot never simulates combat/HP; it in
 - **Spectators:** same snapshot stream; server ignores input from `spectator` role.
 
 ### How agents issue actions (agent-play path)
-**Best current approach for 2026 Doomy:** dedicated **MCP server adapter** in front of the game session (pattern proven by doom-mcp, minecraft-mcp, nethack-mcp style stacks).
+**Best current approach for 2026 fragr:** dedicated **MCP server adapter** in front of the game session (pattern proven by doom-mcp, minecraft-mcp, nethack-mcp style stacks).
 
-- Process: `doomy-agent-adapter` (Rust or TypeScript; prefer **Rust** to share protocol types with server, or TS if Buildy wants FastMCP speed - **recommend Rust** for one language on server side).
+- Process: `fragr-agent-adapter` (Rust or TypeScript; prefer **Rust** to share protocol types with server, or TS if Buildy wants FastMCP speed - **recommend Rust** for one language on server side).
 - Transport to agents: **MCP over stdio** (local clawbots / any MCP client) - zero cloud.
 - Tools (minimal):
  - `session_join(name)` → player_id
@@ -162,10 +162,10 @@ One graybox arena on loopback. Two **scripted agent bots** (or one agent + one s
 
 ## 5. Repo layout proposal (blisspixel / personal)
 
-Monorepo (recommended for protocol sharing). Name suggestion: `doomy` under blisspixel.
+Monorepo (recommended for protocol sharing). Name suggestion: `fragr` under blisspixel.
 
 ```text
-doomy/
+fragr/
 ├── README.md # how to run Slice 1 (3 terminals)
 ├── ARCHITECTURE.md # this doc
 ├── SLICE-1.md # build checklist

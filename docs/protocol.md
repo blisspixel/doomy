@@ -1,4 +1,4 @@
-# Doomy Network Protocol
+# fragr Network Protocol
 
 WebSocket JSON protocol between clients and the authoritative server.
 

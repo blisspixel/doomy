@@ -8,11 +8,23 @@ Agentic-first FPS arena where **you spectate AI bots fight, then join the match 
 **Press J:** Join as human (WASD + mouse + LMB). Your shots count. Bots react to you.  
 **Press L:** Leave back to spectate. Bots keep fighting. Continuous match, community-server feel.
 
+## Screenshots
+
+Arena layout, spectator HUD, fighters, and weapon feedback. (Mood art - see `docs/screenshots/README.md` for details.)
+
+![Arena Overview](docs/screenshots/01_arena_overview_16x9.png)
+
+![Spectator HUD](docs/screenshots/02_spectator_hud_16x9.png)
+
+![Fighters: Cyanex and Kragge](docs/screenshots/03_fighters_cyanex_kragge_1x1.png)
+
+![Weapon Muzzle Feedback](docs/screenshots/04_muzzle_juice_16x9.png)
+
 ## Quick Start (60 seconds to fun)
 
 ```bash
 # Terminal 1: Server (4 named bots, 10 frag limit)
-cargo run -p doomy-server -- --bots 4
+cargo run -p fragr-server -- --bots 4
 
 # Terminal 2: Spectator
 # Open client/ in Godot 4.7.2, press F5
@@ -21,6 +33,15 @@ cargo run -p doomy-server -- --bots 4
 ```
 
 **That is it.** Bots fight on loopback. No accounts, no cloud, no spend.
+
+## Play Modes
+
+**fragr** supports two first-class experiences from day one:
+
+- **Solo + Bots**: Instant fun on one machine. Server spawns named bots that fight continuously. Watch or join. No network setup, no waiting for other humans.
+- **Multiplayer**: Self-host and invite peers (LAN or Tailscale). Humans, agents, and spectators share the same arena. Join mid-match, leave to spectate, bots persist. Not a LAN-only demo - multiplayer is a first-class supported path.
+
+Both modes use the same server and client. No separate codepaths or feature gaps.
 
 ## Why it is fun
 
@@ -39,7 +60,7 @@ Run server on one machine, connect spectators/players from others.
 ### Server host
 
 ```bash
-cargo run -p doomy-server -- --bind 0.0.0.0:7777 --bots 4
+cargo run -p fragr-server -- --bind 0.0.0.0:7777 --bots 4
 # Note LAN IP (e.g. 192.168.1.100) or Tailscale IP (e.g. 100.x.y.z)
 ```
 
@@ -63,9 +84,10 @@ External agents (clawbots, MCP clients) can observe and act via structured JSON 
 ## Architecture
 
 - **Server**: Rust tokio + WebSocket JSON, 20 Hz authoritative tick, hitscan combat, server-side bots, round scoring
-- **Client**: Godot 4.7.2 GDScript, thin presenter with pose interpolation, intent chips on named bots
+- **Client**: Godot 4.7.2 GDScript, thin presenter with pose interpolation, intent chips on named bots, procedural audio (CC0)
 - **Protocol**: WebSocket JSON on port 7777 (see `docs/protocol.md`)
 - **Match loop**: Frag limit (default 10) or time limit (default 3min), scoreboard tracks per-round kills, bots persist when humans leave
+- **Audio**: Procedurally generated sounds (fire, hit, frag, round transitions) released under CC0 1.0 Universal (see `client/assets/audio/README.md`)
 - **Spend**: $0 (loopback, LAN, Tailscale Personal only)
 
 See `docs/ARCHITECTURE.md` for stack decisions and `docs/SLICE-1.md` for definition of done.
@@ -84,7 +106,7 @@ AGENTS.md        instructions for coding agents
 ## Server options
 
 ```bash
-cargo run -p doomy-server -- --help
+cargo run -p fragr-server -- --help
 
 Options:
   --bind <ADDR>   Bind address (default: 0.0.0.0:7777)
