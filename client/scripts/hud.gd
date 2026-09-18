@@ -70,7 +70,7 @@ func update_scoreboard():
 	
 	scoreboard.text = text if len(sorted_scores) > 0 else "SCOREBOARD\n(no kills yet)"
 
-func show_frag(killer: String, victim: String):
+func show_frag(killer: String, victim: String, killer_color: Color = Color.WHITE, victim_color: Color = Color.WHITE):
 	if not scores.has(killer):
 		scores[killer] = 0
 	scores[killer] += 1
@@ -79,6 +79,7 @@ func show_frag(killer: String, victim: String):
 	
 	if frag_label:
 		frag_label.text = killer + " FRAGGED " + victim + "!"
+		frag_label.modulate = killer_color.lightened(0.3)
 		frag_label.visible = true
 		
 		var tween = create_tween()
@@ -88,6 +89,7 @@ func show_frag(killer: String, victim: String):
 		await get_tree().create_timer(2.5).timeout
 		if is_instance_valid(frag_label):
 			frag_label.visible = false
+			frag_label.modulate = Color.WHITE
 
 func show_round_start(round_number: int):
 	if round_message:
