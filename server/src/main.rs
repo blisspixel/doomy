@@ -110,8 +110,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 match cmd {
                     GameCommand::Connected { id, role, name, player_id } => {
                         if let Some(pid) = player_id {
-                            state.add_player(pid, name, role);
+                            state.add_player(pid, name.clone(), role);
                             client_to_player.insert(id, pid);
+                            state.push_event(protocol::GameEvent::PlayerJoined {
+                                player: name.clone(),
+                                role: format!("{:?}", role).to_lowercase(),
+                            });
                             tracing::info!("Player {} joined as {:?}", pid, role);
                         } else {
                             tracing::info!("Spectator {} joined", name);
@@ -120,7 +124,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     GameCommand::Disconnected { id } => {
                         if let Some(player_id) = client_to_player.remove(&id) {
+                            let player_name = state.players.iter()
+                                .find(|p| p.id == player_id)
+                                .map(|p| p.name.clone())
+                                .unwrap_or_else(|| "Unknown".to_string());
                             state.remove_player(player_id);
+                            state.push_event(protocol::GameEvent::PlayerLeft {
+                                player: player_name,
+                            });
                             tracing::info!("Player {} left", player_id);
                         }
                     }

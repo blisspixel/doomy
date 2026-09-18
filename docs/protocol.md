@@ -185,10 +185,30 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
 }
 ```
 
+**Player Joined Event:**
+```json
+{
+  "type": "event",
+  "event": "player_joined",
+  "player": "NewPlayer",
+  "role": "agent"
+}
+```
+
+**Player Left Event:**
+```json
+{
+  "type": "event",
+  "event": "player_left",
+  "player": "OldPlayer"
+}
+```
+
 **Fields:**
-- `event`: Event type (`frag`, `respawn`, `round_start`, `round_end`)
+- `event`: Event type (`frag`, `respawn`, `round_start`, `round_end`, `player_joined`, `player_left`)
 - `killer` / `victim`: Player names involved in frag
-- `player`: Player name for respawn
+- `player`: Player name for respawn, join, or leave
+- `role`: Role of joining player ("spectator", "human", "agent")
 - `round_number`: Round counter (starts at 1)
 - `frag_limit`: (optional) Frag limit for the round (null if time-only)
 - `time_limit`: (optional) Time limit in seconds (null if frag-only)

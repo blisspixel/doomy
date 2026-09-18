@@ -447,6 +447,10 @@ impl GameState {
     pub fn take_events(&mut self) -> Vec<GameEvent> {
         std::mem::take(&mut self.events)
     }
+
+    pub fn push_event(&mut self, event: GameEvent) {
+        self.events.push(event);
+    }
 }
 
 #[derive(Clone)]

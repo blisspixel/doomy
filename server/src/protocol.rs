@@ -134,4 +134,11 @@ pub enum GameEvent {
         winner: Option<String>,
         reason: String,
     },
+    PlayerJoined {
+        player: String,
+        role: String,
+    },
+    PlayerLeft {
+        player: String,
+    },
 }
