@@ -1,5 +1,4 @@
 mod protocol;
-
 use clap::{Parser, Subcommand};
 use futures_util::{SinkExt, StreamExt};
 use protocol::{ClientMessage, Role, ServerMessage};

@@ -63,9 +63,14 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo build --workspace
+cargo llvm-cov report --fail-under-lines 50
 ```
 
-Do not “fix” Clippy by broad `#[allow]`, silencing warnings workspace-wide, or deleting checks. Narrow, justified allows only.
+**Defensive validation:** Validate at trust boundaries (WS messages, Action fields, Hello/Welcome, observe/act adapter inputs, protocol deserialize). Fail closed, reject bad input, never panic on client data. Validate ranges (aim, weapon_swap, name length, roles).
+
+**Coverage:** Workspace line coverage target ~80%, measured with `cargo llvm-cov`. CI enforces ratchet floor (currently 50%) that only moves up as tests are added. Tests must prove behavior (rounds, hits, join/leave, malformed Action rejected, empty/connecting observe, etc.), not hollow asserts.
+
+Do not "fix" Clippy by broad `#[allow]`, silencing warnings workspace-wide, or deleting checks. Narrow, justified allows only.
 
 **Godot (`client/` when present):**
 

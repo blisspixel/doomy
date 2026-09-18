@@ -49,5 +49,13 @@ jobs:
       - name: Run tests
         run: cargo test --workspace
 
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov
+
+      - name: Check coverage
+        run: |
+          cargo llvm-cov --workspace --lcov --output-path lcov.info
+          cargo llvm-cov report --fail-under-lines 50
+
       - name: Build release
         run: cargo build --workspace --release

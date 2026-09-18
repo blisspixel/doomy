@@ -90,6 +90,11 @@ async fn handle_connection(
     if let Some(Ok(Message::Text(text))) = ws_stream.next().await {
         match serde_json::from_str::<ClientMessage>(&text) {
             Ok(ClientMessage::Hello { role: r, name }) => {
+                if name.is_empty() || name.len() > 32 {
+                    tracing::warn!("Invalid name length: {}", name.len());
+                    return Ok(());
+                }
+
                 role = Some(r);
 
                 player_id = if r != Role::Spectator {
@@ -125,8 +130,12 @@ async fn handle_connection(
                     player_id
                 );
             }
-            _ => {
-                tracing::warn!("Invalid hello message");
+            Ok(_) => {
+                tracing::warn!("Expected Hello, got different message");
+                return Ok(());
+            }
+            Err(e) => {
+                tracing::warn!("Failed to parse Hello message: {}", e);
                 return Ok(());
             }
         }
