@@ -7,7 +7,7 @@ signal event_received(data)
 
 var socket = WebSocketPeer.new()
 var connection_state = WebSocketPeer.STATE_CLOSED
-var server_url = "ws://127.0.0.1:7777"
+var server_url = "ws://127.0.0.1:6767"
 
 func _init():
 	# Allow server URL override via environment variable for LAN/Tailscale

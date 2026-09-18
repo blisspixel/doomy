@@ -9,7 +9,7 @@ For durable multi-hour-playable host with cost ceiling honesty (public game-port
 - [ ] One non-preemptible `e2-micro` in us-west1, us-central1, or us-east1
 - [ ] Boot disk within Free Tier PD envelope (aim <= 30 GB standard)
 - [ ] Ephemeral external IP (ESTIMATE ~$3.65/mo for sustained use; Free Tier IP is 1 hour/month crumb, not always-free)
-- [ ] Firewall: public game port (7777 TCP/WS for Slice 1; UDP later if renet) open for strangers + agents (tight: game ports only). SSH via IAP only. Tailscale Personal optional for private/dev smoke, do not close public 7777 for the shipped join path.
+- [ ] Firewall: public game port (6767 TCP/WS for Slice 1; UDP later if renet) open for strangers + agents (tight: game ports only). SSH via IAP only. Tailscale Personal optional for private/dev smoke, do not close public 6767 for the shipped join path.
 - [ ] SSH only via IAP (no 0.0.0.0/0:22)
 - [ ] Optional Cloud Run HTTP adapter: min_instances=0, invoker IAM, no game socket
 

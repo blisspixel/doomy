@@ -2,7 +2,7 @@
 
 **Goal:** Smallest exceptional playable: one arena, agent/bots fight, spectator watches, optional human join stub. **$0 spend. Loopback only.**
 
-**Pin:** Godot `4.7.2-stable` · Rust stable · `ws://127.0.0.1:7777`
+**Pin:** Godot `4.7.2-stable` · Rust stable · `ws://127.0.0.1:6767`
 
 **Done when all success criteria below are green.**
 
@@ -12,7 +12,7 @@
 
 ## Success criteria
 
-- [x] `cargo run -p fragr-server` (or `cd server && cargo run`) listens on `127.0.0.1:7777` with no env secrets / cloud config.
+- [x] `cargo run -p fragr-server` (or `cd server && cargo run`) listens on `127.0.0.1:6767` with no env secrets / cloud config.
 - [x] At least four automated fighters (rule bots) engage; within ~30s damage or a frag is visible in **server logs and** Godot spectator.
 - [x] Spectator is presentation-only (no local authority); killing the server drops/freezes the match cleanly.
 - [x] Agent-adapter (or documented equivalent) drives ≥1 fighter via `observe` / `act`; MCP tool surface listed in README even if partially stubbed.
@@ -96,7 +96,7 @@
 
 ```bash
 # T1 - server (with 4 bots)
-cd server && cargo run -- --bind 127.0.0.1:7777 --bots 4
+cd server && cargo run -- --bind 127.0.0.1:6767 --bots 4
 
 # T2 - Godot spectator
 # Open client/ in Godot 4.7.2 → F5 (main scene = spectator)
