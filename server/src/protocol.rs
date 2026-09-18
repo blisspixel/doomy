@@ -33,6 +33,25 @@ pub fn boss_down_host_line() -> String {
     "HOST: DRONE DOWN. CONTINUANCE DENIES THE INCIDENT. SCRAP ON.".to_string()
 }
 
+/// Host line for a within-round killstreak tier (Contested Frequency voice).
+pub fn killstreak_host_line(streak: u32, player: &str) -> Option<(String, String)> {
+    match streak {
+        2 => Some((
+            "double".to_string(),
+            format!("HOST: DOUBLE FREQUENCY. {player} DENIES THE DENIAL."),
+        )),
+        3 => Some((
+            "triple".to_string(),
+            "HOST: TRIPLE SCRAP. CONTINUANCE LOSES COUNT.".to_string(),
+        )),
+        5 => Some((
+            "rampage".to_string(),
+            format!("HOST: FREQUENCY RAMPAGE. {player} BREAKS EVERY APPROVED LANE."),
+        )),
+        _ => None,
+    }
+}
+
 /// Display name for the mid-round Continuance boss NPC.
 pub const BOSS_NAME: &str = "COMPLIANCE-DRONE";
 
@@ -332,6 +351,14 @@ pub enum GameEvent {
         amount: Option<i32>,
         pickup_id: String,
     },
+    /// Within-round multi-kill Host callout (tiers 2 / 3 / 5).
+    Killstreak {
+        player: String,
+        player_id: Uuid,
+        streak: u32,
+        tier: String,
+        message: String,
+    },
     /// Off-tick agent/human callout (rate-limited, length-capped).
     Speak {
         player: String,
@@ -614,5 +641,45 @@ mod protocol_tests {
         assert_eq!(v["kind"], "health");
         assert_eq!(v["amount"], 40);
         assert!(v.get("weapon").is_none());
+    }
+    #[test]
+    fn killstreak_event_wire_json_shape() {
+        let id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
+        let ev = GameEvent::Killstreak {
+            player: "Rusher".into(),
+            player_id: id,
+            streak: 2,
+            tier: "double".into(),
+            message: "HOST: DOUBLE FREQUENCY. Rusher DENIES THE DENIAL.".into(),
+        };
+        let v = serde_json::to_value(&ev).unwrap();
+        assert_eq!(v["event"], "killstreak");
+        assert_eq!(v["player"], "Rusher");
+        assert_eq!(v["streak"], 2);
+        assert_eq!(v["tier"], "double");
+        assert!(v["message"].as_str().unwrap().contains("DOUBLE FREQUENCY"));
+        let back: GameEvent = serde_json::from_value(v).unwrap();
+        match back {
+            GameEvent::Killstreak { streak, tier, .. } => {
+                assert_eq!(streak, 2);
+                assert_eq!(tier, "double");
+            }
+            other => panic!("expected Killstreak, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn killstreak_host_line_tiers() {
+        assert!(killstreak_host_line(1, "X").is_none());
+        assert!(killstreak_host_line(4, "X").is_none());
+        let (tier, msg) = killstreak_host_line(2, "Rusher").unwrap();
+        assert_eq!(tier, "double");
+        assert!(msg.contains("Rusher"));
+        let (tier, msg) = killstreak_host_line(3, "Rusher").unwrap();
+        assert_eq!(tier, "triple");
+        assert!(msg.contains("TRIPLE"));
+        let (tier, msg) = killstreak_host_line(5, "Rusher").unwrap();
+        assert_eq!(tier, "rampage");
+        assert!(msg.contains("RAMPAGE"));
     }
 }

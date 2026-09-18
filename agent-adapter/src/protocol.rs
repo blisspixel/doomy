@@ -264,6 +264,13 @@ pub enum GameEvent {
         amount: Option<i32>,
         pickup_id: String,
     },
+    Killstreak {
+        player: String,
+        player_id: Uuid,
+        streak: u32,
+        tier: String,
+        message: String,
+    },
     Speak {
         player: String,
         player_id: Uuid,

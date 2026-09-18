@@ -436,6 +436,26 @@ mod tests {
         assert_eq!(frag_json["victim"], "Bot2");
         assert_eq!(frag_json["killer_score"], 5);
 
+        let ks = protocol::GameEvent::Killstreak {
+            player: "Bot1".to_string(),
+            player_id: uuid::Uuid::nil(),
+            streak: 2,
+            tier: "double".to_string(),
+            message: "HOST: DOUBLE FREQUENCY. Bot1 DENIES THE DENIAL.".to_string(),
+        };
+        let ks_json = serde_json::to_value(&ks).unwrap();
+        assert_eq!(ks_json["event"], "killstreak");
+        assert_eq!(ks_json["streak"], 2);
+        assert_eq!(ks_json["tier"], "double");
+        let ks_back: protocol::GameEvent = serde_json::from_value(ks_json).unwrap();
+        match ks_back {
+            protocol::GameEvent::Killstreak { streak, tier, .. } => {
+                assert_eq!(streak, 2);
+                assert_eq!(tier, "double");
+            }
+            other => panic!("expected Killstreak, got {:?}", other),
+        }
+
         let respawn_event = protocol::GameEvent::Respawn {
             player: "Bot2".to_string(),
         };
