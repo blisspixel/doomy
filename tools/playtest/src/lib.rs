@@ -413,9 +413,13 @@ async fn agent_task(url: String, name: String, stop: Arc<AtomicBool>) -> Result<
 pub async fn run(config: Config) -> Result<(Report, Observation), Error> {
     let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
     let (ready_tx, ready_rx) = tokio::sync::oneshot::channel();
+    // Controlled rounds: no mid-round boss or compliance beat, so the numbers
+    // describe the fighters and nothing else.
     let match_config = MatchConfig {
         frag_limit: Some(config.frag_limit),
         time_limit_ticks: Some(config.time_limit_ticks),
+        boss_spawn_ticks: None,
+        compliance_ping_ticks: None,
         ..MatchConfig::default()
     };
     let options = ServerOptions {
@@ -744,7 +748,11 @@ mod tests {
             "{:?}",
             report.per_agent.keys()
         );
-        assert!(report.per_agent.len() <= 4, "{:?}", report.per_agent.keys());
+        assert!(
+            report.per_agent.len() <= 4,
+            "only the four probes should appear: {:?}",
+            report.per_agent.keys()
+        );
         assert!(report.snapshot_bytes_per_tick > 0.0);
     }
 }
