@@ -725,4 +725,3 @@ fn join_leave_events_survive_tick() {
         events
     );
 }
-
