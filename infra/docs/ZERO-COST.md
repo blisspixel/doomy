@@ -2,12 +2,14 @@
 
 Source: Researcher QUALITY HOLD brief for fragr GCP zero-cost (held by Gitty for review).
 
+For durable multi-hour-playable host with cost ceiling honesty (Tailscale front door, systemd restart, external IP pricing), see DURABLE-HOST.md.
+
 ## Allowed in $0 draft
 
 - [ ] One non-preemptible `e2-micro` in us-west1, us-central1, or us-east1
 - [ ] Boot disk within Free Tier PD envelope (aim <= 30 GB standard)
-- [ ] Ephemeral external IP
-- [ ] Firewall: game port (7777 TCP/WS for Slice 1; UDP later if renet) from needed sources
+- [ ] Ephemeral external IP (ESTIMATE ~$3.65/mo for sustained use; Free Tier IP is 1 hour/month crumb, not always-free)
+- [ ] Firewall: game port (7777 TCP/WS for Slice 1; UDP later if renet) from needed sources. Prefer Tailscale Personal ($0) as front door, close public 7777.
 - [ ] SSH only via IAP (no 0.0.0.0/0:22)
 - [ ] Optional Cloud Run HTTP adapter: min_instances=0, invoker IAM, no game socket
 

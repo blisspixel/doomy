@@ -19,7 +19,7 @@ Review gate: Gitty reviews drafts against the Researcher QUALITY HOLD brief for 
 Until Nick explicitly accepts a paid PoC:
 
 1. **Core tick server:** Always Free eligible **`e2-micro` GCE** in **`us-west1` / `us-central1` / `us-east1` only**.
-2. **Ephemeral external IP** (no orphan reserved static IPv4).
+2. **Ephemeral external IP** (no orphan reserved static IPv4). **Cost honesty:** ESTIMATE ~$3.65/mo for sustained use (Free Tier IP is 1 hour/month crumb, not always-free at $0.005/h). **Prefer Tailscale Personal ($0) as front door, close public 7777.**
 3. **Tight firewall:** game port(s) + **SSH via IAP only** (no world SSH).
 4. **HTTP agent-adapter (optional):** Cloud Run with **`min_instances=0`** + invoker IAM; private path to VM admin API. **Not** the raw game socket.
 5. **Never** put authoritative tick on Cloud Run/Functions as a free UDP front door (no inbound UDP). Slice 1 is WebSocket today; still prefer **GCE for long-lived authority**.
@@ -47,6 +47,7 @@ infra/
   README.md           # this contract
   docs/
     ZERO-COST.md      # checklist + sources
+    DURABLE-HOST.md   # durable self-host recipe (GCE + systemd + Tailscale vs public IP tradeoffs + cost ceiling)
   terraform/          # modules land in follow-up PRs; plan-only
 ```
 
