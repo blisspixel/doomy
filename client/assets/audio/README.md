@@ -8,9 +8,9 @@ Sound effects and music produced by `tools/audiogen` (see `tools/audiogen/README
 
 Generated files are owned by the project under the ElevenLabs terms for the account that produced them and are distributed with the repository under its Apache 2.0 license. Sound effects are stereo 24 kHz 16-bit WAV by default (the API returns stereo PCM). Music is 44.1 kHz MP3.
 
-## Procedural fallback (CC0)
+## Earlier procedural set (retired)
 
-The original effect set was synthesised with `tools/generate_audio.py` (sine, square, noise, envelopes) and is dedicated to the public domain under CC0 1.0 Universal: https://creativecommons.org/publicdomain/zero/1.0/. Any file not listed in `audiogen-manifest.json` came from that generator. A Rust port of the generator is planned so the tree stays Rust and GDScript only.
+The first effect set was synthesised procedurally and dedicated to the public domain under CC0 1.0 Universal. It has been replaced by generated effects with manifest entries; the old files remain in git history. Any file not listed in `audiogen-manifest.json` came from that earlier set.
 
 ## Files the client loads
 
