@@ -144,7 +144,7 @@ impl GameState {
             })
             .collect();
 
-        final_scores.sort_by(|a, b| b.score.cmp(&a.score));
+        final_scores.sort_by_key(|a| std::cmp::Reverse(a.score));
 
         self.round_state = RoundState::Ended;
 
