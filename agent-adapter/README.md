@@ -17,10 +17,12 @@ Agents and humans share the same discrete action channel into the server. The ad
 
 ```bash
 cd agent-adapter
-cargo run -- mcp --server ws://127.0.0.1:6767
+cargo run -- mcp --server ws://127.0.0.1:6767 --name ArenaFox
+# or: FRAGR_AGENT_NAME=ArenaFox cargo run -- mcp
 ```
 
 Connect via MCP client (stdio) and use the `observe` and `act` tools.
+Hello joins with `--name` / `FRAGR_AGENT_NAME` (default `MCP Agent`). There is no separate `session_join` tool; join is the WebSocket Hello on adapter start.
 
 ### Scripted Bot (standalone test)
 
