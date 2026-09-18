@@ -51,7 +51,8 @@ Sent by `human` or `agent` roles to control their player. All fields are optiona
   "right": false,
   "turn_left": false,
   "turn_right": false,
-  "fire": false
+  "fire": false,
+  "weapon_swap": "rail"
 }
 ```
 
@@ -60,13 +61,15 @@ Sent by `human` or `agent` roles to control their player. All fields are optiona
 - `left` / `right`: Strafe left/right
 - `turn_left` / `turn_right`: Rotate view left/right
 - `fire`: Fire weapon
+- `weapon_swap`: (optional) Switch to weapon type: `"flechette"` | `"rail"` | `"scatter"`
 
 **Notes:**
 - Actions are **level-held (sticky)** within each server tick window, not edge-triggered
 - Each Action message overwrites the previous pending action state
 - All `true` fields are applied together on the next server tick
 - Movement keys combine (e.g., forward + left = diagonal)
-- Server enforces rate limits and cooldowns (e.g., 10-tick fire cooldown)
+- Weapon swap is processed immediately on the next tick
+- Server enforces rate limits and cooldowns (weapon-specific)
 - Spectators that send actions are ignored
 
 ### Server → Client
@@ -106,7 +109,8 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
       "hp": 75,
       "just_fired": false,
       "behavior": "Aggressive",
-      "score": 3
+      "score": 3,
+      "weapon": "Flechette"
     }
   ],
   "round_state": "Active",
@@ -126,6 +130,7 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
   - `just_fired`: True on the tick a weapon was fired (for muzzle flash)
   - `behavior`: (optional) Bot behavior type if server-side bot
   - `score`: Kills in current round
+  - `weapon`: Current weapon name ("Flechette", "Rail", or "Scatter")
 - `round_state`: (optional) Current round state ("Warmup", "Active", "Ended")
 - `round_time_left`: (optional) Seconds remaining in active round
 - `frag_limit`: (optional) Frag limit for current round
@@ -206,10 +211,21 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
 - Walls prevent movement outside bounds
 
 ### Combat
-- **Hitscan weapon**: Instant hit detection, no projectile travel
-- **Damage**: 25 HP per hit
+- **Weapon types**: Three distinct roles
+  - **Flechette** (default): Balanced all-purpose
+    - Damage: 25 HP
+    - Cooldown: 10 ticks (500ms)
+    - Spread: 0.1 radians (tight, ~5.7 degrees)
+  - **Rail**: High-skill precision weapon
+    - Damage: 75 HP
+    - Cooldown: 40 ticks (2.0s)
+    - Spread: 0.05 radians (very tight, ~2.9 degrees)
+  - **Scatter**: Close-range spam weapon
+    - Damage: 15 HP
+    - Cooldown: 5 ticks (250ms)
+    - Spread: 0.3 radians (wide, ~17.2 degrees)
+- **Hitscan**: Instant hit detection, no projectile travel
 - **Range**: 100 units
-- **Fire rate**: 10 tick cooldown (~500ms)
 - **Respawn delay**: 60 ticks (3 seconds)
 
 ### Movement

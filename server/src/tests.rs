@@ -316,3 +316,348 @@ fn test_bots_persist_when_human_leaves() {
     assert_eq!(state.players.len(), 1);
     assert_eq!(state.players[0].id, bot_id);
 }
+
+#[test]
+fn test_weapon_type_stats() {
+    use crate::protocol::WeaponType;
+
+    assert_eq!(WeaponType::Flechette.damage(), 25);
+    assert_eq!(WeaponType::Flechette.cooldown_ticks(), 10);
+    assert_eq!(WeaponType::Flechette.spread_radians(), 0.1);
+
+    assert_eq!(WeaponType::Rail.damage(), 75);
+    assert_eq!(WeaponType::Rail.cooldown_ticks(), 40);
+    assert_eq!(WeaponType::Rail.spread_radians(), 0.05);
+
+    assert_eq!(WeaponType::Scatter.damage(), 15);
+    assert_eq!(WeaponType::Scatter.cooldown_ticks(), 5);
+    assert_eq!(WeaponType::Scatter.spread_radians(), 0.3);
+}
+
+#[test]
+fn test_weapon_default_is_flechette() {
+    use crate::protocol::WeaponType;
+
+    let mut state = GameState::new();
+    let player_id = Uuid::new_v4();
+
+    state.add_player(player_id, "TestPlayer".to_string(), Role::Human);
+
+    let player = state.players.iter().find(|p| p.id == player_id).unwrap();
+    assert_eq!(player.weapon, WeaponType::Flechette);
+}
+
+#[test]
+fn test_weapon_swap_action() {
+    use crate::protocol::WeaponType;
+
+    let mut state = GameState::new();
+    state.start_round();
+
+    let player_id = Uuid::new_v4();
+    state.add_player(player_id, "Swapper".to_string(), Role::Human);
+
+    let idx = state
+        .players
+        .iter()
+        .position(|p| p.id == player_id)
+        .unwrap();
+
+    assert_eq!(state.players[idx].weapon, WeaponType::Flechette);
+
+    state.set_action(
+        player_id,
+        Action {
+            weapon_swap: Some(WeaponType::Rail),
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+
+    assert_eq!(state.players[idx].weapon, WeaponType::Rail);
+
+    state.set_action(
+        player_id,
+        Action {
+            weapon_swap: Some(WeaponType::Scatter),
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+
+    assert_eq!(state.players[idx].weapon, WeaponType::Scatter);
+}
+
+#[test]
+fn test_rail_higher_damage_than_flechette() {
+    use crate::protocol::WeaponType;
+
+    let mut state = GameState::new();
+    state.start_round();
+
+    let shooter_id = Uuid::new_v4();
+    let target_id = Uuid::new_v4();
+
+    state.add_player(shooter_id, "Shooter".to_string(), Role::Agent);
+    state.add_player(target_id, "Target".to_string(), Role::Agent);
+
+    let shooter_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == shooter_id)
+        .unwrap();
+    let target_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == target_id)
+        .unwrap();
+
+    state.players[target_idx].x = 5.0;
+    state.players[target_idx].z = 0.0;
+    state.players[shooter_idx].x = 0.0;
+    state.players[shooter_idx].z = 0.0;
+    state.players[shooter_idx].yaw = 0.0;
+    state.players[shooter_idx].weapon = WeaponType::Rail;
+
+    let initial_hp = state.players[target_idx].hp;
+
+    state.set_action(
+        shooter_id,
+        Action {
+            fire: true,
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+
+    let damage_dealt = initial_hp - state.players[target_idx].hp;
+    assert_eq!(damage_dealt, 75, "Rail should deal 75 damage");
+    assert!(
+        damage_dealt > WeaponType::Flechette.damage(),
+        "Rail damage should exceed Flechette"
+    );
+}
+
+#[test]
+fn test_scatter_lower_damage_than_flechette() {
+    use crate::protocol::WeaponType;
+
+    let mut state = GameState::new();
+    state.start_round();
+
+    let shooter_id = Uuid::new_v4();
+    let target_id = Uuid::new_v4();
+
+    state.add_player(shooter_id, "Shooter".to_string(), Role::Agent);
+    state.add_player(target_id, "Target".to_string(), Role::Agent);
+
+    let shooter_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == shooter_id)
+        .unwrap();
+    let target_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == target_id)
+        .unwrap();
+
+    state.players[target_idx].x = 5.0;
+    state.players[target_idx].z = 0.0;
+    state.players[shooter_idx].x = 0.0;
+    state.players[shooter_idx].z = 0.0;
+    state.players[shooter_idx].yaw = 0.0;
+    state.players[shooter_idx].weapon = WeaponType::Scatter;
+
+    let initial_hp = state.players[target_idx].hp;
+
+    state.set_action(
+        shooter_id,
+        Action {
+            fire: true,
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+
+    let damage_dealt = initial_hp - state.players[target_idx].hp;
+    assert_eq!(damage_dealt, 15, "Scatter should deal 15 damage");
+    assert!(
+        damage_dealt < WeaponType::Flechette.damage(),
+        "Scatter damage should be less than Flechette"
+    );
+}
+
+#[test]
+fn test_rail_longer_cooldown() {
+    use crate::protocol::WeaponType;
+
+    let mut state = GameState::new();
+    state.start_round();
+
+    let shooter_id = Uuid::new_v4();
+    let target_id = Uuid::new_v4();
+
+    state.add_player(shooter_id, "Shooter".to_string(), Role::Agent);
+    state.add_player(target_id, "Target".to_string(), Role::Agent);
+
+    let shooter_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == shooter_id)
+        .unwrap();
+
+    state.players[shooter_idx].weapon = WeaponType::Rail;
+    state.players[shooter_idx].x = 0.0;
+    state.players[shooter_idx].z = 0.0;
+    state.players[shooter_idx].yaw = 0.0;
+
+    state.set_action(
+        shooter_id,
+        Action {
+            fire: true,
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+
+    assert_eq!(
+        state.players[shooter_idx].fire_cooldown, 40,
+        "Rail cooldown should be 40 ticks"
+    );
+}
+
+#[test]
+fn test_scatter_shorter_cooldown() {
+    use crate::protocol::WeaponType;
+
+    let mut state = GameState::new();
+    state.start_round();
+
+    let shooter_id = Uuid::new_v4();
+    let target_id = Uuid::new_v4();
+
+    state.add_player(shooter_id, "Shooter".to_string(), Role::Agent);
+    state.add_player(target_id, "Target".to_string(), Role::Agent);
+
+    let shooter_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == shooter_id)
+        .unwrap();
+
+    state.players[shooter_idx].weapon = WeaponType::Scatter;
+    state.players[shooter_idx].x = 0.0;
+    state.players[shooter_idx].z = 0.0;
+    state.players[shooter_idx].yaw = 0.0;
+
+    state.set_action(
+        shooter_id,
+        Action {
+            fire: true,
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+
+    assert_eq!(
+        state.players[shooter_idx].fire_cooldown, 5,
+        "Scatter cooldown should be 5 ticks"
+    );
+}
+
+#[test]
+fn test_weapon_spread_affects_hit_detection() {
+    use crate::protocol::WeaponType;
+
+    let mut state = GameState::new();
+    state.start_round();
+
+    let shooter_id = Uuid::new_v4();
+    let target_id = Uuid::new_v4();
+
+    state.add_player(shooter_id, "Shooter".to_string(), Role::Agent);
+    state.add_player(target_id, "Target".to_string(), Role::Agent);
+
+    let shooter_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == shooter_id)
+        .unwrap();
+    let target_idx = state
+        .players
+        .iter()
+        .position(|p| p.id == target_id)
+        .unwrap();
+
+    state.players[target_idx].x = 10.0;
+    state.players[target_idx].z = 2.0;
+    state.players[shooter_idx].x = 0.0;
+    state.players[shooter_idx].z = 0.0;
+    state.players[shooter_idx].yaw = 0.1;
+
+    state.players[shooter_idx].weapon = WeaponType::Rail;
+    state.players[shooter_idx].fire_cooldown = 0;
+
+    state.set_action(
+        shooter_id,
+        Action {
+            fire: true,
+            ..Default::default()
+        },
+    );
+
+    let target_hp_before = state.players[target_idx].hp;
+    state.tick(0.05);
+    let rail_hit = state.players[target_idx].hp < target_hp_before;
+
+    state.players[target_idx].hp = 100;
+    state.players[shooter_idx].weapon = WeaponType::Scatter;
+    state.players[shooter_idx].fire_cooldown = 0;
+
+    state.set_action(
+        shooter_id,
+        Action {
+            fire: true,
+            ..Default::default()
+        },
+    );
+
+    let target_hp_before = state.players[target_idx].hp;
+    state.tick(0.05);
+    let scatter_hit = state.players[target_idx].hp < target_hp_before;
+
+    assert!(
+        scatter_hit || !rail_hit,
+        "Scatter should be more forgiving with wider spread"
+    );
+}
+
+#[test]
+fn test_weapon_snapshot_includes_weapon_name() {
+    use crate::protocol::WeaponType;
+
+    let mut state = GameState::new();
+    state.start_round();
+
+    let player_id = Uuid::new_v4();
+    state.add_player(player_id, "TestPlayer".to_string(), Role::Human);
+
+    let snapshot = state.snapshot();
+    assert_eq!(snapshot.players[0].weapon, "Flechette");
+
+    let idx = state
+        .players
+        .iter()
+        .position(|p| p.id == player_id)
+        .unwrap();
+    state.players[idx].weapon = WeaponType::Rail;
+
+    let snapshot = state.snapshot();
+    assert_eq!(snapshot.players[0].weapon, "Rail");
+
+    state.players[idx].weapon = WeaponType::Scatter;
+
+    let snapshot = state.snapshot();
+    assert_eq!(snapshot.players[0].weapon, "Scatter");
+}
