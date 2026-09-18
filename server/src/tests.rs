@@ -23,6 +23,30 @@ fn test_player_id_consistent_after_add() {
 }
 
 #[test]
+fn test_player_id_action_flow() {
+    let mut state = GameState::new();
+    let player_id = Uuid::new_v4();
+
+    state.add_player(player_id, "ActionTest".to_string(), Role::Human);
+
+    let action = Action {
+        forward: true,
+        ..Default::default()
+    };
+
+    state.set_action(player_id, action);
+
+    let player = state
+        .players
+        .iter()
+        .find(|p| p.id == player_id)
+        .expect("Player should exist after action");
+
+    assert_eq!(player.id, player_id);
+    assert!(player.pending_action.forward);
+}
+
+#[test]
 fn test_hitscan_damage() {
     let mut state = GameState::new();
 
