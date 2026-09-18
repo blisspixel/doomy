@@ -12,6 +12,9 @@ var players = {}
 var pickups = {}
 var pickup_scene = preload("res://scenes/weapon_pickup.tscn")
 var player_scene = preload("res://scenes/player.tscn")
+var arena_duel_scene = preload("res://scenes/arena.tscn")
+var compliance_yard_scene = preload("res://scenes/arena_compliance_yard.tscn")
+var current_map_id := 1
 
 var is_human_player = false
 var local_fp_pawn_id = ""
@@ -115,6 +118,30 @@ func _process(_delta):
 		action_state.turn_right = turns.get("turn_right", false)
 		net_client.send_action(action_state)
 
+
+func _apply_map_from_snapshot(snapshot: Dictionary) -> void:
+	var map_id = int(snapshot.get("map_id", 1))
+	if map_id < 1:
+		map_id = 1
+	if map_id == current_map_id and arena.get_node_or_null("Layout") != null:
+		return
+	current_map_id = map_id
+	var packed = compliance_yard_scene if map_id == 2 else arena_duel_scene
+	var old_layout = arena.get_node_or_null("Layout")
+	if old_layout:
+		arena.remove_child(old_layout)
+		old_layout.queue_free()
+	var layout = packed.instantiate()
+	layout.name = "Layout"
+	arena.add_child(layout)
+	arena.move_child(layout, 0)
+	var map_name = str(snapshot.get("map_name", "Arena Duel"))
+	if hud and hud.has_method("set_map_name"):
+		hud.set_map_name(map_name)
+	elif hud:
+		# Fallback: fold map into status once.
+		pass
+
 func _on_connected():
 	hud.set_status("Connected to server")
 
@@ -138,6 +165,7 @@ func _clear_world() -> void:
 		camera.set_available_targets([])
 
 func _on_snapshot_received(data):
+	_apply_map_from_snapshot(data)
 	var tick = data.get("tick", 0)
 	var player_list = data.get("players", [])
 	var round_state = data.get("round_state", "")

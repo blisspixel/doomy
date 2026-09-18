@@ -20,6 +20,17 @@ pub fn default_host_line() -> String {
     "HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE. ARENA DUEL IS LIVE.".to_string()
 }
 
+pub const MAP_ID_ARENA_DUEL: u32 = 1;
+pub const MAP_NAME_ARENA_DUEL: &str = "Arena Duel";
+
+pub fn default_map_id() -> u32 {
+    MAP_ID_ARENA_DUEL
+}
+
+pub fn default_map_name() -> String {
+    MAP_NAME_ARENA_DUEL.to_string()
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum WeaponType {
@@ -160,6 +171,10 @@ pub struct Snapshot {
     pub host_line: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub pickups: Vec<PickupState>,
+    #[serde(default = "default_map_id")]
+    pub map_id: u32,
+    #[serde(default = "default_map_name")]
+    pub map_name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
