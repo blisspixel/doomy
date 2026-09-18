@@ -1,4 +1,5 @@
 use crate::protocol::{Action, GameEvent, PlayerState, Role, Snapshot};
+use std::collections::HashMap;
 use std::f32::consts::PI;
 use uuid::Uuid;
 
@@ -12,11 +13,41 @@ const HITSCAN_RANGE: f32 = 100.0;
 const HITSCAN_DAMAGE: i32 = 25;
 const PLAYER_MAX_HP: i32 = 100;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RoundState {
+    Warmup,
+    Active,
+    Ended,
+}
+
+pub struct MatchConfig {
+    pub frag_limit: Option<u32>,
+    pub time_limit_ticks: Option<u32>,
+    pub warmup_ticks: u32,
+    pub end_delay_ticks: u32,
+}
+
+impl Default for MatchConfig {
+    fn default() -> Self {
+        Self {
+            frag_limit: Some(10),
+            time_limit_ticks: Some(20 * 60 * 3),
+            warmup_ticks: 20 * 3,
+            end_delay_ticks: 20 * 5,
+        }
+    }
+}
+
 pub struct GameState {
     pub tick: u64,
     pub players: Vec<Player>,
     pub events: Vec<GameEvent>,
     pub bots: Vec<BotController>,
+    pub scores: HashMap<Uuid, u32>,
+    pub round_state: RoundState,
+    pub round_ticks: u32,
+    pub round_number: u32,
+    pub config: MatchConfig,
 }
 
 pub struct Player {
@@ -31,6 +62,7 @@ pub struct Player {
     pub fire_cooldown: u32,
     pub respawn_timer: Option<u32>,
     pub just_fired: bool,
+    pub role: Role,
 }
 
 impl GameState {
@@ -40,10 +72,62 @@ impl GameState {
             players: Vec::new(),
             events: Vec::new(),
             bots: Vec::new(),
+            scores: HashMap::new(),
+            round_state: RoundState::Warmup,
+            round_ticks: 0,
+            round_number: 0,
+            config: MatchConfig::default(),
         }
     }
 
-    pub fn add_player(&mut self, id: Uuid, name: String, _role: Role) {
+    pub fn start_round(&mut self) {
+        self.round_number += 1;
+        self.round_state = RoundState::Active;
+        self.round_ticks = 0;
+        self.scores.clear();
+
+        for player in &mut self.players {
+            self.scores.insert(player.id, 0);
+        }
+
+        self.events.push(GameEvent::RoundStart {
+            round_number: self.round_number,
+            frag_limit: self.config.frag_limit,
+            time_limit: self.config.time_limit_ticks.map(|t| t / 20),
+        });
+
+        tracing::info!(
+            "Round {} started (frag_limit: {:?}, time_limit: {:?}s)",
+            self.round_number,
+            self.config.frag_limit,
+            self.config.time_limit_ticks.map(|t| t / 20)
+        );
+    }
+
+    pub fn end_round(&mut self, reason: String) {
+        let winner = self
+            .scores
+            .iter()
+            .max_by_key(|(_, &score)| score)
+            .and_then(|(id, _)| self.players.iter().find(|p| p.id == *id))
+            .map(|p| p.name.clone());
+
+        self.round_state = RoundState::Ended;
+
+        self.events.push(GameEvent::RoundEnd {
+            winner: winner.clone(),
+            reason: reason.clone(),
+        });
+
+        tracing::info!(
+            "Round {} ended: {} (winner: {:?})",
+            self.round_number,
+            reason,
+            winner
+        );
+    }
+
+    pub fn add_player(&mut self, id: Uuid, name: String, role: Role) {
         let angle = (self.players.len() as f32) * (2.0 * PI / 8.0);
         let spawn_radius = ARENA_SIZE * 0.3;
 
@@ -59,11 +143,20 @@ impl GameState {
             fire_cooldown: 0,
             respawn_timer: None,
             just_fired: false,
+            role,
         });
+
+        self.scores.entry(id).or_insert(0);
     }
 
     pub fn remove_player(&mut self, id: Uuid) {
+        if let Some(player) = self.players.iter().find(|p| p.id == id) {
+            if player.role == Role::Human {
+                tracing::info!("Human player left, bots keep fighting");
+            }
+        }
         self.players.retain(|p| p.id != id);
+        self.scores.remove(&id);
     }
 
     pub fn set_action(&mut self, id: Uuid, action: Action) {
@@ -75,6 +168,42 @@ impl GameState {
     pub fn tick(&mut self, dt: f32) {
         self.tick += 1;
         self.events.clear();
+
+        match self.round_state {
+            RoundState::Warmup => {
+                self.round_ticks += 1;
+                if self.round_ticks >= self.config.warmup_ticks {
+                    self.start_round();
+                }
+                return;
+            }
+            RoundState::Active => {
+                self.round_ticks += 1;
+
+                if let Some(time_limit) = self.config.time_limit_ticks {
+                    if self.round_ticks >= time_limit {
+                        self.end_round("Time limit reached".to_string());
+                        return;
+                    }
+                }
+
+                if let Some(frag_limit) = self.config.frag_limit {
+                    if let Some(&max_score) = self.scores.values().max() {
+                        if max_score >= frag_limit {
+                            self.end_round("Frag limit reached".to_string());
+                            return;
+                        }
+                    }
+                }
+            }
+            RoundState::Ended => {
+                self.round_ticks += 1;
+                if self.round_ticks >= self.config.end_delay_ticks {
+                    self.start_round();
+                }
+                return;
+            }
+        }
 
         let mut respawn_ids = Vec::new();
 
@@ -167,17 +296,26 @@ impl GameState {
 
             if let Some(victim_idx) = maybe_victim_idx {
                 let shooter_name = self.players[shooter_idx].name.clone();
+                let shooter_id = self.players[shooter_idx].id;
                 let victim = &mut self.players[victim_idx];
 
                 victim.hp -= HITSCAN_DAMAGE;
                 if victim.hp <= 0 {
                     let victim_name = victim.name.clone();
                     victim.respawn_timer = Some(RESPAWN_DELAY_TICKS);
+
+                    *self.scores.entry(shooter_id).or_insert(0) += 1;
+
                     self.events.push(GameEvent::Frag {
                         killer: shooter_name.clone(),
                         victim: victim_name.clone(),
                     });
-                    tracing::info!("FRAG: {} → {}", shooter_name, victim_name);
+                    tracing::info!(
+                        "FRAG: {} → {} (score: {})",
+                        shooter_name,
+                        victim_name,
+                        self.scores[&shooter_id]
+                    );
                 }
             }
         }
@@ -247,6 +385,14 @@ impl GameState {
     }
 
     pub fn snapshot(&self) -> Snapshot {
+        let round_time_left = if self.round_state == RoundState::Active {
+            self.config
+                .time_limit_ticks
+                .map(|limit| (limit.saturating_sub(self.round_ticks)) / 20)
+        } else {
+            None
+        };
+
         Snapshot {
             tick: self.tick,
             players: self
@@ -270,9 +416,13 @@ impl GameState {
                         hp: p.hp,
                         just_fired: p.just_fired,
                         behavior,
+                        score: *self.scores.get(&p.id).unwrap_or(&0),
                     }
                 })
                 .collect(),
+            round_state: Some(format!("{:?}", self.round_state)),
+            round_time_left,
+            frag_limit: self.config.frag_limit,
         }
     }
 
