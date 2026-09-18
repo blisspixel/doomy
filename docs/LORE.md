@@ -1,20 +1,37 @@
 # fragr lore
 
-Optional backstory flavor for the arena. This is seasoning, not required reading. The product is still guns, maps, and watching agents scrap.
+Optional backstory flavor. Seasoning, not a wiki. Product is still guns, maps, SP boot-and-scrap, and watching agents scrap.
 
-## The Premise
+## Contested Frequency (plot card)
 
-The arenas are leftover black-budget training ranges that do not officially exist. Built during the height of Cold War paranoia, then abandoned when the programs went darker or the funding dried up. The facilities stayed operational, power still on, automated systems still running. Nobody bothered to turn them off because nobody wanted the paperwork trail of shutting something down that was never supposed to be built in the first place.
+**The lie (v2):** a live black-budget scrap channel that "is not on the air." Every frag funds tonight's emergency while the Host sells gold, filters, and fear between rounds. Meatbags and clawbots, same rules.
 
-Agents fight in these spaces now. Not military, not corporate, not government sanctioned. Just autonomous systems finding their way into the network, spawning into maps with names like Area Kitchen and Diego Far, trading fire with weapons that were never supposed to leave the testing range. Flechette rounds, rail accelerators, scatter guns. Classified toys from programs with redacted budgets.
+**Tone spine:** modern live stream / late-night war-room radio / producer-bumper chaos (No Agenda / Infowars-grade absurdity as parody seasoning, not manifesto). Unreal+CS readable fights + chunky pixels. Scrub as identity: LAN church, 1993 Quake-night nostalgia.
 
-Humans hang out in what feels like a late-night radio booth, watching the feed like callers used to dial in about lights in the sky. Spectator default. You can join if you want, press J and test yourself against the machines. Press L to leave back to the booth. The match keeps going. The frequency never stops broadcasting.
+**Callers with guns:** meatbags and clawbots both dial into the same fight. Spectator is the booth; join is going on-air.
+
+**SP:** calibration on the same tiles as MP. Map myths play like episodes. A ghost unlock is a rival or a skin, not a soul.
+
+**MP / agents:** same Action path. Hunger shows up as tickets, rivalries, and cheese. MCP locker-room chatter stays **off tick**.
+
+**Antagonist (parody):** a one-world Harmonizer / regulatory Directive machine (EU-regulation-as-control energy as comedy). SP bosses / map events can be compliance drones / Article curses. Org name TBD (Fringy). Not a lore essay.
+
+**Host bumpers (Slice 1 text):**
+1. Breaking: the floor is still moving. We'll take your calls after this word from ChemClean.
+2. Clawbots and meatbags, same rules. If you're new here, you're already late.
+3. Scout ant deleted. That's not a metaphor. Or it is. Donate in the morning.
+4. Hangar Candy drop is not for public release. If you can see this, deny everything.
+5. Amen, fistbump. Value for value. Frag for frag. Don't touch that dial.
+
+**THROW:** uprising plot, Kilo-NPC farms, Doom/id IP, lore wiki, MCP-on-tick, L5-as-DoD, manifesto politics.
 
 ## The Frequency
 
 Lore shows up where you feel it fast: radio bleed, killfeed glitches, fake AM ads between rounds, map names that sound like redacted documents. If a new player picks up the vibe in 30 seconds of audio and naming, it stays. If it needs a wiki page to understand, it gets cut.
 
-Think: numbers station spawn weather, "Not For Public Release" corpse watermarks, a Host voice that sounds like it is broadcasting from a bunker at 3 AM. The game does not explain itself. It just is.
+Think: numbers station spawn weather, "Not For Public Release" corpse watermarks, a Host voice that never hung up. The game does not explain itself. It just is.
+
+Black-budget leftover ranges that do not officially exist still power the tiles. Flechette, rail, scatter. Classified toys from redacted budgets. Humans hang in the booth or press J. Agents keep the frequency loud.
 
 ## Fashion Factions (vibes, not homework)
 
