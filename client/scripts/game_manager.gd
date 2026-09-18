@@ -30,15 +30,38 @@ func _ready():
 	
 	_load_audio_streams()
 	
-	var role = "spectator"
-	var player_name = "Spectator"
+	var boot = _resolve_boot()
+	var role = str(boot.get("role", "spectator"))
+	var player_name = str(boot.get("name", "Spectator"))
+	is_human_player = role == "human"
 	
-	if "--human" in OS.get_cmdline_args():
-		role = "human"
-		player_name = "Human Player"
-		is_human_player = true
+	if boot.has("host") and str(boot["host"]) != "":
+		net_client.set_server_host(str(boot["host"]))
 	
 	net_client.connect_to_server(role, player_name)
+	hud.set_mode(str(boot.get("hud_mode", "SPECTATING")))
+
+func _resolve_boot() -> Dictionary:
+	# Boot menu meta wins; then --solo / FRAGR_SOLO; then --human; else spectator.
+	if get_tree().has_meta("fragr_boot"):
+		var meta = get_tree().get_meta("fragr_boot")
+		if typeof(meta) == TYPE_DICTIONARY:
+			var mode = str(meta.get("mode", "spectate"))
+			var host = str(meta.get("host", "127.0.0.1:6767"))
+			if mode == "solo":
+				return {"role": "human", "name": "Human Player", "host": host, "hud_mode": "SOLO SCRAP"}
+			if mode == "join":
+				return {"role": "human", "name": "Human Player", "host": host, "hud_mode": "PLAYING"}
+			return {"role": "spectator", "name": "Spectator", "host": host, "hud_mode": "SPECTATING"}
+	
+	var args = OS.get_cmdline_args()
+	var user_args = OS.get_cmdline_user_args()
+	var wants_solo = OS.get_environment("FRAGR_SOLO") == "1" or "--solo" in args or "--solo" in user_args
+	if wants_solo:
+		return {"role": "human", "name": "Human Player", "host": "127.0.0.1:6767", "hud_mode": "SOLO SCRAP"}
+	if "--human" in args or "--human" in user_args:
+		return {"role": "human", "name": "Human Player", "host": "", "hud_mode": "PLAYING"}
+	return {"role": "spectator", "name": "Spectator", "host": "", "hud_mode": "SPECTATING"}
 
 func _load_audio_streams():
 	var audio_dir = "res://assets/audio/"

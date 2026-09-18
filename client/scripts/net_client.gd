@@ -23,6 +23,17 @@ var player_id = null
 func _ready():
 	set_process(false)
 
+func set_server_host(host: String) -> void:
+	# Boot menu / solo path: host is host:port or full ws:// URL.
+	var h = host.strip_edges()
+	if h == "":
+		return
+	if h.begins_with("ws://") or h.begins_with("wss://"):
+		server_url = h
+	else:
+		server_url = "ws://" + h
+	print("Server host set to: ", server_url)
+
 func connect_to_server(p_role: String = "spectator", p_name: String = "Player"):
 	role = p_role
 	player_name = p_name
