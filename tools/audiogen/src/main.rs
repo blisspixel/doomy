@@ -132,10 +132,43 @@ enum Cmd {
         #[arg(long)]
         title: Option<String>,
     },
+    /// Turn a scripts file (see specs/radio-news-scripts.json) into a batch spec with voices cast.
+    Scripts {
+        /// Path to the scripts file.
+        #[arg(long)]
+        scripts: PathBuf,
+        /// Cast a speaker: --voice host=<id>, --voice caller=<id1>,<id2>. Repeat per speaker.
+        #[arg(long = "voice", value_parser = parse_voice_assignment, required = true)]
+        voices: Vec<(String, Vec<String>)>,
+        /// Stability for every spoken item, 0 (creative) to 1 (robust).
+        #[arg(long, default_value_t = 0.5)]
+        stability: f64,
+        /// Where to write the batch spec.
+        #[arg(long)]
+        out: PathBuf,
+    },
     /// List the account's default voices with ids for casting.
     Voices,
     /// Show remaining credits for the configured key.
     Quota,
+}
+
+/// `speaker=id` or `speaker=id1,id2` for the scripts command.
+fn parse_voice_assignment(raw: &str) -> Result<(String, Vec<String>), String> {
+    let (speaker, ids) = raw
+        .split_once('=')
+        .ok_or_else(|| format!("expected speaker=<voice_id>, got '{raw}'"))?;
+    let speaker = speaker.trim();
+    let ids: Vec<String> = ids
+        .split(',')
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+        .map(str::to_string)
+        .collect();
+    if speaker.is_empty() || ids.is_empty() {
+        return Err(format!("expected speaker=<voice_id>, got '{raw}'"));
+    }
+    Ok((speaker.to_string(), ids))
 }
 
 fn to_command(cmd: Cmd) -> Result<Command, Error> {
@@ -208,8 +241,27 @@ fn to_command(cmd: Cmd) -> Result<Command, Error> {
                 stability,
                 format,
                 title,
+                lines: Vec::new(),
             }),
         },
+        Cmd::Scripts {
+            scripts,
+            voices,
+            stability,
+            out,
+        } => {
+            let scripts_json = std::fs::read_to_string(&scripts)?;
+            let mut cast = fragr_audiogen::VoiceCast::new();
+            for (speaker, ids) in voices {
+                cast.entry(speaker).or_default().extend(ids);
+            }
+            Command::Scripts {
+                scripts_json,
+                cast,
+                stability,
+                out,
+            }
+        }
         Cmd::Voices => Command::Voices,
         Cmd::Quota => Command::Quota,
     })
@@ -259,7 +311,9 @@ impl Transport for HttpTransport {
 
 fn run(cli: Cli, out: &mut dyn std::io::Write) -> Result<(), Error> {
     // Dry runs never need a key. Quota always does.
-    let needs_key = !cli.dry_run || matches!(cli.command, Cmd::Quota | Cmd::Voices);
+    // Dry runs and the scripts converter never touch the network. Quota and voices always do.
+    let needs_key = (!cli.dry_run && !matches!(cli.command, Cmd::Scripts { .. }))
+        || matches!(cli.command, Cmd::Quota | Cmd::Voices);
     let api_key = if needs_key {
         let from_env = match std::env::var(API_KEY_ENV) {
             Ok(value) => Some(value),
@@ -441,6 +495,74 @@ mod tests {
         }
         let voices = Cli::try_parse_from(["fragr-audiogen", "voices"]).unwrap();
         assert_eq!(to_command(voices.command).unwrap(), Command::Voices);
+    }
+
+    #[test]
+    fn parses_scripts_command() {
+        let dir = std::env::temp_dir().join("fragr-audiogen-main-scripts");
+        std::fs::create_dir_all(&dir).unwrap();
+        let scripts = dir.join("scripts.json");
+        std::fs::write(
+            &scripts,
+            r#"{"items": [{"name": "radio/news/generic-01-a", "class": "generic", "speaker": "host", "title": "A", "text": "Hello."}]}"#,
+        )
+        .unwrap();
+        let cli = Cli::try_parse_from([
+            "fragr-audiogen",
+            "scripts",
+            "--scripts",
+            scripts.to_str().unwrap(),
+            "--voice",
+            "host=h1",
+            "--voice",
+            "caller=c1,c2",
+            "--voice",
+            "caller=c3",
+            "--stability",
+            "0.4",
+            "--out",
+            dir.join("out.json").to_str().unwrap(),
+        ])
+        .unwrap();
+        match to_command(cli.command).unwrap() {
+            Command::Scripts {
+                cast, stability, ..
+            } => {
+                assert_eq!(cast["host"], vec!["h1".to_string()]);
+                assert_eq!(
+                    cast["caller"],
+                    vec!["c1".to_string(), "c2".into(), "c3".into()]
+                );
+                assert_eq!(stability, 0.4);
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        assert!(parse_voice_assignment("host").is_err());
+        assert!(parse_voice_assignment("=id").is_err());
+        assert!(parse_voice_assignment("host=").is_err());
+        assert_eq!(
+            parse_voice_assignment(" tina = a , b ").unwrap(),
+            ("tina".to_string(), vec!["a".to_string(), "b".to_string()])
+        );
+        // The converter needs no key: a missing key file must not stop it.
+        let cli = Cli::try_parse_from([
+            "fragr-audiogen",
+            "--api-key-file",
+            "definitely-missing.key",
+            "scripts",
+            "--scripts",
+            scripts.to_str().unwrap(),
+            "--voice",
+            "host=h1",
+            "--out",
+            dir.join("out2.json").to_str().unwrap(),
+        ])
+        .unwrap();
+        let mut out = Vec::new();
+        run(cli, &mut out).unwrap();
+        assert!(String::from_utf8(out).unwrap().contains("with 1 items"));
+        assert!(dir.join("out2.json").exists());
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

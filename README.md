@@ -144,7 +144,7 @@ client/          Godot 4.7.2-stable client (GDScript)
 server/          Rust authoritative WebSocket server
 agent-adapter/   MCP observe/act control plane
 agents/          example agents (brain: decision model plus local controller)
-tools/           Solo Scrap launcher, screenshot capture, audio generator, playtest harness
+tools/           Solo Scrap launcher, screenshot capture, audio pipeline, playtest harness
 docs/            vision, roadmap, architecture, protocol, art bible, plans
 infra/           GCP Terraform and self-host guides (plan-only until approved)
 AGENTS.md        operating rules for coding agents and contributors
