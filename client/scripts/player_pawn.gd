@@ -122,7 +122,7 @@ func show_muzzle_flash():
 		var original_scale = muzzle.scale
 		muzzle.scale = original_scale * 1.5
 		
-		await get_tree().create_timer(0.1).timeout
+		await get_tree().create_timer(0.08).timeout
 		if is_instance_valid(muzzle):
 			muzzle.visible = false
 			muzzle.scale = original_scale

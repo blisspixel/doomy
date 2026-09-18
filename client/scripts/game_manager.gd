@@ -112,7 +112,28 @@ func _on_snapshot_received(data):
 func _on_event_received(data):
 	var event_type = data.get("event", "")
 	if event_type == "frag":
-		hud.show_frag(data.get("killer", "?"), data.get("victim", "?"))
+		var killer_name = data.get("killer", "?")
+		var victim_name = data.get("victim", "?")
+		
+		var killer_id = ""
+		for pawn in players.values():
+			if is_instance_valid(pawn) and pawn.player_name == killer_name:
+				killer_id = pawn.player_id
+				break
+		
+		var killer_color = Color.WHITE
+		var victim_color = Color.WHITE
+		if killer_id != "" and players.has(killer_id):
+			killer_color = players[killer_id].player_color
+		for pawn in players.values():
+			if is_instance_valid(pawn) and pawn.player_name == victim_name:
+				victim_color = pawn.player_color
+				break
+		
+		hud.show_frag(killer_name, victim_name, killer_color, victim_color)
+		
+		if not is_human_player and killer_id != "" and camera:
+			camera.lock_on_frag(killer_id, 1.5)
 	elif event_type == "round_start":
 		hud.show_round_start(data.get("round_number", 0))
 	elif event_type == "round_end":
