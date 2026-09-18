@@ -54,27 +54,27 @@
 - [x] Verify frags happen without any LLM / MCP yet
 
 ### 5. Spectator UX (~2 h)
-- [ ] Default scene = spectator (no join as human unless flag/button)
-- [ ] Follow-cam option: cycle focus among living players (key `F` or similar)
-- [ ] Simple HUD: “SPECTATING · tick N · players”
+- [x] Default scene = spectator (no join as human unless flag/button)
+- [x] Follow-cam option: cycle focus among living players (key `F` or similar)
+- [x] Simple HUD: "SPECTATING · tick N · players"
 
 ### 6. Agent-adapter (~3-4 h)
-- [ ] Process connects as `role=agent`, owns one pawn
-- [ ] Tools/API: `session_join`, `observe`, `act`, `session_leave`
-- [ ] Prefer MCP stdio if quick; else HTTP/JSON with same shapes + note “MCP wrapper next”
-- [ ] Scripted loop using adapter proves external drive path (even without an LLM)
-- [ ] Document tool schemas in `agent-adapter/README.md`
+- [x] Process connects as `role=agent`, owns one pawn
+- [x] Tools/API: `session_join`, `observe`, `act`, `session_leave`
+- [x] Prefer MCP stdio if quick; else HTTP/JSON with same shapes + note "MCP wrapper next"
+- [x] Scripted loop using adapter proves external drive path (even without an LLM)
+- [x] Document tool schemas in `agent-adapter/README.md`
 
 ### 7. Human join stub (~1-2 h)
-- [ ] Godot “Join as human” button or `-- --human` / scene switch
-- [ ] Map keys → same `Action` messages as agents
-- [ ] Confirm human can take damage / frag a bot
+- [x] Godot "Join as human" button or `-- --human` / scene switch
+- [x] Map keys → same `Action` messages as agents
+- [x] Confirm human can take damage / frag a bot
 
 ### 8. Slice freeze (~2 h)
-- [ ] README: exact commands for server / spectator / adapter (and human)
-- [ ] `docs/protocol.md` matches implemented messages
-- [ ] No paid deps, no cloud endpoints
-- [ ] Manual 30s watch test: bots fight, spectator follows, looks “game-like” not tech-demo-only
+- [x] README: exact commands for server / spectator / adapter (and human)
+- [x] `docs/protocol.md` matches implemented messages
+- [x] No paid deps, no cloud endpoints
+- [x] Manual 30s watch test: bots fight, spectator follows, looks "game-like" not tech-demo-only
 
 ---
 
