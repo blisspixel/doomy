@@ -3,6 +3,14 @@ name = "fragr-server"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "fragr_server"
+path = "src/lib.rs"
+
+[[bin]]
+name = "fragr-server"
+path = "src/main.rs"
+
 [dependencies]
 tokio = { version = "1.40", features = ["full"] }
 tokio-tungstenite = "0.24"

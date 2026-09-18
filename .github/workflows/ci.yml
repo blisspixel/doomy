@@ -49,5 +49,11 @@ jobs:
       - name: Run tests
         run: cargo test --workspace
 
+      - name: Install llvm-cov
+        run: cargo install cargo-llvm-cov
+
+      - name: Check code coverage
+        run: cargo llvm-cov --workspace --locked --summary-only --fail-under-lines 80 --ignore-filename-regex '(agent-adapter|server/src/(main|net)\.rs)'
+
       - name: Build release
         run: cargo build --workspace --release

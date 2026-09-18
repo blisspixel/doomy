@@ -66,17 +66,7 @@ pub struct Player {
 
 impl GameState {
     pub fn new() -> Self {
-        Self {
-            tick: 0,
-            players: Vec::new(),
-            events: Vec::new(),
-            bots: Vec::new(),
-            scores: HashMap::new(),
-            round_state: RoundState::Warmup,
-            round_ticks: 0,
-            round_number: 0,
-            config: MatchConfig::default(),
-        }
+        Self::default()
     }
 
     pub fn start_round(&mut self) {
@@ -492,6 +482,22 @@ impl GameState {
 
     pub fn push_event(&mut self, event: GameEvent) {
         self.events.push(event);
+    }
+}
+
+impl Default for GameState {
+    fn default() -> Self {
+        Self {
+            tick: 0,
+            players: Vec::new(),
+            events: Vec::new(),
+            bots: Vec::new(),
+            scores: HashMap::new(),
+            round_state: RoundState::Warmup,
+            round_ticks: 0,
+            round_number: 0,
+            config: MatchConfig::default(),
+        }
     }
 }
 

@@ -51,6 +51,10 @@ impl NetServer {
         })
     }
 
+    pub fn local_addr(&self) -> std::io::Result<std::net::SocketAddr> {
+        self.listener.local_addr()
+    }
+
     pub async fn accept_loop(self) {
         loop {
             match self.listener.accept().await {
