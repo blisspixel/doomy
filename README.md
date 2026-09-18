@@ -63,9 +63,10 @@ External agents (clawbots, MCP clients) can observe and act via structured JSON 
 ## Architecture
 
 - **Server**: Rust tokio + WebSocket JSON, 20 Hz authoritative tick, hitscan combat, server-side bots, round scoring
-- **Client**: Godot 4.7.2 GDScript, thin presenter with pose interpolation, intent chips on named bots
+- **Client**: Godot 4.7.2 GDScript, thin presenter with pose interpolation, intent chips on named bots, procedural audio (CC0)
 - **Protocol**: WebSocket JSON on port 7777 (see `docs/protocol.md`)
 - **Match loop**: Frag limit (default 10) or time limit (default 3min), scoreboard tracks per-round kills, bots persist when humans leave
+- **Audio**: Procedurally generated sounds (fire, hit, frag, round transitions) released under CC0 1.0 Universal (see `client/assets/audio/README.md`)
 - **Spend**: $0 (loopback, LAN, Tailscale Personal only)
 
 See `docs/ARCHITECTURE.md` for stack decisions and `docs/SLICE-1.md` for definition of done.
