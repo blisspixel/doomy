@@ -37,11 +37,17 @@ Slice 1 is required foundation. It is not the finish line.
 | 1b | Second-peer + Tailscale docs proven; screenshots in README | $0 |
 | 2 | Arena feel pass: audio (CC0/free only), readable FX, score/round loop, empty-server never (bots persist) | $0 |
 | 3 | Agent adapter hardening: session lifecycle, summaries @ low Hz, clawbot smoke without LLM spend | $0 |
-| 4 | `infra/` GCP IaC (Cloud Run or GCE + firewall + secrets pattern) documented + `terraform plan` dry-run; **no apply** until approval | $0 until approved |
+| 4 | Self-host docs polished (Minecraft-style run-your-own-server) + `infra/` native GCP IaC for cheap scale (GCE/Cloud Run + firewall + secrets); `terraform plan` dry-run; **no apply** until approval | $0 until approved |
 | 5 | UDP/renet spike if WS feel is the limiter; keep Godot as presenter | $0 |
 | 6 | Match flow people replay: warm-up, frag limit or timed round, spectate between lives | $0 |
 
 Testy only when stranger-playable / published face exists.
+
+## Hosting (self-host + GCP)
+
+LAN/Tailscale are optional. Product hosting:
+- Run your own Rust server (home/VPS you control), documented like Minecraft server ops.
+- Native GCP IaC in `infra/` for cheap cloud at scale (apply gated).
 
 ## GCP IaC (real path, fail-closed on spend)
 
