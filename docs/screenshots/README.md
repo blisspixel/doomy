@@ -35,3 +35,7 @@ When the Godot client is playable and ready for honest screenshots:
 8. Update main README note from "Mood art" to "Live gameplay"
 
 Live captures must show what currently runs. No aspirational features. No concept art labeled as gameplay.
+
+## Tip screenshot capture
+
+For automated capture of genuine tip-of-tree gameplay screenshots, see [`../plans/tip-screenshots.md`](../plans/tip-screenshots.md).
