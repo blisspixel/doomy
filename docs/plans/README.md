@@ -5,3 +5,7 @@ Durable plans live here (or as `docs/SLICE-*.md`) **before** implementation star
 Each plan should cover: goal, non-goals, architecture impact, protocol or API changes, verification, spend/safety gates, and success criteria.
 
 Do not treat chat as the plan of record.
+
+## Index
+
+- [`tip-screenshots.md`](./tip-screenshots.md) - Godot tip screenshot capture (Xvfb, Viewport API, thin-client hazards)
