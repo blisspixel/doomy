@@ -1,9 +1,9 @@
 use crate::protocol::{
     boss_down_host_line, boss_host_line, compliance_host_line, default_host_line,
     default_mode_name, default_playlist, empty_mvp_host_line, killstreak_host_line, mvp_host_line,
-    roster_host_line, round_open_host_line, warmup_host_line, Action, GameEvent, PickupState,
-    PlayerScore, PlayerState, Role, ShotResult, Snapshot, WeaponType, BOSS_NAME, MODE_NAME,
-    PLAYLIST_NAME,
+    roster_host_line, round_open_host_line, rule_bot_taunt_line, warmup_host_line, Action,
+    BotTauntKind, GameEvent, PickupState, PlayerScore, PlayerState, Role, ShotResult, Snapshot,
+    WeaponType, BOSS_NAME, MODE_NAME, PLAYLIST_NAME,
 };
 use std::collections::HashMap;
 use std::f32::consts::PI;
@@ -20,6 +20,16 @@ const PLAYER_MAX_HP: i32 = 100;
 pub const SPEAK_MAX_CHARS: usize = 80;
 /// Min ticks between successful speaks for one player (~3s at 20 Hz).
 pub const SPEAK_COOLDOWN_TICKS: u64 = 60;
+/// Chance (percent) a rule-bot killer speaks after a frag (not every scrap).
+const RULE_BOT_TAUNT_FRAG_PCT: u64 = 35;
+/// Chance a rule-bot victim speaks after death.
+const RULE_BOT_TAUNT_DEATH_PCT: u64 = 25;
+/// Chance a rule-bot speaks on killstreak tier 2/3/5.
+const RULE_BOT_TAUNT_STREAK_PCT: u64 = 55;
+/// Chance the Warmup cadence speaker actually talks.
+const RULE_BOT_TAUNT_WARMUP_PCT: u64 = 40;
+/// Warmup ticks between attempts to pick one rule bot to speak.
+const RULE_BOT_WARMUP_TAUNT_EVERY: u32 = 20;
 /// Continuance Compliance Drone hit points (tankier than scrap fighters).
 pub const BOSS_MAX_HP: i32 = 200;
 /// Touch radius for mid-map pickup pads.
@@ -753,6 +763,7 @@ impl GameState {
         match self.round_state {
             RoundState::Warmup => {
                 self.round_ticks += 1;
+                self.maybe_warmup_rule_bot_taunts();
                 if self.round_ticks >= self.config.warmup_ticks {
                     self.start_round();
                 }
@@ -1019,6 +1030,26 @@ impl GameState {
                             message,
                         });
                     }
+
+                    // Named rule bots: occasional Contested Frequency speak (off-tick).
+                    if matches!(killer_streak, 2 | 3 | 5) {
+                        self.maybe_rule_bot_taunt(
+                            shooter_id,
+                            BotTauntKind::Killstreak,
+                            RULE_BOT_TAUNT_STREAK_PCT,
+                        );
+                    } else {
+                        self.maybe_rule_bot_taunt(
+                            shooter_id,
+                            BotTauntKind::Frag,
+                            RULE_BOT_TAUNT_FRAG_PCT,
+                        );
+                    }
+                    self.maybe_rule_bot_taunt(
+                        target_id,
+                        BotTauntKind::Death,
+                        RULE_BOT_TAUNT_DEATH_PCT,
+                    );
 
                     if victim_was_boss {
                         self.events.push(GameEvent::BossDown {
@@ -1417,6 +1448,74 @@ impl GameState {
         self.bots.retain(|b| b.player_id != boss_id);
         self.scores.remove(&boss_id);
         self.boss_id = None;
+    }
+
+    /// True when `id` is a named scrap rule bot (not Continuance Compliance).
+    pub fn is_named_rule_bot(&self, id: Uuid) -> bool {
+        self.bots
+            .iter()
+            .any(|b| b.player_id == id && b.behavior != BotBehavior::Compliance)
+    }
+
+    fn taunt_roll(tick: u64, player_id: Uuid, salt: u64) -> u64 {
+        tick.wrapping_mul(2654435761)
+            .wrapping_add(player_id.as_u128() as u64)
+            .wrapping_add(salt)
+            % 100
+    }
+
+    /// Probabilistic Contested Frequency speak for a named rule bot.
+    /// Silent on miss / RateLimited / Rejected (no Error unicast spam for bots).
+    pub fn maybe_rule_bot_taunt(&mut self, player_id: Uuid, kind: BotTauntKind, chance_pct: u64) {
+        if !self.is_named_rule_bot(player_id) {
+            return;
+        }
+        let salt = match kind {
+            BotTauntKind::Frag => 11,
+            BotTauntKind::Death => 22,
+            BotTauntKind::Killstreak => 33,
+            BotTauntKind::Warmup => 44,
+        };
+        if Self::taunt_roll(self.tick, player_id, salt) >= chance_pct {
+            return;
+        }
+        let _ = self.try_rule_bot_taunt(player_id, kind);
+    }
+
+    /// Always attempt a callsign-flavored speak (still respects SPEAK_COOLDOWN).
+    pub fn try_rule_bot_taunt(&mut self, player_id: Uuid, kind: BotTauntKind) -> SpeakOutcome {
+        if !self.is_named_rule_bot(player_id) {
+            return SpeakOutcome::Rejected;
+        }
+        let name = match self.players.iter().find(|p| p.id == player_id) {
+            Some(p) => p.name.clone(),
+            None => return SpeakOutcome::Rejected,
+        };
+        let salt = self.tick ^ (player_id.as_u128() as u64);
+        let line = rule_bot_taunt_line(&name, kind, salt);
+        self.try_speak(player_id, &line)
+    }
+
+    /// During Warmup, occasionally one dialed-in rule bot speaks a tuning-in line.
+    fn maybe_warmup_rule_bot_taunts(&mut self) {
+        if self.round_ticks == 0 || !self.round_ticks.is_multiple_of(RULE_BOT_WARMUP_TAUNT_EVERY) {
+            return;
+        }
+        let rule_bots: Vec<Uuid> = self
+            .bots
+            .iter()
+            .filter(|b| b.behavior != BotBehavior::Compliance)
+            .map(|b| b.player_id)
+            .collect();
+        if rule_bots.is_empty() {
+            return;
+        }
+        let idx = (self.tick as usize) % rule_bots.len();
+        self.maybe_rule_bot_taunt(
+            rule_bots[idx],
+            BotTauntKind::Warmup,
+            RULE_BOT_TAUNT_WARMUP_PCT,
+        );
     }
 
     /// Validate and emit an off-tick speak event.

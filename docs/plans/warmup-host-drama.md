@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `cursor/warmup-host-drama`
 **Spend:** $0. Loopback. No GCP apply, no ElevenLabs, no look_at/hit reopen.
-**Status:** In flight (NOW tip after named scrap bots).
+**Status:** Shipped (#83 / `ea9cdcc`).
 
 ## Goal
 
@@ -13,7 +13,7 @@ Product locks: Contested Frequency Host parody; port 6767; fail-under 80; look_a
 
 ## Tip priorities
 
-Named scrap bots (`f58b2d0` / #82) shipped. **This is the NOW tip.**
+Shipped. Tip NOW: rule-bot Contested Frequency taunts. See [`rule-bot-taunts.md`](./rule-bot-taunts.md).
 
 ## Non-goals
 
