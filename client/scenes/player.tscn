@@ -1,10 +1,15 @@
-[gd_scene load_steps=3 format=3 uid="uid://c8vg5m2kuxl7r"]
+[gd_scene load_steps=4 format=3 uid="uid://c8vg5m2kuxl7r"]
 
 [ext_resource type="Script" path="res://scripts/player_pawn.gd" id="1_player"]
+[ext_resource type="Texture2D" uid="uid://d123456789012345" path="res://assets/characters/64/cyanex_idle_strip.png" id="2_sprite"]
 
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_1"]
-radius = 0.5
-height = 2.0
+[sub_resource type="StandardMaterial3D" id="SpriteBaseMaterial"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 1, 1, 1)
+billboard_mode = 2
+billboard_keep_scale = true
+disable_receive_shadows = true
 
 [node name="Player" type="Node3D"]
 script = ExtResource("1_player")
@@ -17,17 +22,39 @@ max_distance = 50.0
 volume_db = -2.0
 max_distance = 40.0
 
-[node name="Body" type="MeshInstance3D" parent="."]
+[node name="Body" type="Sprite3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
-mesh = SubResource("CapsuleMesh_1")
+material_override = SubResource("SpriteBaseMaterial")
+pixel_size = 0.01
+billboard = 2
+texture_filter = 0
+texture = ExtResource("2_sprite")
+hframes = 4
+vframes = 1
+frame = 0
 
-[node name="Muzzle" type="MeshInstance3D" parent="Body"]
-transform = Transform3D(0.2, 0, 0, 0, 0.2, 0, 0, 0, 0.5, 0, 0, -1)
+[node name="WeaponSprite" type="Sprite3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, -0.2, -0.5)
+pixel_size = 0.008
+billboard = 2
+texture_filter = 0
+
+[node name="Muzzle" type="Sprite3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.2)
 visible = false
-mesh = SubResource("CapsuleMesh_1")
+pixel_size = 0.008
+billboard = 2
+texture_filter = 0
+
+[node name="MuzzleGlow" type="OmniLight3D" parent="Body/Muzzle"]
+light_energy = 0.0
+light_color = Color(1, 0.85, 0.3, 1)
+omni_range = 3.0
 
 [node name="Label3D" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
 pixel_size = 0.01
 billboard = 1
 text = "Player"
+outline_size = 8
+outline_modulate = Color(0, 0, 0, 1)
