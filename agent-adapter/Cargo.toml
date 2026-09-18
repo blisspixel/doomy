@@ -1,5 +1,5 @@
 [package]
-name = "doomy-agent-adapter"
+name = "fragr-agent-adapter"
 version = "0.1.0"
 edition = "2021"
 

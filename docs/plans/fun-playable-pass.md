@@ -113,12 +113,12 @@ cargo test --workspace
 cargo build --workspace
 
 # Smoke test
-cargo run -p doomy-server -- --bots 4 &
+cargo run -p fragr-server -- --bots 4 &
 # Open client/ in Godot 4.7.2, press F5
 # Verify: spawns visible, bots fight, first frag within 10s, killfeed clear, arena readable
 # Press J to join, verify human can frag bot
 # Press L to leave, verify spectate resumes
-pkill -f doomy-server
+pkill -f fragr-server
 ```
 
 Manual Godot check:
