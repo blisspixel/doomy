@@ -522,7 +522,21 @@ mod session_tests {
             snap.host_line
         );
         assert!(snap.host_line.contains("DEAD AIR DAN"));
-        // RoundStart should carry the same roster Host flavor.
+        assert!(
+            snap.host_line.contains("CONTESTED FREQUENCY"),
+            "Warmup should sell Contested Frequency bumper: {}",
+            snap.host_line
+        );
+        assert!(
+            snap.host_line.contains("ARENA DUEL"),
+            "Warmup Host line should name the map: {}",
+            snap.host_line
+        );
+        assert!(
+            snap.round_time_left.is_some_and(|s| s >= 1),
+            "Warmup Snapshot should expose countdown secs"
+        );
+        // RoundStart should carry map + roster fight bumper.
         session.state.start_round();
         let start = session
             .state
@@ -534,6 +548,8 @@ mod session_tests {
             })
             .expect("RoundStart");
         assert!(start.contains("ON THE SCRAP"));
+        assert!(start.contains("FIGHT!"));
+        assert!(start.contains("ARENA DUEL"));
     }
 
     #[test]
