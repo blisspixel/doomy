@@ -89,7 +89,7 @@ $0. Loopback only for solo. No secrets. No attribution / emoji / em or en dashes
 - [x] Offline loopback 6767 documented in README
 - [x] Solo always has living rule-bot opponents when `--bots` / min > 0
 - [x] Rust tests for ensure-min; coverage fail-under 80 unfiltered
-- [ ] PR open on `cursor/solo-boot-and-scrap`
+- [x] PR open on `cursor/solo-boot-and-scrap` (https://github.com/blisspixel/fragr/pull/68)
 
 ## Tip priorities (this slice)
 
