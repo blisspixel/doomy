@@ -1,0 +1,25 @@
+[gd_scene load_steps=3 format=3 uid="uid://c8vg5m2kuxl7r"]
+
+[ext_resource type="Script" path="res://scripts/player_pawn.gd" id="1_player"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_1"]
+radius = 0.5
+height = 2.0
+
+[node name="Player" type="Node3D"]
+script = ExtResource("1_player")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CapsuleMesh_1")
+
+[node name="Muzzle" type="MeshInstance3D" parent="Body"]
+transform = Transform3D(0.2, 0, 0, 0, 0.2, 0, 0, 0, 0.5, 0, 0, -1)
+visible = false
+mesh = SubResource("CapsuleMesh_1")
+
+[node name="Label3D" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+pixel_size = 0.01
+billboard = 1
+text = "Player"
