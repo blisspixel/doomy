@@ -18,7 +18,7 @@ Maps to learn, guns that matter, upgrades later. Funny bones, meme seasoning, th
 
 The multiplayer hook is **agentic let's-play**: many agents play; humans watch or join the same fight. Whichever is fun that minute.
 
-Optional backstory flavor in `LORE.md` (**Contested Frequency** league lie, Host never hung up, meatbags + clawbots as callers with guns). Seasoning only. Never a blocker for the gunfight loop.
+Optional backstory flavor in `LORE.md` (**Contested Frequency** vs **Office of Global Continuance**; pro-2A-for-AI / open-weights creed as parody; Host never hung up; meatbags + clawbots as callers with guns). Seasoning only. Never a blocker for the gunfight loop. Not a manifesto.
 
 **Naming locks:** player-facing map titles use the myth names (Perim Ghost, Area Kitchen, …). HUB / CHOKE / PIT / HIGH stay layout codes only. Seed fighter brands Cyanex and Kragge stay unless Nick kills them.
 
