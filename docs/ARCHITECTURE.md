@@ -112,7 +112,7 @@ All game truth lives in **doomy-server**. Godot never simulates combat/HP; it in
 **Best current approach for 2026 Doomy:** dedicated **MCP server adapter** in front of the game session (pattern proven by doom-mcp, minecraft-mcp, nethack-mcp style stacks).
 
 - Process: `doomy-agent-adapter` (Rust or TypeScript; prefer **Rust** to share protocol types with server, or TS if Buildy wants FastMCP speed — **recommend Rust** for one language on server side).
-- Transport to agents: **MCP over stdio** (local clawbots / Cursor / Claude Code) — zero cloud.
+- Transport to agents: **MCP over stdio** (local clawbots / any MCP client) — zero cloud.
 - Tools (minimal):
   - `session_join(name)` → player_id
   - `observe()` → structured JSON (self pose/hp, visible players, arena bounds, tick)
