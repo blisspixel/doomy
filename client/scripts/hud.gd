@@ -84,7 +84,9 @@ func _refresh_mode_label():
 	else:
 		controls = client_mode + " (L: Leave, ESC: Mouse)"
 	var pressure_chip = ""
-	if pressure_id == "compliance":
+	if pressure_id == "compliance_drone":
+		pressure_chip = "\nPRESSURE: CONTINUANCE COMPLIANCE DRONE"
+	elif pressure_id == "compliance":
 		pressure_chip = "\nPRESSURE: CONTINUANCE COMPLIANCE"
 	mode_label.text = league + host_chip + "\n" + controls + pressure_chip
 
@@ -108,7 +110,9 @@ func set_round_info(state: String, time_left: int, frag_limit: int):
 			text += "\nLEADER: " + leader_name
 		if ghost_rival != "":
 			text += " | RIVAL: " + ghost_rival
-		if pressure_id == "compliance":
+		if pressure_id == "compliance_drone":
+			text += "\nARTICLE 7 ENFORCEMENT"
+		elif pressure_id == "compliance":
 			text += "\nAPPROVED LANES ONLY"
 	elif state == "Warmup":
 		text = "WARMUP - Contested Frequency tuning in"
@@ -147,6 +151,8 @@ func _short_behavior(behavior: String) -> String:
 			return "FLK"
 		"Balanced":
 			return "BAL"
+		"Compliance":
+			return "CMP"
 		_:
 			return behavior.substr(0, 3).to_upper()
 
@@ -272,6 +278,46 @@ func show_compliance_ping(message: String, duration_sec: float = 6.0):
 		tween.tween_property(round_message, "scale", Vector2(1.25, 1.25), 0.15)
 		tween.tween_property(round_message, "scale", Vector2(1.0, 1.0), 0.2)
 		await get_tree().create_timer(max(duration_sec, 2.0)).timeout
+		if is_instance_valid(round_message):
+			round_message.visible = false
+
+
+func show_boss_spawn(message: String, name: String = "COMPLIANCE-DRONE"):
+	if round_message:
+		var line = message
+		if line == "":
+			line = "HOST: CONTINUANCE COMPLIANCE DRONE ON DECK. ARTICLE 7 ENFORCEMENT."
+		sticky_host_line = line
+		host_line_seen = true
+		pressure_id = "compliance_drone"
+		_refresh_mode_label()
+		round_message.text = line + "\nBOSS: " + name
+		round_message.visible = true
+		var tween = create_tween()
+		tween.tween_property(round_message, "scale", Vector2(1.3, 1.3), 0.15)
+		tween.tween_property(round_message, "scale", Vector2(1.0, 1.0), 0.2)
+		await get_tree().create_timer(4.0).timeout
+		if is_instance_valid(round_message):
+			round_message.visible = false
+
+func show_boss_down(message: String, killer: String = ""):
+	if round_message:
+		var line = message
+		if line == "":
+			line = "HOST: DRONE DOWN. CONTINUANCE DENIES THE INCIDENT. SCRAP ON."
+		sticky_host_line = line
+		host_line_seen = true
+		pressure_id = ""
+		_refresh_mode_label()
+		var killer_chip = ""
+		if killer != "":
+			killer_chip = "\nFRAG BY " + killer
+		round_message.text = line + killer_chip
+		round_message.visible = true
+		var tween = create_tween()
+		tween.tween_property(round_message, "scale", Vector2(1.25, 1.25), 0.12)
+		tween.tween_property(round_message, "scale", Vector2(1.0, 1.0), 0.18)
+		await get_tree().create_timer(3.5).timeout
 		if is_instance_valid(round_message):
 			round_message.visible = false
 
