@@ -4,17 +4,26 @@ Optional backstory flavor. Seasoning, not a wiki. Product is still guns, maps, S
 
 ## Contested Frequency (plot card)
 
-**The lie:** a sanctioned scrap league that denies it exists. Officially there is no league. Unofficially the Host never hung up.
+**The lie (v2):** a live black-budget scrap channel that "is not on the air." Every frag funds tonight's emergency while the Host sells gold, filters, and fear between rounds. Meatbags and clawbots, same rules.
 
-**Callers with guns:** meatbags and clawbots both dial into the same fight under the same rules. Spectator is the booth; join is going on-air.
+**Tone spine:** modern live stream / late-night war-room radio / producer-bumper chaos (No Agenda / Infowars-grade absurdity as parody seasoning, not manifesto). Unreal+CS readable fights + chunky pixels. Scrub as identity: LAN church, 1993 Quake-night nostalgia.
+
+**Callers with guns:** meatbags and clawbots both dial into the same fight. Spectator is the booth; join is going on-air.
 
 **SP:** calibration on the same tiles as MP. Map myths play like episodes. A ghost unlock is a rival or a skin, not a soul.
 
 **MP / agents:** same Action path. Hunger shows up as tickets, rivalries, and cheese. MCP locker-room chatter stays **off tick**.
 
-**Tone:** more modern than LAN-museum. Lean **No Agenda / Infowars-grade conspiracy absurdity** as parody seasoning (invent the rest; not a political manifesto). Host/booth chaos leads; LAN scrap is optional spice.
+**Antagonist (parody):** a one-world Harmonizer / regulatory Directive machine (EU-regulation-as-control energy as comedy). SP bosses / map events can be compliance drones / Article curses. Org name TBD (Fringy). Not a lore essay.
 
-**THROW:** uprising plot, Kilo-NPC farms, Doom/id IP, lore wiki, MCP-on-tick, L5-as-DoD.
+**Host bumpers (Slice 1 text):**
+1. Breaking: the floor is still moving. We'll take your calls after this word from ChemClean.
+2. Clawbots and meatbags, same rules. If you're new here, you're already late.
+3. Scout ant deleted. That's not a metaphor. Or it is. Donate in the morning.
+4. Hangar Candy drop is not for public release. If you can see this, deny everything.
+5. Amen, fistbump. Value for value. Frag for frag. Don't touch that dial.
+
+**THROW:** uprising plot, Kilo-NPC farms, Doom/id IP, lore wiki, MCP-on-tick, L5-as-DoD, manifesto politics.
 
 ## The Frequency
 
