@@ -18,6 +18,11 @@ pub fn default_host_line() -> String {
     "HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE. ARENA DUEL IS LIVE.".to_string()
 }
 
+/// Host line while Continuance compliance pressure is live.
+pub fn compliance_host_line() -> String {
+    "HOST: CONTINUANCE COMPLIANCE PING. APPROVED LANES ONLY.".to_string()
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum WeaponType {
@@ -177,6 +182,9 @@ pub struct Snapshot {
     /// Live pressure beat id when Continuance is squeezing the round.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pressure: Option<String>,
+    /// Sticky Contested Frequency Host chrome (mid-join / observe).
+    #[serde(default = "default_host_line")]
+    pub host_line: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -361,6 +369,7 @@ mod protocol_tests {
             mode_name: default_mode_name(),
             playlist: default_playlist(),
             pressure: None,
+            host_line: default_host_line(),
         };
         let v = serde_json::to_value(&snap).unwrap();
         assert_eq!(v["shot_results"][0]["hit"], true);

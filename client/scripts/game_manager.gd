@@ -96,12 +96,16 @@ func _on_snapshot_received(data):
 	var mode_name = str(data.get("mode_name", "Contested Frequency"))
 	var playlist = str(data.get("playlist", "Arena Duel"))
 	var pressure = data.get("pressure", null)
+	var host_line = str(data.get("host_line", ""))
 	
 	hud.set_league_identity(mode_name, playlist)
 	if pressure == null:
 		hud.set_pressure("")
 	else:
 		hud.set_pressure(str(pressure))
+	# Sticky Host chrome for mid-join / mid-round observe (flash once on first Snapshot).
+	if host_line != "":
+		hud.set_host_line(host_line, true)
 	hud.set_tick(tick)
 	hud.set_player_count(len(player_list))
 	hud.sync_scores_from_players(player_list)
