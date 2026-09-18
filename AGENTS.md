@@ -103,7 +103,6 @@ Do not start implementation until durable plan docs exist for the change.
 - **No emoji** in repo prose, comments, commits, PR titles, or PR bodies.
 - **No em dashes or en dashes.** Use commas, periods, parentheses, colons, or hyphens in compound adjectives only when needed. Rewrite sentences instead of using long dashes.
 
-- No emoji. No em dashes or en dashes in repo prose, commits, or PR text.
 - Comments explain intent, invariants, and tradeoffs, not obvious narration.
 - Research current docs for Godot/Rust crates when versions or APIs may have changed; do not trust memory alone for release pins.
 
