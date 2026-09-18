@@ -74,10 +74,11 @@ func update_state(state: Dictionary):
 		show_hit_feedback()
 	
 	if label:
+		var weapon_name = state.get("weapon", "flechette").to_upper()
 		var behavior_chip = ""
 		if state.has("behavior") and state.behavior != null:
 			behavior_chip = " [" + str(state.behavior) + "]"
-		label.text = player_name + " [" + str(hp) + "]" + behavior_chip
+		label.text = player_name + " [" + str(hp) + "] " + weapon_name + behavior_chip
 	
 	if muzzle and state.get("just_fired", false):
 		show_muzzle_flash()

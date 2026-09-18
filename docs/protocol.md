@@ -51,7 +51,8 @@ Sent by `human` or `agent` roles to control their player. All fields are optiona
   "right": false,
   "turn_left": false,
   "turn_right": false,
-  "fire": false
+  "fire": false,
+  "weapon_swap": "rail"
 }
 ```
 
