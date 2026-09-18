@@ -1,7 +1,7 @@
 use crate::protocol::{
     boss_down_host_line, boss_host_line, compliance_host_line, default_host_line,
-    default_mode_name, default_playlist, Action, GameEvent, PlayerScore, PlayerState, Role,
-    ShotResult, Snapshot, WeaponType, BOSS_NAME, MODE_NAME, PLAYLIST_NAME,
+    default_mode_name, default_playlist, Action, GameEvent, PickupState, PlayerScore, PlayerState,
+    Role, ShotResult, Snapshot, WeaponType, BOSS_NAME, MODE_NAME, PLAYLIST_NAME,
 };
 use std::collections::HashMap;
 use std::f32::consts::PI;
@@ -20,6 +20,10 @@ pub const SPEAK_MAX_CHARS: usize = 80;
 pub const SPEAK_COOLDOWN_TICKS: u64 = 60;
 /// Continuance Compliance Drone hit points (tankier than scrap fighters).
 pub const BOSS_MAX_HP: i32 = 200;
+/// Touch radius for mid-map weapon pads.
+pub const PICKUP_CLAIM_RADIUS: f32 = 1.75;
+/// Ticks until a claimed pad respawns (~12s at 20 Hz).
+pub const PICKUP_RESPAWN_TICKS: u32 = 20 * 12;
 
 /// Result of attempting an off-tick speak.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -65,6 +69,68 @@ impl Default for MatchConfig {
     }
 }
 
+/// Authoritative mid-map weapon pad (Quake chase energy).
+#[derive(Debug, Clone)]
+pub struct WeaponPickup {
+    pub id: String,
+    pub weapon: WeaponType,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub available: bool,
+    pub respawn_timer: Option<u32>,
+}
+
+impl WeaponPickup {
+    fn to_state(&self) -> PickupState {
+        PickupState {
+            id: self.id.clone(),
+            weapon: self.weapon.name().to_string(),
+            x: self.x,
+            y: self.y,
+            z: self.z,
+            available: self.available,
+            respawn_in: if self.available {
+                None
+            } else {
+                self.respawn_timer
+            },
+        }
+    }
+}
+
+fn default_arena_pickups() -> Vec<WeaponPickup> {
+    vec![
+        WeaponPickup {
+            id: "pad_rail".to_string(),
+            weapon: WeaponType::Rail,
+            x: 12.0,
+            y: 0.4,
+            z: 12.0,
+            available: true,
+            respawn_timer: None,
+        },
+        WeaponPickup {
+            id: "pad_scatter".to_string(),
+            weapon: WeaponType::Scatter,
+            x: -12.0,
+            y: 0.4,
+            z: -12.0,
+            available: true,
+            respawn_timer: None,
+        },
+        WeaponPickup {
+            id: "pad_flechette".to_string(),
+            weapon: WeaponType::Flechette,
+            x: -12.0,
+            y: 0.4,
+            z: 12.0,
+            available: true,
+            respawn_timer: None,
+        },
+    ]
+}
+
 pub struct GameState {
     pub tick: u64,
     pub players: Vec<Player>,
@@ -85,6 +151,8 @@ pub struct GameState {
     pub boss_id: Option<Uuid>,
     /// Whether this Active round already spawned its drone.
     pub boss_spawned: bool,
+    /// Mid-map weapon pads (Solo Scrap + MP).
+    pub pickups: Vec<WeaponPickup>,
 }
 
 pub struct Player {
@@ -130,6 +198,7 @@ impl GameState {
         self.compliance_fired = false;
         self.compliance_ticks_left = 0;
         self.clear_boss();
+        self.reset_pickups();
 
         for player in &mut self.players {
             self.scores.insert(player.id, 0);
@@ -423,6 +492,8 @@ impl GameState {
             }
         }
 
+        self.tick_pickups();
+
         let mut hits = Vec::new();
         for i in 0..self.players.len() {
             let player = &self.players[i];
@@ -661,6 +732,67 @@ impl GameState {
             } else {
                 default_host_line()
             },
+            pickups: self.pickups.iter().map(|p| p.to_state()).collect(),
+        }
+    }
+
+    fn reset_pickups(&mut self) {
+        self.pickups = default_arena_pickups();
+    }
+
+    /// Decrement pad respawn timers and claim available pads on touch.
+    fn tick_pickups(&mut self) {
+        for pad in &mut self.pickups {
+            if let Some(timer) = pad.respawn_timer.as_mut() {
+                *timer = timer.saturating_sub(1);
+                if *timer == 0 {
+                    pad.respawn_timer = None;
+                    pad.available = true;
+                }
+            }
+        }
+
+        // Collect claims (player_id, pad index) without holding dual borrows.
+        let mut claims: Vec<(Uuid, usize)> = Vec::new();
+        for player in &self.players {
+            if player.respawn_timer.is_some() || player.is_boss {
+                continue;
+            }
+            for (pi, pad) in self.pickups.iter().enumerate() {
+                if !pad.available {
+                    continue;
+                }
+                let dx = player.x - pad.x;
+                let dz = player.z - pad.z;
+                if dx * dx + dz * dz <= PICKUP_CLAIM_RADIUS * PICKUP_CLAIM_RADIUS {
+                    claims.push((player.id, pi));
+                    break; // one pad per player per tick
+                }
+            }
+        }
+
+        for (player_id, pad_idx) in claims {
+            let pad = &mut self.pickups[pad_idx];
+            if !pad.available {
+                continue; // raced / already taken this tick
+            }
+            let weapon = pad.weapon;
+            let pickup_id = pad.id.clone();
+            pad.available = false;
+            pad.respawn_timer = Some(PICKUP_RESPAWN_TICKS);
+
+            let Some(player) = self.players.iter_mut().find(|p| p.id == player_id) else {
+                continue;
+            };
+            player.weapon = weapon;
+            let name = player.name.clone();
+            self.events.push(GameEvent::Pickup {
+                player: name.clone(),
+                player_id,
+                weapon: weapon.name().to_string(),
+                pickup_id: pickup_id.clone(),
+            });
+            tracing::info!("PICKUP: {} claimed {} ({})", name, weapon.name(), pickup_id);
         }
     }
 
@@ -819,6 +951,7 @@ impl Default for GameState {
             compliance_fired: false,
             boss_id: None,
             boss_spawned: false,
+            pickups: default_arena_pickups(),
         }
     }
 }
@@ -891,6 +1024,54 @@ impl BotController {
         }
 
         let mut action = Action::default();
+
+        // Quake chase: Flechette bots divert toward a live Rail/Scatter pad.
+        if bot.weapon == WeaponType::Flechette && self.behavior != BotBehavior::Compliance {
+            let mut best: Option<(f32, f32, f32)> = None; // dist, x, z
+            for pad in &state.pickups {
+                if !pad.available || pad.weapon == WeaponType::Flechette {
+                    continue;
+                }
+                let pdx = pad.x - bot.x;
+                let pdz = pad.z - bot.z;
+                let pdist = (pdx * pdx + pdz * pdz).sqrt();
+                if pdist < 28.0 {
+                    let take = match best {
+                        Some((d, _, _)) => pdist < d,
+                        None => true,
+                    };
+                    if take {
+                        best = Some((pdist, pad.x, pad.z));
+                    }
+                }
+            }
+            if let Some((pdist, px, pz)) = best {
+                if nearest_dist > 10.0 || pdist < nearest_dist * 0.7 {
+                    let pdx = px - bot.x;
+                    let pdz = pz - bot.z;
+                    let pad_angle = pdz.atan2(pdx);
+                    let mut pad_diff = pad_angle - bot.yaw;
+                    while pad_diff > PI {
+                        pad_diff -= 2.0 * PI;
+                    }
+                    while pad_diff < -PI {
+                        pad_diff += 2.0 * PI;
+                    }
+                    if pad_diff.abs() > 0.2 {
+                        if pad_diff > 0.0 {
+                            action.turn_right = true;
+                        } else {
+                            action.turn_left = true;
+                        }
+                    }
+                    action.forward = true;
+                    if pad_diff.abs() < 0.5 && nearest_dist < 18.0 {
+                        action.fire = true;
+                    }
+                    return action;
+                }
+            }
+        }
 
         match self.behavior {
             BotBehavior::Aggressive => {
