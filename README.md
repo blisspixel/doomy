@@ -15,7 +15,7 @@ Logo (`docs/fragr-logo.png`, gold bone-white + dark purple outline) is canonical
 
 ## Screenshots
 
-Arena layout, spectator HUD, fighters, and weapon feedback. (Mood art - see `docs/screenshots/README.md` for details.)
+Arena layout, spectator HUD, fighters, and weapon feedback. These embeds are **mood plates**, not live tip captures yet. See `docs/screenshots/README.md`. Tip capture automation: `tools/capture_tip_screenshots.sh`.
 
 ![Arena Overview](docs/screenshots/01_arena_overview_16x9.png)
 

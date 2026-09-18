@@ -62,11 +62,11 @@ Commands must match the repo as it exists. If a directory is missing, scaffold i
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
-cargo llvm-cov --workspace --locked --summary-only --fail-under-lines 80 --ignore-filename-regex '(agent-adapter|server/src/(main|net)\.rs)'
+cargo llvm-cov --workspace --locked --summary-only --fail-under-lines 80
 cargo build --workspace
 ```
 
-Hard minimum 80% line coverage. CI enforces this on every PR. Glue-only binaries (main.rs, net.rs WebSocket handlers) narrowly excluded. Add real behavioral unit tests for protocol serialization and sim logic.
+Hard minimum 80% line coverage on the unfiltered workspace report. CI enforces this on every PR. Coverage ignores that carve production crates out of the report (agent-adapter, server main/net, or similar) are KAPU: forbidden. Raise coverage by testing real behavior (join/leave/round wire paths, adapter observe/act/get_events), never by shrinking the denominator.
 
 Do not "fix" Clippy by broad `#[allow]`, silencing warnings workspace-wide, or deleting checks. Narrow, justified allows only.
 

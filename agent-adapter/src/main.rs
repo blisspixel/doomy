@@ -1,9 +1,10 @@
+mod mcp;
 mod protocol;
 
 use clap::{Parser, Subcommand};
 use futures_util::{SinkExt, StreamExt};
+use mcp::{handle_mcp_request, ingest_server_text, McpError, McpRequest, McpResponse, ToolState};
 use protocol::{ClientMessage, Role, ServerMessage};
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::io::{self, BufRead, Write};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
@@ -36,30 +37,6 @@ enum Commands {
         #[arg(long)]
         name: Option<String>,
     },
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct McpRequest {
-    jsonrpc: String,
-    id: Option<Value>,
-    method: String,
-    params: Option<Value>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct McpResponse {
-    jsonrpc: String,
-    id: Value,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    result: Option<Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    error: Option<McpError>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct McpError {
-    code: i32,
-    message: String,
 }
 
 #[tokio::main]
@@ -123,8 +100,7 @@ async fn run_mcp_server(
         .send(Message::Text(serde_json::to_string(&hello)?))
         .await?;
 
-    let player_id = std::sync::Arc::new(tokio::sync::Mutex::new(None::<uuid::Uuid>));
-    let player_id_clone = player_id.clone();
+    let tool_state = std::sync::Arc::new(tokio::sync::Mutex::new(ToolState::default()));
 
     if let Some(Ok(Message::Text(text))) = ws_stream.next().await {
         if let Ok(ServerMessage::Welcome {
@@ -132,75 +108,18 @@ async fn run_mcp_server(
             role: _,
         }) = serde_json::from_str(&text)
         {
-            *player_id.lock().await = pid;
+            tool_state.lock().await.player_id = pid;
             tracing::info!("Connected to game server, player_id: {:?}", pid);
         }
     }
 
-    let last_snapshot = std::sync::Arc::new(tokio::sync::Mutex::new(None::<Value>));
-    let last_snapshot_clone = last_snapshot.clone();
-
-    let recent_events = std::sync::Arc::new(tokio::sync::Mutex::new(Vec::<Value>::new()));
-    let recent_events_clone = recent_events.clone();
-
+    let tool_state_clone = tool_state.clone();
     tokio::spawn(async move {
         while let Some(msg) = ws_stream.next().await {
             match msg {
                 Ok(Message::Text(text)) => {
-                    if text.len() > 1_000_000 {
-                        tracing::warn!(
-                            "Oversized message received ({} bytes), ignoring",
-                            text.len()
-                        );
-                        continue;
-                    }
-
-                    match serde_json::from_str::<ServerMessage>(&text) {
-                        Ok(ServerMessage::Snapshot(snapshot)) => {
-                            match serde_json::to_value(snapshot) {
-                                Ok(snapshot_value) => {
-                                    *last_snapshot_clone.lock().await = Some(snapshot_value);
-                                }
-                                Err(e) => {
-                                    tracing::error!("Failed to serialize snapshot: {}", e);
-                                }
-                            }
-                        }
-                        Ok(ServerMessage::Event(event)) => match serde_json::to_value(event) {
-                            Ok(event_value) => {
-                                let mut events = recent_events_clone.lock().await;
-                                events.push(event_value);
-                                if events.len() > 50 {
-                                    events.remove(0);
-                                }
-                                tracing::info!("Game event received: {}", text);
-                            }
-                            Err(e) => {
-                                tracing::error!("Failed to serialize event: {}", e);
-                            }
-                        },
-                        Ok(ServerMessage::Welcome { .. }) => {}
-                        Err(e) => {
-                            tracing::warn!(
-                                "Failed to parse server message: {} - error: {}",
-                                text,
-                                e
-                            );
-                            // Soft prison: never silently drop round/frag events on schema drift.
-                            if let Ok(raw) = serde_json::from_str::<Value>(&text) {
-                                if raw.get("type").and_then(|v| v.as_str()) == Some("event") {
-                                    let mut events = recent_events_clone.lock().await;
-                                    events.push(raw);
-                                    if events.len() > 50 {
-                                        events.remove(0);
-                                    }
-                                    tracing::warn!(
-                                        "Buffered unparsed event JSON into recent_events"
-                                    );
-                                }
-                            }
-                        }
-                    }
+                    let mut state = tool_state_clone.lock().await;
+                    ingest_server_text(&mut state, &text);
                 }
                 Ok(Message::Close(_)) => {
                     tracing::info!("Server closed connection");
@@ -251,197 +170,19 @@ async fn run_mcp_server(
             }
         };
 
-        let response = match request.method.as_str() {
-            "initialize" => McpResponse {
-                jsonrpc: "2.0".to_string(),
-                id: request.id.unwrap_or(Value::Null),
-                result: Some(serde_json::json!({
-                    "protocolVersion": "2024-11-05",
-                    "capabilities": {
-                        "tools": {}
-                    },
-                    "serverInfo": {
-                        "name": "fragr-agent-adapter",
-                        "version": "0.1.0"
-                    }
-                })),
-                error: None,
-            },
-
-            "tools/list" => McpResponse {
-                jsonrpc: "2.0".to_string(),
-                id: request.id.unwrap_or(Value::Null),
-                result: Some(serde_json::json!({
-                    "tools": [
-                        {
-                            "name": "observe",
-                            "description": "Get current game state observation including self_player_id and recent events. Returns connecting state until first snapshot arrives.",
-                            "inputSchema": {
-                                "type": "object",
-                                "properties": {},
-                                "required": []
-                            }
-                        },
-                        {
-                            "name": "act",
-                            "description": "Send action to the game server. Actions are level-held (sticky) within each tick window. Set true to activate, false to deactivate. Weapon swap changes loadout.",
-                            "inputSchema": {
-                                "type": "object",
-                                "properties": {
-                                    "forward": {"type": "boolean", "default": false, "description": "Move forward"},
-                                    "back": {"type": "boolean", "default": false, "description": "Move backward"},
-                                    "left": {"type": "boolean", "default": false, "description": "Strafe left"},
-                                    "right": {"type": "boolean", "default": false, "description": "Strafe right"},
-                                    "turn_left": {"type": "boolean", "default": false, "description": "Turn left"},
-                                    "turn_right": {"type": "boolean", "default": false, "description": "Turn right"},
-                                    "fire": {"type": "boolean", "default": false, "description": "Fire weapon"},
-                                    "weapon_swap": {"type": "string", "enum": ["flechette", "rail", "scatter"], "description": "Switch to weapon type"}
-                                },
-                                "required": []
-                            }
-                        },
-                        {
-                            "name": "get_events",
-                            "description": "Get recent game events (player joins/leaves, frags, respawns, round start/end). Includes last 50 events.",
-                            "inputSchema": {
-                                "type": "object",
-                                "properties": {
-                                    "clear": {"type": "boolean", "default": false, "description": "Clear events after retrieving"}
-                                },
-                                "required": []
-                            }
-                        }
-                    ]
-                })),
-                error: None,
-            },
-
-            "tools/call" => {
-                let tool_name = request
-                    .params
-                    .as_ref()
-                    .and_then(|p| p.get("name"))
-                    .and_then(|n| n.as_str())
-                    .unwrap_or("");
-
-                let result = match tool_name {
-                    "observe" => {
-                        let snapshot_lock = last_snapshot.lock().await;
-                        let events_lock = recent_events.lock().await;
-                        let pid_lock = player_id_clone.lock().await;
-
-                        match snapshot_lock.as_ref() {
-                            Some(snapshot) => {
-                                let mut observation = snapshot.clone();
-                                if let Some(obj) = observation.as_object_mut() {
-                                    obj.insert(
-                                        "recent_events".to_string(),
-                                        serde_json::json!(events_lock.clone()),
-                                    );
-                                    obj.insert(
-                                        "self_player_id".to_string(),
-                                        serde_json::json!(pid_lock.map(|id| id.to_string())),
-                                    );
-                                }
-                                observation
-                            }
-                            None => serde_json::json!({
-                                "status": "connecting",
-                                "message": "Waiting for first snapshot from server",
-                                "self_player_id": pid_lock.map(|id| id.to_string()),
-                                "recent_events": events_lock.clone()
-                            }),
-                        }
-                    }
-
-                    "act" => {
-                        let arguments = request
-                            .params
-                            .as_ref()
-                            .and_then(|p| p.get("arguments"))
-                            .cloned()
-                            .unwrap_or(Value::Null);
-
-                        match validate_act_arguments(&arguments) {
-                            Ok(action) => {
-                                let action_msg = ClientMessage::Action(action);
-                                ws_sink
-                                    .send(Message::Text(serde_json::to_string(&action_msg)?))
-                                    .await?;
-
-                                serde_json::json!({
-                                    "content": [{
-                                        "type": "text",
-                                        "text": "Action sent successfully"
-                                    }]
-                                })
-                            }
-                            Err(msg) => serde_json::json!({
-                                "content": [{
-                                    "type": "text",
-                                    "text": msg
-                                }],
-                                "isError": true
-                            }),
-                        }
-                    }
-
-                    "get_events" => {
-                        let arguments = request
-                            .params
-                            .as_ref()
-                            .and_then(|p| p.get("arguments"))
-                            .cloned()
-                            .unwrap_or(Value::Null);
-
-                        let should_clear = arguments
-                            .get("clear")
-                            .and_then(|v| v.as_bool())
-                            .unwrap_or(false);
-
-                        let mut events_lock = recent_events.lock().await;
-                        let events_copy = events_lock.clone();
-
-                        if should_clear {
-                            events_lock.clear();
-                        }
-
-                        serde_json::json!({
-                            "content": [{
-                                "type": "text",
-                                "text": format!("Recent events: {}", serde_json::to_string_pretty(&events_copy).unwrap())
-                            }]
-                        })
-                    }
-
-                    _ => serde_json::json!({
-                        "content": [{
-                            "type": "text",
-                            "text": format!("Unknown tool: {}", tool_name)
-                        }]
-                    }),
-                };
-
-                McpResponse {
-                    jsonrpc: "2.0".to_string(),
-                    id: request.id.unwrap_or(Value::Null),
-                    result: Some(result),
-                    error: None,
-                }
-            }
-
-            _ => McpResponse {
-                jsonrpc: "2.0".to_string(),
-                id: request.id.unwrap_or(Value::Null),
-                result: None,
-                error: Some(McpError {
-                    code: -32601,
-                    message: format!("Method not found: {}", request.method),
-                }),
-            },
+        let outcome = {
+            let mut state = tool_state.lock().await;
+            handle_mcp_request(request, &mut state)
         };
 
-        let response_json = serde_json::to_string(&response)?;
+        if let Some(action) = outcome.pending_action {
+            let action_msg = ClientMessage::Action(action);
+            ws_sink
+                .send(Message::Text(serde_json::to_string(&action_msg)?))
+                .await?;
+        }
+
+        let response_json = serde_json::to_string(&outcome.response)?;
         writeln!(stdout, "{}", response_json)?;
         stdout.flush()?;
     }
@@ -514,85 +255,6 @@ async fn run_scripted_bot(
     Ok(())
 }
 
-const ACT_ALLOWED_KEYS: &[&str] = &[
-    "forward",
-    "back",
-    "left",
-    "right",
-    "turn_left",
-    "turn_right",
-    "fire",
-    "weapon_swap",
-];
-
-/// Validate MCP `act` arguments. Empty/missing args are OK (all defaults).
-/// Unknown keys and bad weapon_swap values are schema errors (do not coerce).
-fn validate_act_arguments(arguments: &Value) -> Result<protocol::Action, String> {
-    if arguments.is_null() {
-        return Ok(protocol::Action::default());
-    }
-
-    let obj = match arguments.as_object() {
-        Some(o) => o,
-        None => return Err("schema error: act arguments must be an object".to_string()),
-    };
-
-    let mut unknowns: Vec<&str> = obj
-        .keys()
-        .filter(|k| !ACT_ALLOWED_KEYS.contains(&k.as_str()))
-        .map(|k| k.as_str())
-        .collect();
-    unknowns.sort();
-    if !unknowns.is_empty() {
-        let listed = unknowns
-            .iter()
-            .map(|k| format!("'{}'", k))
-            .collect::<Vec<_>>()
-            .join(", ");
-        if unknowns.len() == 1 {
-            return Err(format!("schema error: unknown act field {}", listed));
-        }
-        return Err(format!("schema error: unknown act fields {}", listed));
-    }
-
-    let weapon_swap = if let Some(v) = obj.get("weapon_swap") {
-        if v.is_null() {
-            None
-        } else {
-            let s = v.as_str().ok_or_else(|| {
-                "schema error: weapon_swap must be a string (flechette|rail|scatter)".to_string()
-            })?;
-            match s {
-                "flechette" => Some(protocol::WeaponType::Flechette),
-                "rail" => Some(protocol::WeaponType::Rail),
-                "scatter" => Some(protocol::WeaponType::Scatter),
-                other => {
-                    return Err(format!(
-                        "schema error: weapon_swap must be flechette|rail|scatter, got '{}'",
-                        other
-                    ))
-                }
-            }
-        }
-    } else {
-        None
-    };
-
-    let bool_field =
-        |key: &str| -> bool { obj.get(key).and_then(|v| v.as_bool()).unwrap_or(false) };
-
-    Ok(protocol::Action {
-        forward: bool_field("forward"),
-        back: bool_field("back"),
-        left: bool_field("left"),
-        right: bool_field("right"),
-        turn_left: bool_field("turn_left"),
-        turn_right: bool_field("turn_right"),
-        fire: bool_field("fire"),
-        weapon_swap,
-    })
-}
-
 fn compute_bot_action(bot_id: uuid::Uuid, snapshot: &protocol::Snapshot) -> protocol::Action {
     use std::f32::consts::PI;
 
@@ -650,7 +312,7 @@ fn compute_bot_action(bot_id: uuid::Uuid, snapshot: &protocol::Snapshot) -> prot
         action.forward = true;
     }
 
-    if angle_diff.abs() < 0.5 && nearest_dist < 30.0 {
+    if angle_diff.abs() < 0.5 && nearest_dist < 20.0 {
         action.fire = true;
     }
 
@@ -660,6 +322,8 @@ fn compute_bot_action(bot_id: uuid::Uuid, snapshot: &protocol::Snapshot) -> prot
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mcp::validate_act_arguments;
+    use serde_json::Value;
 
     #[test]
     fn test_game_event_serialization() {
