@@ -19,7 +19,7 @@ struct Args {
     #[arg(long, default_value = "127.0.0.1:7777")]
     bind: String,
 
-    #[arg(long, default_value = "2")]
+    #[arg(long, default_value = "4")]
     bots: usize,
 }
 
@@ -47,12 +47,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut bots = Vec::new();
     let mut client_to_player = HashMap::new();
 
+    let bot_names = ["Rusher", "Sniper", "Flanker", "Tank", "Scout", "Guard", "Hunter", "Striker"];
+    
     for i in 0..args.bots {
         let bot_id = Uuid::new_v4();
-        let bot_name = format!("Bot{}", i + 1);
-        state.add_player(bot_id, bot_name, Role::Agent);
+        let bot_name = bot_names.get(i).unwrap_or(&"Bot").to_string();
+        state.add_player(bot_id, bot_name.clone(), Role::Agent);
         bots.push(BotController::new(bot_id));
-        tracing::info!("Spawned bot: {} ({})", bot_id, i + 1);
+        tracing::info!("Spawned bot: {} ({})", bot_name, bot_id);
     }
 
     let tick_duration = Duration::from_millis(50);

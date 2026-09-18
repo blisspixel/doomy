@@ -3,15 +3,21 @@ extends CanvasLayer
 @onready var status_label = $Panel/VBoxContainer/StatusLabel
 @onready var tick_label = $Panel/VBoxContainer/TickLabel
 @onready var player_count_label = $Panel/VBoxContainer/PlayerCountLabel
+@onready var mode_label = $Panel/VBoxContainer/ModeLabel
 @onready var frag_label = $FragLabel
 
 func _ready():
 	if frag_label:
 		frag_label.text = ""
+	set_mode("SPECTATING")
 
 func set_status(text: String):
 	if status_label:
 		status_label.text = "Status: " + text
+
+func set_mode(mode: String):
+	if mode_label:
+		mode_label.text = mode + " (J: Join, L: Leave, F: Follow, ESC: Mouse)"
 
 func set_tick(tick: int):
 	if tick_label:
