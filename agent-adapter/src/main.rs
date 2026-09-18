@@ -91,9 +91,17 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
         .send(Message::Text(serde_json::to_string(&hello)?))
         .await?;
 
+    let player_id = std::sync::Arc::new(tokio::sync::Mutex::new(None::<uuid::Uuid>));
+    let player_id_clone = player_id.clone();
+
     if let Some(Ok(Message::Text(text))) = ws_stream.next().await {
-        if let Ok(ServerMessage::Welcome { player_id, role: _ }) = serde_json::from_str(&text) {
-            tracing::info!("Connected to game server, player_id: {:?}", player_id);
+        if let Ok(ServerMessage::Welcome {
+            player_id: pid,
+            role: _,
+        }) = serde_json::from_str(&text)
+        {
+            *player_id.lock().await = pid;
+            tracing::info!("Connected to game server, player_id: {:?}", pid);
         }
     }
 
@@ -163,7 +171,7 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
                     "tools": [
                         {
                             "name": "observe",
-                            "description": "Get current game state observation including recent events",
+                            "description": "Get current game state observation including self_player_id and recent events. Returns connecting state until first snapshot arrives.",
                             "inputSchema": {
                                 "type": "object",
                                 "properties": {},
@@ -172,17 +180,17 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
                         },
                         {
                             "name": "act",
-                            "description": "Send action to the game server",
+                            "description": "Send action to the game server. Actions are level-held (sticky) within each tick window. Set true to activate, false to deactivate.",
                             "inputSchema": {
                                 "type": "object",
                                 "properties": {
-                                    "forward": {"type": "boolean", "default": false},
-                                    "back": {"type": "boolean", "default": false},
-                                    "left": {"type": "boolean", "default": false},
-                                    "right": {"type": "boolean", "default": false},
-                                    "turn_left": {"type": "boolean", "default": false},
-                                    "turn_right": {"type": "boolean", "default": false},
-                                    "fire": {"type": "boolean", "default": false}
+                                    "forward": {"type": "boolean", "default": false, "description": "Move forward"},
+                                    "back": {"type": "boolean", "default": false, "description": "Move backward"},
+                                    "left": {"type": "boolean", "default": false, "description": "Strafe left"},
+                                    "right": {"type": "boolean", "default": false, "description": "Strafe right"},
+                                    "turn_left": {"type": "boolean", "default": false, "description": "Turn left"},
+                                    "turn_right": {"type": "boolean", "default": false, "description": "Turn right"},
+                                    "fire": {"type": "boolean", "default": false, "description": "Fire weapon"}
                                 },
                                 "required": []
                             }
@@ -215,19 +223,30 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
                     "observe" => {
                         let snapshot_lock = last_snapshot.lock().await;
                         let events_lock = recent_events.lock().await;
-                        let mut observation = snapshot_lock.clone().unwrap_or(serde_json::json!({
-                            "tick": 0,
-                            "players": []
-                        }));
+                        let pid_lock = player_id_clone.lock().await;
 
-                        if let Some(obj) = observation.as_object_mut() {
-                            obj.insert(
-                                "recent_events".to_string(),
-                                serde_json::json!(events_lock.clone()),
-                            );
+                        match snapshot_lock.as_ref() {
+                            Some(snapshot) => {
+                                let mut observation = snapshot.clone();
+                                if let Some(obj) = observation.as_object_mut() {
+                                    obj.insert(
+                                        "recent_events".to_string(),
+                                        serde_json::json!(events_lock.clone()),
+                                    );
+                                    obj.insert(
+                                        "self_player_id".to_string(),
+                                        serde_json::json!(pid_lock.map(|id| id.to_string())),
+                                    );
+                                }
+                                observation
+                            }
+                            None => serde_json::json!({
+                                "status": "connecting",
+                                "message": "Waiting for first snapshot from server",
+                                "self_player_id": pid_lock.map(|id| id.to_string()),
+                                "recent_events": events_lock.clone()
+                            }),
                         }
-
-                        observation
                     }
 
                     "act" => {
@@ -521,6 +540,33 @@ mod tests {
                 assert_eq!(player, "Bot2");
             }
             _ => panic!("Expected Event(Respawn)"),
+        }
+    }
+
+    #[test]
+    fn test_welcome_message_parsing() {
+        let welcome_msg = r#"{"type":"welcome","player_id":"550e8400-e29b-41d4-a716-446655440000","role":"agent"}"#;
+        let parsed: Result<protocol::ServerMessage, _> = serde_json::from_str(welcome_msg);
+        assert!(parsed.is_ok());
+
+        match parsed.unwrap() {
+            protocol::ServerMessage::Welcome { player_id, role } => {
+                assert!(player_id.is_some());
+                assert_eq!(role, protocol::Role::Agent);
+            }
+            _ => panic!("Expected Welcome"),
+        }
+
+        let spectator_welcome = r#"{"type":"welcome","player_id":null,"role":"spectator"}"#;
+        let parsed: Result<protocol::ServerMessage, _> = serde_json::from_str(spectator_welcome);
+        assert!(parsed.is_ok());
+
+        match parsed.unwrap() {
+            protocol::ServerMessage::Welcome { player_id, role } => {
+                assert!(player_id.is_none());
+                assert_eq!(role, protocol::Role::Spectator);
+            }
+            _ => panic!("Expected Welcome"),
         }
     }
 }

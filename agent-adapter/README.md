@@ -25,15 +25,19 @@ cargo run -- mcp --server ws://127.0.0.1:7777
 
 - **observe**: Get current game state observation including recent events
   - Returns: JSON with:
-    - `tick`: Current game tick number
+    - `status`: "connecting" when waiting for first snapshot, omitted otherwise
+    - `message`: Explanation when status is "connecting"
+    - `tick`: Current game tick number (once connected)
     - `players`: Array of player states (id, name, x, y, z, yaw, hp, just_fired)
+    - `self_player_id`: UUID of this agent's player (null for spectators)
     - `recent_events`: Array of recent game events (frags, respawns) - last 50 events
 
 - **act**: Send action to game server
-  - Parameters (all optional booleans):
-    - `forward`, `back`, `left`, `right`: Movement
-    - `turn_left`, `turn_right`: Rotation
+  - Parameters (all optional booleans, default false):
+    - `forward`, `back`, `left`, `right`: Movement directions
+    - `turn_left`, `turn_right`: Rotation directions
     - `fire`: Shoot weapon
+  - **Behavior**: Actions are **level-held/sticky** within each server tick window. Set true to activate for the current tick, false to deactivate. The server applies all true actions on the next tick. Multiple act calls between ticks will overwrite previous values.
 
 - **get_events**: Get recent game events (frags, respawns)
   - Parameters:
@@ -80,11 +84,16 @@ The MCP mode implements the MCP protocol over stdio:
 // List tools
 {"jsonrpc": "2.0", "id": 2, "method": "tools/list"}
 
-// Call observe
+// Call observe (before first snapshot)
 {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "observe"}}
+// Response: {"status": "connecting", "message": "Waiting for first snapshot from server", "self_player_id": "...", "recent_events": []}
+
+// Call observe (after first snapshot)
+{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "observe"}}
+// Response: {"tick": 123, "players": [...], "self_player_id": "...", "recent_events": [...]}
 
 // Call act
-{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {
+{"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {
   "name": "act",
   "arguments": {"forward": true, "fire": true}
 }}

@@ -62,9 +62,11 @@ Sent by `human` or `agent` roles to control their player. All fields are optiona
 - `fire`: Fire weapon
 
 **Notes:**
-- Actions are discrete intents applied on the next server tick
+- Actions are **level-held** (sticky) within each server tick window, not edge-triggered
+- Each Action message overwrites the previous pending action state
+- All `true` fields are applied together on the next server tick
 - Movement keys combine (e.g., forward + left = diagonal)
-- Server enforces rate limits and cooldowns
+- Server enforces rate limits and cooldowns (e.g., 10-tick fire cooldown)
 - Spectators that send actions are ignored
 
 ### Server → Client
