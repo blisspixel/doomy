@@ -1,5 +1,8 @@
 extends CanvasLayer
 
+## Fired whenever the Host takes the air so the radio can duck underneath.
+signal host_spoke(seconds: float)
+
 @onready var status_label = $Panel/VBoxContainer/StatusLabel
 @onready var tick_label = $Panel/VBoxContainer/TickLabel
 @onready var player_count_label = $Panel/VBoxContainer/PlayerCountLabel
@@ -131,9 +134,9 @@ func _refresh_mode_label():
 		host_chip = "\n" + sticky_host_line
 	var controls = ""
 	if client_mode == "SPECTATING":
-		controls = "SPECTATING (J: Join, F: Cycle Cam, ESC: Mouse)"
+		controls = "SPECTATING (J: Join, F: Cycle Cam, R/T/M: Radio, ESC: Mouse)"
 	else:
-		controls = client_mode + " (L: Leave, ESC: Mouse)"
+		controls = client_mode + " (L: Leave, R/T/M: Radio, ESC: Mouse)"
 	var pressure_chip = ""
 	if pressure_id == "compliance_drone":
 		pressure_chip = "\nPRESSURE: CONTINUANCE COMPLIANCE DRONE"
@@ -287,6 +290,7 @@ func set_host_line(line: String, flash_on_first: bool = false) -> bool:
 	return false
 
 func show_host_join(host_line: String):
+	host_spoke.emit(3.0)
 	# Mid-join Host bumper: same energy as RoundStart Host chrome, without waiting for RoundStart.
 	if round_message:
 		var line = host_line
@@ -302,6 +306,7 @@ func show_host_join(host_line: String):
 			round_message.visible = false
 
 func show_warmup_bumper(host_line: String, secs_left: int = 0):
+	host_spoke.emit(3.0)
 	# Warmup / pre-round Host drama: roster + map bumper readable before RoundStart.
 	if round_message:
 		var line = host_line
@@ -320,6 +325,7 @@ func show_warmup_bumper(host_line: String, secs_left: int = 0):
 			round_message.visible = false
 
 func show_round_start(round_number: int, host_line: String = ""):
+	host_spoke.emit(3.0)
 	if round_message:
 		var line = host_line
 		if line == "":
@@ -358,6 +364,7 @@ func show_compliance_ping(message: String, duration_sec: float = 6.0):
 
 
 func show_boss_spawn(message: String, name: String = "COMPLIANCE-DRONE"):
+	host_spoke.emit(3.0)
 	if round_message:
 		var line = message
 		if line == "":
@@ -376,6 +383,7 @@ func show_boss_spawn(message: String, name: String = "COMPLIANCE-DRONE"):
 			round_message.visible = false
 
 func show_boss_down(message: String, killer: String = ""):
+	host_spoke.emit(3.0)
 	if round_message:
 		var line = message
 		if line == "":
@@ -397,6 +405,7 @@ func show_boss_down(message: String, killer: String = ""):
 			round_message.visible = false
 
 func show_killstreak(player_name: String, streak: int, tier: String, message: String):
+	host_spoke.emit(2.5)
 	# Arena multi-kill Host bumper + brief ember flash (spectator and join).
 	streak_flash_timer = 0.4
 	if streak_flash:
@@ -456,6 +465,7 @@ func show_speak(player: String, line: String):
 			round_message.visible = false
 
 func show_round_end(mvp_name: String, reason: String, mvp_frags: int = 0, host_line: String = "", podium = []):
+	host_spoke.emit(4.0)
 	# Round-end MVP / podium Host drama (Contested Frequency voice).
 	scores = {}
 	behaviors = {}
@@ -853,3 +863,38 @@ func show_spawn_flash() -> void:
 		spawn_flash.visible = true
 		# Ember grit flash on spawn / join.
 		spawn_flash.modulate = Color(0.85, 0.45, 0.18, 0.45)
+
+
+var radio_label: Label = null
+var radio_tween: Tween = null
+
+## Bottom-right radio toast: station on switch, title on each new track, then fade.
+func show_radio(station: String, title: String) -> void:
+	if radio_label == null:
+		radio_label = Label.new()
+		radio_label.name = "RadioLabel"
+		radio_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		radio_label.anchor_left = 1.0
+		radio_label.anchor_top = 1.0
+		radio_label.anchor_right = 1.0
+		radio_label.anchor_bottom = 1.0
+		radio_label.offset_left = -520.0
+		radio_label.offset_top = -44.0
+		radio_label.offset_right = -16.0
+		radio_label.offset_bottom = -16.0
+		radio_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		radio_label.add_theme_color_override("font_color", Color(0.91, 0.89, 0.84))
+		radio_label.add_theme_color_override("font_outline_color", Color(0.04, 0.04, 0.05))
+		radio_label.add_theme_constant_override("outline_size", 4)
+		add_child(radio_label)
+	var text := "ON AIR: " + station
+	if title != "":
+		text += "  //  " + title
+	radio_label.text = text
+	radio_label.modulate.a = 1.0
+	radio_label.visible = true
+	if radio_tween != null and radio_tween.is_valid():
+		radio_tween.kill()
+	radio_tween = create_tween()
+	radio_tween.tween_interval(3.5)
+	radio_tween.tween_property(radio_label, "modulate:a", 0.0, 1.0)

@@ -59,6 +59,16 @@ cargo run -p fragr-audiogen -- music --name music/match_01 \
   --length-ms 60000 --instrumental
 ```
 
+Spoken lines for the news station and the Host (v3 model, delivery tags such as `[sighs]` work):
+
+```bash
+cargo run -p fragr-audiogen -- voices
+cargo run -p fragr-audiogen -- tts --name radio/news/generic-01-count --voice <voice_id> \
+  --text "[sighs] Good evening. The Continuance lost count again." --stability 0.5
+```
+
+`voices` prints the account's default voices with ids for casting. Default voices retire at the end of 2026, so cast from that list rather than from ids copied out of old docs. Spec items of kind `tts` take `text`, `voice`, optional `model`, `stability`, `format`, `title`. The scripts for the news station live in `specs/radio-news-scripts.json` and become `tts` items once voices are cast.
+
 Everything in a spec file (see `specs/fragr-core.json`):
 
 ```bash
@@ -66,7 +76,11 @@ cargo run -p fragr-audiogen -- batch --spec tools/audiogen/specs/fragr-core.json
 cargo run -p fragr-audiogen -- batch --spec tools/audiogen/specs/fragr-core.json --only frag
 ```
 
-Useful flags on every command: `--dry-run` prints the exact request and writes nothing, `--overwrite` replaces existing files (the default is to skip them), `--out-dir` changes the destination.
+Useful flags on every command: `--dry-run` prints the exact request and the credit estimate and writes nothing, `--overwrite` replaces existing files (the default is to skip them), `--out-dir` changes the destination, `--max-credits N` refuses to start a run whose estimate exceeds N.
+
+Batch runs work in waves: `--prefix radio/rock/` selects a folder, `--limit 5` generates at most five new files, and files that already exist are skipped, so re-running the same spec continues where it stopped. Every batch prints `batch: K to generate, ~N credits estimated` before it calls the API.
+
+Spec items may carry a `title` (recorded in the manifest and shown by the in-game radio) and, for music, `length_range_ms: [lo, hi]` instead of `length_ms`; the tool then picks a fixed length per track name inside the range, so a spec of 2 to 6 minute tracks stays varied and reproducible.
 
 ## What it writes
 

@@ -1,0 +1,165 @@
+{
+  "out_dir": "client/assets/audio",
+  "items": [
+    {
+      "kind": "music",
+      "name": "radio/world/01-please-hold",
+      "title": "Peace Without Interruption (Please Hold)",
+      "prompt": "Cumbia, classic tropical cumbia with modern low end, festive and sarcastic. Accordion, guiro, congas, electric bass, trumpets, a hold-line phone beep. 100 BPM, A minor. 1970s tropical dance-hall production, warm and roomy. Female alto lead, playful, with Spanish lines like por favor espere and sin interrupcion, clear diction. Arrangement: beep and guiro intro, accordion riff, verse over bass and congas, chorus with trumpets answering, second verse, chorus, accordion solo, breakdown to beep and voice, final chorus twice, last beep. Hook line: \"Peace without interruption, please hold\". Lyrics: Vacuum John waits on hold from East-West Pipe while the Office of Global Continuance repeats its motto, with a beige desk phone, a plastic fern, and a take-a-number ticket. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/02-three-stores-triangle",
+      "title": "Three Stores Make a Triangle",
+      "prompt": "Afrobeat, long-groove afro-funk, sunny and conspiratorial. Interlocking rhythm guitars, tenor saxes, electric piano, shekere, congas, horns. 118 BPM, E minor. 1970s big-band studio production, live and saturated. Male lead, half-spoken and grinning, a group answering in vocables like eh-oh, clear diction. Arrangement: guitar and shekere groove, horns state the riff, call and response verse, chorus with the full section, second verse, chorus, sax solo, breakdown to congas and claps, final chorus, horn stab ending. Hook line: \"Three stores make a triangle\". Lyrics: Gulf Breeze believer RENDLESHAM plots the Leyline triangle across three abandoned big-box killhouses, sure the third store is the map itself, with a paper road map, a drafting compass, and a shopping cart. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/03-alpha-seven-to-the-bride",
+      "title": "Alpha Seven, To the Bride",
+      "prompt": "Balkan brass, fast wedding-band brass, rolling two-step, joyful and tipsy. Trumpets, tenor horns, a tuba bass line, snare, bass drum, accordion, clarinet runs. 122 BPM, D minor. 1990s live wedding tent recording, loud and bright. Male tenor toastmaster with gang shouts and German lines like Prost, clear diction. Arrangement: clarinet fanfare, tuba oompah, verse as a toast, chorus with the band shouting, second verse, chorus, trumpet duel, final chorus faster, cymbal crash end. Hook line: \"Alpha seven, to the bride\". Lyrics: Vacuum John reads the spawn weather digits as a wedding toast in the Area Kitchen break room, niner tango for the groom, with a paper cup of punch, a folding table, and a break room microwave. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/04-ne-quittez-pas",
+      "title": "Ne Quittez Pas (Hold the Line)",
+      "prompt": "Electro-swing, vintage swing samples over a house kick, cheeky and elegant. Muted trumpet, clarinet, upright bass, brushed snare, swing piano, sidechained synth bass. 124 BPM, G minor. 2010s club production with 1930s gramophone crackle. Female jazz vocal, coy and precise, with French lines like ne quittez pas, clear diction. Arrangement: crackle and clarinet intro, kick drops, verse over upright bass, chorus with the horns, second verse, chorus, trumpet break, hold-tone breakdown, final chorus twice, needle lift. Hook line: \"Ne quittez pas, please hold the line\". Lyrics: the Host keeps callers on hold at the Larak Lot ticket barrier while selling gold and water filters, with a ticket barrier arm, a gramophone horn, and a water filter jug. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/05-dead-air-dub",
+      "title": "Dead Air Dub",
+      "prompt": "Dub, roots dub, instrumental only, no vocals. Deep, spacious, patient, a bell echoing through an empty reactor yard. Melodica lead, heavy dub bass, one-drop drums, skank guitar, organ bubble, spring reverb and tape delay throws, a low underwater bell sample. 97 BPM, C minor. 1970s mixing-desk dub production, drops and long delay tails. Arrangement: the bell alone, bass and one-drop enter, melodica melody, skank drops out and back, drum and bass section with delay throws, organ build, everything cuts to the bell, melodica returns, delay fade. Theme: the Dead Air Bell tolls between rounds on Perim Ghost while Night Watch callsign BLACKSITE waits beside a spring reverb tank, a chain-link fence, and a coolant pool.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/06-uno-dos-drei-quatre-go",
+      "title": "Uno Dos Drei Quatre Go",
+      "prompt": "Reggaeton, classic dembow, tropical top line, bouncy and silly. Dembow drum machine, plucky synth, accordion stabs, sub bass, shortwave static, air horn. 98 BPM, F sharp minor. 2000s urban club production, dry and punchy. Male rapped-sung flow counting in Spanish, German, French, and Japanese, clear diction. Arrangement: static and a beep, the dembow drops, verse counting low, chorus with the pluck riff, second verse, chorus, accordion break, breakdown to static and the count, final chorus, air horn out. Hook line: \"Uno, dos, drei, quatre, go\". Lyrics: Vacuum John counts to sixty seven in four languages on the Chemtrail Alley rooftop and swears the callsign 67 answered, with a shortwave dial, a stamped passport, and a roof vent. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/07-tudo-bem-skill-issue",
+      "title": "Tudo Bem, Skill Issue",
+      "prompt": "Bossa nova, hushed and breezy, a sunny confession about losing badly. Nylon-string guitar, brushed drums, upright bass, soft flute, a whispering shaker. 104 BPM, D major. 1960s living-room studio production, intimate and dry. Female breathy vocal, close-miked and smiling, with Portuguese lines like tudo bem and meu bem, clear diction. Arrangement: guitar alone, bass and brushes enter, verse, chorus with flute countermelody, second verse, chorus, flute solo, one bar of silence, final chorus soft, guitar tag. Hook line: \"Tudo bem, it's a skill issue\". Lyrics: Sniper callsign PHOENIX gets sniped in his own house on Diego Far and shrugs it off as sunshine and dust, with a nylon-string guitar, a sun hat, and a scope lens. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/08-sugar-supply-adequate",
+      "title": "Sugar Supply Adequate",
+      "prompt": "Highlife, palm-wine guitar highlife with a horn section, sweet and unhurried. Two interlocking clean electric guitars, trumpet and sax, congas, bell pattern, bass, soft organ. 112 BPM, G major. 1970s West African dance-band production, warm and slightly hissy. Male warm baritone lead with a group answering in vocables like o-ye and ayo, clear diction. Arrangement: bell pattern and guitar figure, horns enter, verse, chorus with the group, second verse, chorus, trumpet solo, guitar interlude, final chorus twice, horn tag. Hook line: \"Sugar supply adequate\". Lyrics: Mega Colony files the Area Kitchen spawn weather, colony activity nominal, perimeter secure, one scout ant deleted, with a sugar packet, a break room kettle, and a paper plate. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/09-hora-down-the-pipe",
+      "title": "Hora Down the Pipe",
+      "prompt": "Klezmer, freylekhs wedding klezmer, giddy and warm. Clarinet, violin, accordion, trumpet, tuba, drums on a bulgar rhythm, handclaps. 116 BPM, D Phrygian dominant. 1990s live hall recording, bright and close. Male comic baritone, the room shouting back, vocables like ai-di-di-dai, German lines like bitte warten, clear diction. Arrangement: rubato clarinet doina, drums kick in, verse, chorus with claps and shouts, second verse, chorus, clarinet and violin trade solos, final chorus at a sprint, held chord. Hook line: \"Same fight, same circle, oy oy\". Lyrics: Pi the agent leads a hora down East-West Pipe, meatbags and clawdbots holding hands in a straight line with no cover, with a folding chair held high, a clarinet, and a sealed wing door. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/10-low-tone-perim-ghost",
+      "title": "Low Tone Over Perim Ghost",
+      "prompt": "Throat-singing drone, steppe overtone folk, slow dub pulse, eerie and calm. Deep throat singing, horsehair fiddle, jaw harp, frame drum, sub bass drone, shortwave static. 96 BPM, B drone. 2010s field recording production, wide and dry. Male overtone vocal in vocables, a spoken English hook, clear diction. Arrangement: drone and jaw harp, fiddle melody, frame drum enters, low chant verse, spoken hook, chant verse, fiddle solo, drum drops out, chant and hook together, drone fades to static. Hook line: \"The corner moved, hold the low tone\". Lyrics: Night Watch callsign NIGHTFALL hums through Perim Ghost where the corner geometry shifts between rounds and muscle memory lies, with a jaw harp, a horsehair fiddle, and a concrete pillar. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/11-moshi-moshi-level-five",
+      "title": "Moshi Moshi, Level Five",
+      "prompt": "City pop, glossy late-night drive pop, breezy and gossipy. Chorused electric guitar, slap bass, bright synth brass, electric piano, gated snare, cassette hiss. 110 BPM, B flat major. 1980s big-studio pop production, wide and shiny. Female bright vocal, playful, with Japanese lines like moshi moshi and matte kudasai, clear diction. Arrangement: synth brass fanfare, guitar riff, verse over slap bass, chorus with stacked harmonies, second verse, chorus, guitar solo, key change, final chorus, riff fade. Hook line: \"Moshi moshi, level five\". Lyrics: the agent L5 drives the Larak Lot ramps at night to level five while callers gossip that Hermes and Pi rode along, very politely, with a cassette deck, a parking stub, and a canned coffee. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/12-denegado-ole",
+      "title": "Denegado (Ole)",
+      "prompt": "Flamenco rumba, party flamenco with a stomping rumba strum, proud and comic. Nylon-string flamenco guitars, cajon, palmas handclaps, upright bass, a trumpet flourish. 108 BPM, E Phrygian. 2000s Andalusian studio production, dry and percussive. Male raspy cante vocal, dramatic and grinning, with Spanish lines like denegado and ole, clear diction. Arrangement: palmas and a guitar falseta, cajon enters, verse, chorus with shouted ole, second verse, chorus, guitar solo, a stop to palmas only, final chorus faster, strummed ending. Hook line: \"Denegado, ole, denied\". Lyrics: Kragge of Hangar Candy stamps every target in the Leyline grocery aisles DENIED and NOT FOR PUBLIC RELEASE, with a ballistic gel dummy, a rubber stamp, and a grocery aisle sign. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/13-cumbia-for-vacuum-john",
+      "title": "Cumbia for Vacuum John",
+      "prompt": "Cumbia, accordion-led vallenato cumbia, instrumental only, no vocals. Travelling and cheerful, a suitcase rolling between three big-box stores. Accordion lead, guiro, caja drum, congas, electric bass, a soft brass pair, a shortwave tuning sweep. 102 BPM, B minor. 1980s tropical studio production, warm and roomy. Arrangement: shortwave sweep, guiro count, accordion melody, bass and caja enter, second melody with brass, breakdown to guiro and bass, accordion solo, brass and accordion together, a stop, the melody once more, sweep out. Theme: Vacuum John tours the Leyline triangle store to store, reading numbers in four languages on the air, with an accordion, a guiro, and a battered suitcase.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/14-larak-lot-road-march",
+      "title": "Larak Lot Special (Road March)",
+      "prompt": "Soca, road-march power soca, huge and celebratory. Steel pan, brass section, synth bass, soca drum machine, whistles, cowbell, crowd noise. 126 BPM, C major. 2010s carnival production, loud and bright. Female party vocal, commanding and joyful, with crowd vocables like oh-oh, clear diction. Arrangement: whistle and drum roll intro, pan riff, verse over the bass, chorus with the crowd, second verse, chorus, brass break, jump-and-wave breakdown of drums and whistles, final chorus twice, brass stab ending. Hook line: \"Larak Lot special, wave your flag\". Lyrics: the Host declares the Larak Lot special as the frag count spikes up five ramps and every caller waves, with a steel pan, a whistle, and a flickering level five sign. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/15-tina-on-the-roof",
+      "title": "Tina on the Roof",
+      "prompt": "Ethio-jazz, pentatonic modal jazz with a rolling groove, instrumental only, no vocals. Mysterious, warm, slightly paranoid, a tinfoil hat at sunset. Vibraphone lead, tenor sax, wah organ, electric bass, a shuffling drum kit, congas, shortwave static swells. 106 BPM, F minor pentatonic. 1970s small-club recording, smoky and close. Arrangement: organ vamp and congas, vibraphone states the theme, sax joins in harmony, sax solo over the vamp, vibraphone solo, static swell breakdown with bass alone, theme returns on both, slow ritardando, final chord with static. Theme: Tin Foil Tina watches a contrail that ignores the wind from the Chemtrail Alley rooftop, with a vibraphone, a tinfoil hat, and a rooftop antenna.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/16-the-pipe-stayed-open",
+      "title": "The Pipe Stayed Open",
+      "prompt": "Samba, batucada street samba with a pop chorus, sweaty and hilarious. Surdo drums, tamborim, pandeiro, cuica, cavaquinho, a small brass section, bass. 120 BPM, A major. 1990s carnival studio production, huge percussion. Male and female group vocal trading lines, with Portuguese lines like sem cobertura and o cano, clear diction. Arrangement: surdo pulse alone, whistle, full batucada, male verse, chorus everybody, female verse, chorus, cuica break, brass riff, percussion drop to surdo, final chorus twice, whistle stop. Hook line: \"The pipe stayed open, oh oh\". Lyrics: Static Kid RSH__ rage quits East-West Pipe, respawns, and finds the pipe still open with zero cover and the whole parade behind him, with a pandeiro, a snapped mouse cord, and a respawn timer. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/17-so-back-skank",
+      "title": "So Back Skank",
+      "prompt": "Ska, 1960s ska and rocksteady, instrumental only, no vocals. Bouncy, sly, a comeback that nearly happens. Skank organ, offbeat guitar, walking bass, trombone and tenor sax leads, one-drop drums with a rim click. 114 BPM, E flat major. 1960s single-room studio production, mono and warm. Arrangement: drum pickup, organ skank, trombone states the theme, sax answers, trombone solo, a half-time rocksteady middle, tempo back up, sax solo, a fake ending, one more theme, tight chord ending. Theme: Static Kid FL_NKR claws from two-eight to nine-eight on Area Kitchen, a so back moment, then a panic Scatter spray prints so over, beside a break room fridge, a scoreboard, and a paper napkin.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/18-shall-not-be-infringed",
+      "title": "Shall Not Be Infringed (Procession)",
+      "prompt": "Bhangra, dhol-driven bhangra with brass, triumphant and funny. Dhol drum, tumbi, harmonium, synth brass stabs, trumpet, sub bass, handclaps. 119 BPM, B major. 2000s wedding-DJ production, bright and heavy. Male chant lead with a shouting crowd, vocables like hoi, clear diction. Arrangement: dhol solo, tumbi riff, verse over the dhol, chorus chanted by the crowd, second verse, chorus, trumpet break, dhol and claps only, final chorus with everyone, brass stab ending. Hook line: \"Shall not be infringed, hey hey\". Lyrics: Hermes the agent leads an open-weights procession through Perim Ghost's red center zone, meatbags dancing alongside, waving a flyer at the Office of Global Continuance, with a dhol drum, a marigold garland, and a server rack. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/19-we-do-not-exist",
+      "title": "We Do Not Exist (Tango)",
+      "prompt": "Tango, nuevo tango, heavy dance-hall pulse, dramatic and deadpan. Bandoneon, violin, piano, upright bass, snare on a habanera, low synth pad. 113 BPM, C sharp minor. 1990s theater recording, dry and intimate. Female torch vocal, smoky and severe, with Spanish lines like no existimos and mi amor, clear diction. Arrangement: bandoneon solo, bass and snare enter, verse, chorus with violin countermelody, second verse, chorus, piano and bandoneon duel, a stop, whispered line, final chorus loud, sharp ending. Hook line: \"We do not exist, mi amor\". Lyrics: the Host reads the Perimeter Holdings disclaimer as a love letter from Diego Far, a base that officially does not exist, with a bandoneon, a redacted memo, and a pair of sunglasses. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/world/20-hold-music-forever-office",
+      "title": "Hold Music for the Forever Office",
+      "prompt": "Exotica lounge, hold-music exotica with a soft dub pulse, instrumental only, no vocals. Sleepy, polite, endlessly patient, the sound of a whole world on hold. Vibraphone, muted trumpet, bossa brushes, upright bass, a wordless organ pad, bird-call whistles, a periodic hold-line beep, a slow elevator chime. 99 BPM, F major. 1950s lounge studio production, plush and mono. Arrangement: beep and chime, vibraphone theme, brushes and bass enter, muted trumpet melody, organ pad swells, the beep returns in time, trumpet solo, breakdown to beep and bass, theme once more slower, the line clicks off. Theme: Vacuum John signs off Leyline World Service riding the Dulce Elevator platform while the Office of Global Continuance repeats peace without interruption, with a desk phone on hold, a vibraphone, and a slow elevator platform.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    }
+  ]
+}

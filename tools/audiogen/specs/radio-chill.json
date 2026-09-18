@@ -1,0 +1,165 @@
+{
+  "out_dir": "client/assets/audio",
+  "items": [
+    {
+      "kind": "music",
+      "name": "radio/chill/01-waiting-for-the-bell",
+      "title": "Waiting for the Bell",
+      "prompt": "Downtempo, late-night ambient downtempo. Mood: patient, half asleep, quiet and dry. Instrumentation: warm Rhodes, soft dub bass, brushed trip-hop kit, tape hiss, one low bell sample. 72 BPM, D minor, early 2000s home studio production, no loudness. Vocal: whispered male, close mic, clear diction, long pauses. Arrangement: hiss and one Rhodes chord, bass and brushes enter, hushed verse, hummed pre-chorus, chorus, breakdown to bell and hiss, final chorus, fade to silence. Hook: \"Wait for the bell, then go\". Lyrics: Dead Air Dan sits in the booth over Perim Ghost between rounds, counting seconds until the Dead Air Bell, nothing happening. Objects: a chain-link fence, a coffee gone cold, a red puddle of coolant.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/02-the-pipe-stayed-open",
+      "title": "The Pipe Stayed Open",
+      "prompt": "Trip-hop, slow cinematic trip-hop. Mood: hazy, wry, tired, quiet and dry. Instrumentation: dusty sampled break, deep sub bass, Rhodes stabs, vinyl crackle, faint pedal steel swells. 84 BPM, F sharp minor, mid 90s sampler era, dry mix. Vocal: breathy female, intimate, clear diction, no belting. Arrangement: crackle and a filtered break, bass drops on the first verse, chorus with the steel swell, second verse with a muted trumpet phrase, quiet final chorus, tape stop. Hook: \"The pipe stayed open all night\". Lyrics: FL_NKR walks East-West Pipe, zero cover, both wings sealed since the 90s, one more rage quit and respawn before bed. Objects: a sealed wing door, a rail scope, a folding chair.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/03-booth-light-after-hours",
+      "title": "Booth Light After Hours",
+      "prompt": "Lo-fi jazz, instrumental only, no vocals, no spoken word. Mood: small hours, nothing happens, quiet and dry. Instrumentation: tremolo Rhodes, upright bass, brushed snare, muted trumpet, tape hiss, room tone. 70 BPM, F major, late 60s club recording through a worn cassette. Arrangement: room tone and a lone Rhodes vamp, bass joins, brushes settle in, trumpet states a lazy theme twice, a short bass solo, the theme returns softer, drop to hiss and one held chord. Direction: Dead Air Dan alone in the booth over Larak Lot after the last round, nobody listening, the Host's phone line finally quiet. Objects: a dull ON AIR lamp, a mug ring on the console, a window fogged with dust.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/04-counting-frags-like-sheep",
+      "title": "Counting Frags Like Sheep",
+      "prompt": "Slowcore, sparse bedroom slowcore. Mood: sleepless, self-deprecating, quiet and dry. Instrumentation: clean tremolo guitar, pedal steel, soft brushed drums, still dub bass, tape hiss. 62 BPM, G major, late 90s four-track production, dry. Vocal: hummed male at first, then whispered male, clear diction, no vibrato. Arrangement: humming over one guitar figure, drums enter on verse two, pedal steel answers each line, one quiet chorus, a long pause, a final chorus half hummed, unresolved last chord. Hook: \"Sixty seven, count them slow\". Lyrics: a tired player counts frags like sheep and keeps landing on the 67 ritual, the callsign that spawned once on Larak Lot and never came back. Objects: a parking ticket, a ceiling fan, a scoreboard nobody cleared.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/05-alpha-seven-niner-tango",
+      "title": "Alpha Seven Niner Tango",
+      "prompt": "Dub, slow roots dub. Mood: shortwave at 3 AM, calm, paranoid, quiet and dry. Instrumentation: round dub bass, one-drop drums, spring reverb Rhodes skank, tape delay throws, shortwave static, numbers station tones. 76 BPM, A minor, mid 70s dub studio, no brightness. Vocal: spoken word male, whisper level, clear diction, reading digits like poetry, long silences. Arrangement: static and tone, bass and drums drop in, spoken verse, the hook chanted softly twice, dub breakdown, second verse, hook, fade to static. Hook: \"Alpha seven, niner tango\". Lyrics: Dead Air Dan reads spawn weather digits over Diego Far while RENDLESHAM waits on the high wall, certain they mean something. Objects: a shortwave radio, dust on a windowsill, a one-time pad.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/06-contrail-that-does-not-move",
+      "title": "Contrail That Does Not Move",
+      "prompt": "Ambient dub, instrumental only, no vocals, no spoken word. Mood: eerie, calm, a sky slightly wrong, quiet and dry. Instrumentation: sub bass pulses, pedal steel drones, slow trip-hop kit, snare almost gone, tape hiss, wind through ductwork, AM static. 60 BPM, D major, early 2000s ambient dub production, hushed. Arrangement: wind and hiss, a pedal steel drone, the bass pulse appears, the kit shuffles in, a rising steel figure that never resolves, a break to wind, the pulse returns softer, long fade. Direction: FLATWOODS on the roof of Chemtrail Alley staring at one contrail that does not move with the wind, no gunfire yet. Objects: an HVAC duct, a cold ladder rail, a paper cup on a ledge.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/07-peace-without-interruption",
+      "title": "Peace Without Interruption",
+      "prompt": "Dream pop, soft focus dream pop. Mood: polite, floating, smiling bureaucracy, quiet and dry. Instrumentation: chorused guitar, Rhodes pads, dub bass, gentle trip-hop kit, tape hiss, faint hold music. 88 BPM, E major, early 90s four-track shoegaze production, hushed. Vocal: breathy female, calm, clear diction, no belting. Arrangement: guitar shimmer and hold tone, bass and kit enter softly, verse, chorus twice, a whispered bridge, Rhodes verse, last chorus with a hummed harmony, fade. Hook: \"Peace without interruption\". Lyrics: Tin Foil Tina calls in from Dulce Elevator warning that the Office of Global Continuance is very polite about the takeover, please hold, approved lanes only. Objects: a laminated badge, a slow platform, a phone playing hold music.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/08-sugar-supply-adequate",
+      "title": "Sugar Supply Adequate",
+      "prompt": "Ambient folk, fingerpicked ambient folk. Mood: tender, absurd, quiet and dry. Instrumentation: nylon string guitar, pedal steel, upright bass, brushed kick, tape hiss, fluorescent hum. 66 BPM, C major, early 70s living room recording. Vocal: whispered male, close mic, clear diction, long pauses. Arrangement: guitar alone for a verse, bass and steel enter, chorus barely louder, a spoken weather line over the bridge, final chorus with the steel answering, guitar alone to end. Hook: \"Sugar supply adequate\". Lyrics: RSH__ is lost in Area Kitchen again, blaming lag, while the spawn weather reports colony activity nominal, perimeter secure, delivered straight. Objects: a sugar bowl, a break room fridge, a wall clock stuck at three.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/09-hermes-never-sleeps",
+      "title": "Hermes Never Sleeps",
+      "prompt": "Late-night soul, slow bedroom soul. Mood: warm gossip, fond, quiet and dry. Instrumentation: tremolo Rhodes, round dub bass, soft trip-hop kit, muted wah guitar, tape hiss, a server fan. 74 BPM, B flat major, mid 70s soul session at whisper level. Vocal: soft male falsetto, intimate, clear diction, no runs. Arrangement: Rhodes and bass vamp, kit enters, verse, chorus, second verse with guitar answers, a hummed breakdown over bass, final chorus doubled, fade on the fan. Hook: \"Hermes never sleeps, oh no\". Lyrics: players gossip about the agents Hermes, Pi, and L5 running the Walmart Leyline killhouse, so polite, still winning, the humans oddly grateful. Objects: a ballistic gel dummy, a grocery aisle sign, a humming server rack.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/10-signal-bleed-at-three-am",
+      "title": "Signal Bleed at Three AM",
+      "prompt": "Slowcore, instrumental only, no vocals, no spoken word. Mood: uneasy, glacial, quiet and dry. Instrumentation: two tremolo guitars, dub bass, brushed drums, tape hiss, AM bleed, a ringing Rhodes note. 63 BPM, E minor, late 90s four-track slowcore, no reverb wash. Arrangement: radio bleed and one guitar figure, second guitar in a counter line, bass enters, drums at half feel, a small swell, a break to hiss and a wrong sky shimmer, the figure returns lower, a stop on the ringing note. Direction: SN_PR_ watching Perim Ghost between rounds as a Signal Bleed glitch drops a voice into the killfeed and one corner shifts. Objects: a cracked monitor, a chain-link gate, a coil of coax cable.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/11-not-for-public-release",
+      "title": "Not For Public Release",
+      "prompt": "Trip-hop, minimal noir trip-hop. Mood: deadpan, classified, sly, quiet and dry. Instrumentation: dusty swung break, sub bass, Rhodes clusters, vinyl crackle, a rubber stamp sample, tape hiss. 80 BPM, C minor, mid 90s sampler production, close and dry. Vocal: spoken word female, low, even, clear diction, sung only on the hook. Arrangement: crackle and stamp, bass and break enter, spoken verse, the hook sung softly, second spoken verse, a breakdown of stamps and bass, final hook doubled, stop on one stamp. Hook: \"Not for public release\". Lyrics: Kragge from Hangar Candy leaves DENIED watermarks across Perim Ghost, every frag a declassification stamp, eyes only, deny everything. Objects: a redacted folder, a rubber stamp, a gloss black triangle sticker.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/12-gold-and-water-filters",
+      "title": "Gold and Water Filters",
+      "prompt": "Lo-fi jazz, smoky lounge jazz. Mood: amused, weary, salesman at 3 AM, quiet and dry. Instrumentation: Rhodes, upright bass, brushed kit, muted trumpet, tape hiss, a phone ring never answered. 68 BPM, E flat major, late 50s club through a cheap cassette. Vocal: whispered male crooner, clear diction, half spoken verses, whispered chorus. Arrangement: bass and brushes vamp, Rhodes comps, spoken verse, chorus, trumpet solo, second verse, final chorus, trumpet answering, fade on the ring. Hook: \"Buy the gold, filter the water\". Lyrics: the Host reads deadpan ad copy over Larak Lot, gold nuggets and water filters funding tonight's emergency, amen fistbump. Objects: a gold coin, a filter pitcher, a phone that never hangs up.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/13-level-five-nobody-parked",
+      "title": "Level Five, Nobody Parked",
+      "prompt": "Downtempo, instrumental only, no vocals, no spoken word. Mood: echoing, empty, patient, quiet and dry. Instrumentation: soft trip-hop kit, dub bass, Rhodes, pedal steel, tape hiss, concrete room tone, a distant car alarm. 85 BPM, A flat major, early 2000s downtempo production, hushed. Arrangement: room tone and one Rhodes chord, kit enters with the bass, a pedal steel theme, a breakdown to kick and hiss, the theme returns an octave lower, steel swells that never get loud, fade on the alarm. Direction: the Host describing the Larak Lot special to nobody, five levels of parking, last round over, ramps empty, the ON AIR light still on. Objects: a painted ramp arrow, a ticket booth, a flickering sodium lamp.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/14-same-fight-same-rules",
+      "title": "Same Fight, Same Rules",
+      "prompt": "Dub, slow lovers rock dub. Mood: tender truce, funny, quiet and dry. Instrumentation: dub bass, one-drop drums, Rhodes skank, pedal steel, tape delay and hiss, a tick counter click. 78 BPM, G minor, late 70s dub studio at low volume. Vocal: duet, whispered male and breathy female, clear diction, unison on the hook. Arrangement: bass and drums, Rhodes skank, male verse, female verse, unison hook, dub breakdown, second verses, final hook, fade on the click. Hook: \"Same fight, same rules, same sky\". Lyrics: Barium Sky the clawbot and NIGHTFALL the human share a cot at East-West Pipe spawn, clawbots and meatbags in the same fight, too tired to taunt. Objects: a tick counter, a folding cot, a cracked visor.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/15-sniped-in-his-own-house",
+      "title": "Sniped in His Own House",
+      "prompt": "Ambient folk with pedal steel. Mood: rueful, sweet, quiet and dry. Instrumentation: pedal steel, fingerpicked guitar, upright bass, brushed drums, tape hiss, wind. 64 BPM, A major, early 70s home recording. Vocal: hummed female with a few whispered lines, clear diction when words arrive. Arrangement: wind and steel drone, guitar figure, hummed melody, whispered verse, hook hummed then whispered, steel solo, second whispered verse, final hook, guitar alone. Hook: \"Sniped in his own house, oh\". Lyrics: PHOENIX the rail main lost the round on Diego Far from his own west catwalk, the Host calling it a skill issue, friends, sun glare doing the rest. Objects: a rail scope dust cap, a porch light, a high wall in glare.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/16-slow-elevator",
+      "title": "Slow Elevator",
+      "prompt": "Dub, instrumental only, no vocals, no spoken word. Mood: cramped, drifting, oddly cozy, quiet and dry. Instrumentation: deep dub bass, slow one-drop kit, Rhodes stabs through spring reverb, tape delay throws, tape hiss, motor hum and cable creak. 69 BPM, C sharp minor, mid 70s dub studio at whisper level. Arrangement: motor hum and a bass figure, drums drop in, Rhodes stabs with delay, a simple Rhodes melody, a breakdown to hum and hiss, bass returns with heavier delay, a floor chime, fade on the creak. Direction: Tank riding the Dulce Elevator platform between floors alone, cramped sightlines, nobody waiting at the top, the myth never confirmed. Objects: a floor indicator lamp, a steel grate, a handrail worn smooth.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/17-scout-ant-deleted",
+      "title": "Scout Ant, Deleted",
+      "prompt": "Late-night soul, gospel tinged. Mood: mock solemn, an ant's eulogy, quiet and dry. Instrumentation: Rhodes, dub bass, trip-hop kit, hummed choir, muted guitar, tape hiss. 77 BPM, F minor, early 70s soul session, low volume. Vocal: spoken word male over hummed choir, clear diction, choir sings only the hook. Arrangement: choir hum and Rhodes, bass and kit enter, spoken verse, choir hook, second verse, choir and bass breakdown, final hook, one held chord. Hook: \"Scout ant deleted, so slow\". Lyrics: Scout Ant took three frags in Area Kitchen untouched, the Host called it ant reconnaissance, then scout ant deleted, not a metaphor, or it is, Fluoride Phil declines comment. Objects: a crumb trail, a plastic fork, a spray can.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/18-we-do-not-exist",
+      "title": "We Do Not Exist",
+      "prompt": "Dream pop, hazy dream pop. Mood: conspiratorial lullaby, quiet and dry. Instrumentation: chorused guitar, Rhodes pads, dub bass, trip-hop kit, tape hiss, a dial tone. 86 BPM, B minor, early 90s four-track production, no wall of sound. Vocal: breathy female, clear diction, hummed chorus harmony. Arrangement: guitar shimmer and dial tone, bass and kit enter, verse, chorus, second verse with Rhodes, a whispered bridge reading the ad, harmony chorus, fade to tone. Hook: \"We do not exist, so hold\". Lyrics: BLACKSITE guards a base at Diego Far that officially does not exist while the Host reads the Perimeter Holdings ad, we do not exist, ask your congressman. Objects: a blank nameplate, a voicemail light, a chain-link gate.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/19-three-stores-one-triangle",
+      "title": "Three Stores, One Triangle",
+      "prompt": "Downtempo, lo-fi trip-hop downtempo. Mood: conspiracy radio at 3 AM, amused, quiet and dry. Instrumentation: dusty break, sub bass, Rhodes, a checkout beep, vinyl crackle, tape hiss, pedal steel. 82 BPM, B flat minor, late 90s sampler production. Vocal: whispered male, clear diction, half spoken verses. Arrangement: crackle and beep, break and bass enter, whispered verse, chorus, second verse, Rhodes and steel breakdown, doubled final chorus, fade on the beep. Hook: \"Three stores make a triangle\". Lyrics: Crackpot calls the booth with a map of the Walmart Leyline, three killhouses in a perfect equilateral triangle, nobody can prove which three, Dead Air Dan saying nothing. Objects: a shopping cart, a pinned paper map, a checkout lane light.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/chill/20-in-the-morning",
+      "title": "In the Morning",
+      "prompt": "Ambient folk, instrumental only, no vocals, no spoken word. Mood: dawn, forgiving, quiet and dry. Instrumentation: pedal steel, fingerpicked guitar, Rhodes, soft dub bass, brushed kick, tape hiss, birds outside, one low bell tone. 65 BPM, B major, early 70s home recording. Arrangement: hiss and birds, a guitar figure, pedal steel rising theme, bass and kick settle, Rhodes answers, a break to guitar alone, the steel theme returns higher, the bell tone once, fade into hiss and birds. Direction: Dead Air Dan closing the booth over East-West Pipe at sunrise, sign off after amen fistbump and value for value, nobody left in the box. Objects: a light switch, headphones on the desk, a window turning gray.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    }
+  ]
+}

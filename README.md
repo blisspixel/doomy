@@ -46,7 +46,7 @@ cargo run -p fragr-server -- --bind 127.0.0.1:6767 --bots 4
 # Headless alternative: godot --path client res://scenes/main.tscn -- --solo
 ```
 
-**Controls:** WASD to move, mouse to look, left mouse to fire, J to join, L to leave back to spectate, F to cycle the spectator camera, Esc to release the mouse.
+**Controls:** WASD to move, mouse to look, left mouse to fire, J to join, L to leave back to spectate, F to cycle the spectator camera, R next radio station, T next track, M radio on or off, Esc to release the mouse.
 
 **Boot menu:** Solo Scrap (default), Spectate Local, Join Host. The map picker selects Arena Duel or Compliance Yard and must match the server's `--map`.
 
@@ -110,6 +110,7 @@ AGENTS.md        operating rules for coding agents and contributors
 
 - [`docs/VISION.md`](docs/VISION.md): what the game should feel like and the non-negotiables.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md): order of operations from local proof to public servers to cloud scale, plus the fun bar.
+- [`docs/DESIGN-REFERENCES.md`](docs/DESIGN-REFERENCES.md): what fragr steals from the shooters and radio systems that got it right, mapped to roadmap phases.
 - [`docs/ART_STORY_BIBLE.md`](docs/ART_STORY_BIBLE.md): look, palette, and tone.
 - [`docs/LORE.md`](docs/LORE.md): optional flavor. Seasoning, never a blocker.
 - [`docs/plans/README.md`](docs/plans/README.md): index of bounded work plans and their status.

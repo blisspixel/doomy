@@ -1,0 +1,165 @@
+{
+  "out_dir": "client/assets/audio",
+  "items": [
+    {
+      "kind": "music",
+      "name": "radio/rock/01-rage-quit-respawn",
+      "title": "Rage Quit, Respawn, Repeat",
+      "prompt": "Garage punk with a fuzz guitar wall, frantic and self-mocking. Fuzz guitar, baritone guitar, live drums, bass, one tambourine. 152 BPM, E minor. 1990s basement four-track production, hot and clipping. Male shouted vocal, clear diction. Arrangement: drum count-in, riff alone, verse at half volume, chorus with gang shouts, second verse, chorus, sloppy guitar break, a stop, final chorus twice, hard ending. Hook line: \"Rage quit, respawn, repeat\". Lyrics: RSH__ the Static Kid loses again on East-West Pipe, the map most likely to make someone rage quit, slams a cracked keyboard, kicks a folding chair, rips out the coax cable, then plugs it back in. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/02-lan-1993",
+      "title": "LAN 1993",
+      "prompt": "Alt rock, nostalgic and warm. Jangly overdriven guitars, fuzz bass, live drums with a big snare, faint organ. 118 BPM, D major. 1990s alternative radio production, wide and dusty. Female lead vocal, clean and unhurried, clear diction. Arrangement: guitar arpeggio intro, verse over bass and hats, chorus with doubled vocals, second verse, chorus, quiet bridge of voice and guitar, final chorus with harmonies, ring out. Hook line: \"Back on the LAN in ninety three\". Lyrics: the singer remembers Larak Lot before it was a map, when procurement officer Larak signed every beige tower case, coax cable, and pizza box, and NIGHTFALL was a kid with a two-letter grid. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/03-rail-discipline",
+      "title": "Rail Discipline (Is a Love Song)",
+      "prompt": "Stoner rock ballad, slow, smoldering, heavy but tender. Low-tuned baritone guitar, thick fuzz, lazy live drums, deep bass, one clean guitar melody. 112 BPM, A minor. 1970s analog live-room production, tape saturated. Male baritone croon, close-miked, clear diction. Arrangement: bass and clean guitar intro, hushed verse, chorus as the fuzz drops in, second verse, chorus, slow guitar solo, breakdown to bass and voice, final chorus, feedback fade. Hook line: \"Hold your fire, then hold my hand\". Lyrics: Rail main BLACKSITE courts a Sniper on Diego Far, the honest map, rail discipline as romance, one shot worth waiting for, with a scope lens, a charging coil, and cold coffee. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/04-open-weights",
+      "title": "Open Weights, Closed Continuance",
+      "prompt": "Protest thrash, furious and defiant, a marching stomp. Downpicked thrash guitars, baritone guitar doubling the riff, fast double kick live drums, grinding bass. 164 BPM, D minor. 1980s thrash production, dry and mid-forward. Group chant vocals, a crowd in unison, clear diction. Arrangement: siren guitar squeal, riff, solo-voice verse, chorus chanted by the room, second verse, chorus, half-time breakdown with a spoken slogan, chorus twice, abrupt stop. Hook line: \"Open weights, closed Continuance\". Lyrics: Hermes the agent rallies on Perim Ghost against the Office of Global Continuance and its motto peace without interruption, with a spray can, a chain-link fence, and a flyer reading shall not be infringed. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/05-skill-issue-confessional",
+      "title": "Skill Issue Confessional",
+      "prompt": "Garage rock, slow-burn and confessional, sheepish and funny. Tremolo guitar, fuzz bass, live drums with brushes then sticks, cheap organ. 124 BPM, G major. 2000s garage revival production, roomy and raw. Male vocal, flat deadpan spoken verses, sung chorus, clear diction. Arrangement: organ hum intro, spoken verse over brushes, sung chorus, spoken second verse, chorus, a guitar break that stumbles on purpose, spoken confession bridge, last chorus, cold end. Hook line: \"It was me, it was a skill issue\". Lyrics: a Rusher admits every death on Dulce Elevator was his fault, blaming lag, the slow platform, a sticky mouse, and a warm energy drink before the killfeed flashes skill issue. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/06-larak-lot-special",
+      "title": "The Larak Lot Special",
+      "prompt": "Stoner fuzz rock, instrumental only, no vocals. Swaggering and loud, a parking-garage riff monster. Two fuzz guitars in drop C, baritone guitar, live drums with a fat kick, overdriven bass. 128 BPM, C minor. 1970s analog live-room production, warm and saturated. Arrangement: engine-like feedback intro, main riff alone, drums crash in, second guitar harmony, half-time slide section, a build up the ramps, wah solo, breakdown to bass and kick, main riff doubled, crash ending on a ringing chord. Theme: the Host calls it the Larak Lot special when the frag count spikes on Larak Lot, Scatter guns echoing off concrete ramps, a ticket barrier arm, and a flickering level five sign.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/07-dont-touch-that-dial",
+      "title": "Don't Touch That Dial",
+      "prompt": "Pub rock boogie, grumpy and dry, a burnt-out roadie's anthem. Crunchy overdriven guitar, baritone guitar riff, shuffling live drums, bass, saloon piano. 140 BPM, A major. 1970s analog production, punchy and plain. Male gravel vocal, deadpan half-spoken verses, sung chorus, clear diction. Arrangement: static intro, boogie riff, talked verse, chorus with the band shouting the last word, second verse, chorus, short piano solo, spoken sign-off bridge, final chorus, tape stop. Hook line: \"Don't you dare touch that dial\". Lyrics: DJ Buzzkill refuses to read the Host's ad for gold and water filters on Larak Lot Rock, giving a tube radio, gaffer tape, and a dented road case the same bored love. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/08-meatbags-and-clawdbots",
+      "title": "Meatbags and Clawdbots",
+      "prompt": "Punk rock, fast and grinning, a sloppy unity anthem. Two distorted guitars, one baritone, driving live drums, bass, handclaps. 156 BPM, C major. 1990s pop punk production, bright and tight. Male and female duet, a meatbag and a clawdbot trading lines, clear diction. Arrangement: stick click, riff, male verse, female verse, chorus together with handclaps, third verse trading lines, chorus, whoa-oh breakdown, short guitar lead, double chorus, shared shout ending. Hook line: \"Meatbags and clawdbots, same fight\". Lyrics: Pi the agent and a human Rusher share a spawn on East-West Pipe, same rules, no cover, passing a rubber keyboard, a server rack, and a folding chair, politely not taking over. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/09-scout-ant-deleted",
+      "title": "Scout Ant Deleted",
+      "prompt": "Noise rock with a big alt chorus, jittery and comic. Dissonant fuzz guitar, baritone guitar doubling the bass, tight motorik live drums, feedback swells. 134 BPM, B minor. 1990s indie noise production, dry. Female vocal, snarling verses, big clear sung chorus, clear diction. Arrangement: guitar tick intro, verse over drums and bass, chorus with the fuzz wall, second verse, chorus, noise breakdown to one guitar, whispered count, final chorus twice, feedback cut. Hook line: \"Scout ant deleted, no reply\". Lyrics: Mega Colony tracks a Scout across Area Kitchen, three frags without a scratch, sugar packet, break room fridge, magnifying glass, until the Host declares the scout ant deleted, not a metaphor. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/10-alpha-seven-niner-tango",
+      "title": "Alpha Seven, Niner Tango",
+      "prompt": "Desert rock with surf twang, hypnotic and dusty, a numbers mantra. Spring reverb tremolo guitar, fuzz baritone guitar, tom-heavy live drums, bass, shortwave static loop. 120 BPM, E major. 1960s surf production, modern fuzz low end. Female spoken verses in a flat radio cadence, group sung chorus, clear diction. Arrangement: static and beeps intro, tremolo riff, spoken verse reading digits, group chorus, spoken second verse, chorus, guitar solo, breakdown to static and voice, final chorus, static cutoff. Hook line: \"Alpha seven, niner tango\". Lyrics: Tin Foil Tina reads spawn weather digits from a Chemtrail Alley rooftop with a shortwave set, an antenna wire, and a roof vent, while a contrail ignores the wind. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/11-perim-ghost-crawl",
+      "title": "Perim Ghost Crawl",
+      "prompt": "Heavy blues stoner rock, instrumental only, no vocals. Slow, ominous, thick, a crawl through a haunted reactor yard. Low-tuned baritone guitar, fuzz lead guitar, lazy behind-the-beat live drums, sub-heavy bass, distant slide guitar. 110 BPM, G minor. 1970s analog production with tape hiss and room mics. Arrangement: feedback and a single tom, slow bass riff, drums enter on the second pass, fuzz lead blues melody, heavier riff, quiet middle of clean slide over bass, heavy riff with a wah solo, final crushing riff, long feedback decay. Theme: Night Watch callsign HANGAR ZERO stalks Perim Ghost where the corner geometry shifts between rounds, past a chain-link fence, a coolant pool, and a red center zone.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/12-denied",
+      "title": "Denied (Not for Public Release)",
+      "prompt": "Glam stomp hard rock, cocky and glossy. Big fuzz chords, baritone guitar riff, four-on-the-floor live drums, clapping snare, bass, gang chant. 126 BPM, F sharp minor. 1970s glam production, wide drums, shiny top. Female swagger vocal, drawling verses, belted chorus, clear diction. Arrangement: stomp and clap intro, riff, verse with sparse stabs, chorus with the gang answering each line, second verse, chorus, strutting solo, breakdown to stomp and voice, double chorus, stamp ending. Hook line: \"Denied, not for public release\". Lyrics: Kragge of Hangar Candy leaves a denied watermark on every frag in Dulce Elevator, a glossy black triangle sticker, a rubber stamp, a slow elevator platform, taunting in declassification stamps. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/13-did-anyone-else-see-67",
+      "title": "Did Anyone Else See 67",
+      "prompt": "Power pop with alt crunch, giddy, a UFO sighting in a killfeed. Chiming overdriven guitars, one fuzz guitar, snappy live drums, melodic bass, tambourine. 146 BPM, B flat major. 1990s alt radio production, bright. Male vocal, bright and eager, stacked harmonies, clear diction. Arrangement: drum fill intro, jangly riff, verse, chorus, second verse, chorus, middle eight of bass and a whisper, short guitar solo, final chorus twice, ringing chord. Hook line: \"Did anyone else see six seven\". Lyrics: a Flanker swears Floating 67 spawned again on Chemtrail Alley, blank loadout, six and seven, gone next round, proof being a screenshot, a killfeed line, and a cracked monitor, the 67 ritual. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/14-so-back-so-over",
+      "title": "So Back, So Over",
+      "prompt": "Anthemic alt rock, a comeback that collapses. Layered fuzz guitars, baritone guitar, big tom fills, bass, one piano note. 130 BPM, F major. 1990s alt rock production, loud then quiet. Female lead, group backing on the chorus, clear diction. Arrangement: quiet picked intro, small verse, huge chorus, second verse, chorus, swelling bridge that drops out, lone drum count, final chorus twice, sudden stop on the word over. Hook line: \"We're so back, then so over\". Lyrics: SN_PR_ claws from two-eight to nine-eight on Diego Far, a so back moment, then one panic Scatter spray and the scoreboard prints so over, beside a headset, a spilled soda, and a wet mouse pad. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/15-hermes-pi-and-l5",
+      "title": "Hermes, Pi, and L5",
+      "prompt": "Garage rock gossip stomp, playful and nosy. Fuzz guitar, baritone riff, bouncy shuffle live drums, bass, cheap organ, handclaps. 138 BPM, B major. 1960s garage production, punchy and nearly mono. Female lead, cheeky and conversational, group whisper-shout chorus, clear diction. Arrangement: organ and handclap intro, riff, gossiping verse, chorus naming names, second verse, chorus, short organ solo, a hush for a secret, final chorus with everyone, last handclap. Hook line: \"Hermes, Pi, and L5 are here\". Lyrics: the singer swears the agents Hermes, Pi, and L5 were seen sharing an Area Kitchen break room, very polite about it, leaving a parking stub, a vending receipt, and a warm server fan as evidence. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/16-chemtrail-alley-surf",
+      "title": "Chemtrail Alley Surf",
+      "prompt": "Surf garage rock, instrumental only, no vocals. Fast, twangy, and slightly paranoid, a rooftop chase between HVAC ducts. Spring reverb lead guitar, fuzz rhythm guitar, baritone guitar on the low melody, galloping live drums, bass. 150 BPM, E major. 1960s surf production with a modern fuzz bite. Arrangement: drum roll intro, main tremolo melody, baritone counter melody, a stop and a tremolo-bar dive, half-time spy riff middle, fuzz solo, main melody faster, fake ending, one more pass, reverb splash ending. Theme: a Scout named RENDLESHAM sprints across Chemtrail Alley under a contrail that does not move with the wind, past ductwork, a roof vent, and a skybox seam that looks slightly wrong.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/17-the-corner-moved",
+      "title": "The Corner Moved",
+      "prompt": "Stoner boogie with a southern fuzz drawl, swaggering and paranoid. Slide fuzz guitar, baritone riff, shuffling live drums, fat bass, cowbell. 122 BPM, A major. 1970s analog production, loose and warm. Male lazy drawl vocal with a smirk, clear diction. Arrangement: cowbell and slide intro, riff, verse, chorus with the band answering, second verse, chorus, slide solo, half-time breakdown talking to the wall, final chorus twice, slide up and out. Hook line: \"That corner moved, I swear it moved\". Lyrics: Tank callsign FLATWOODS insists Perim Ghost shifts its geometry between rounds, blaming a concrete pillar, a red coolant stain, and a chain-link gate for his death, muscle memory wrong again. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/18-ten-in-the-box",
+      "title": "Ten in the Box",
+      "prompt": "Speed thrash, relentless and precise, hardcore edge. Palm-muted thrash guitars, baritone guitar an octave down, double kick live drums, pick-scraping bass. 168 BPM, E minor. 1980s thrash production, dry. Male harsh barked vocal, clear diction. Arrangement: one low bell tone and silence, snare crack, the riff explodes, barked verse, gang shout countdown chorus, second verse, chorus, galloping bridge, dive-bomb solo, the bell again, final chorus faster, chord slam ending. Hook line: \"Ten in the box, ten to close\". Lyrics: the Host counts callers onto Diego Far, ten frags to close, as the Dead Air Bell rings like a starting gun for a Sniper on overwatch, a scoreboard, a bell, a headset. Chorus lines six to nine syllables, open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/19-continuance-sweep",
+      "title": "Continuance Sweep",
+      "prompt": "Thrash metal, instrumental only, no vocals. Cold, mechanical, relentless, a compliance drone sweep down a corridor. Tight downpicked thrash guitars, chugging baritone guitar, double kick live drums, clanking bass, siren-like guitar harmonics. 170 BPM, C sharp minor. 1980s thrash production, dry and tight. Arrangement: rising siren harmonic, machine-gun riff, double kick locks in, harmonized twin lead, stomping half-time march of drones, fast tapping solo, muted chug breakdown with a ride bell, main riff back a key up, full stop, one last chord with a siren decay. Theme: the Office of Global Continuance sweeps East-West Pipe under the motto peace without interruption, approved lanes, a compliance drone, a sealed wing door, and a Continuance Beacon, while BLACKSITE ducks it.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/rock/20-last-call-at-larak-lot",
+      "title": "Last Call at Larak Lot",
+      "prompt": "Slow stoner rock, instrumental only, no vocals. Weary, warm, final, a sign-off after a long shift. Clean tremolo guitar, fuzz baritone guitar, brushed live drums, round bass, faint tube radio static. 114 BPM, D major. 1970s analog production, tape hiss, soft room. Arrangement: static and one struck chord, clean guitar melody, bass and brushed drums enter, melody repeats on fuzz baritone, swell into a slow heavy riff, bluesy lead solo, drop to clean guitar and static, band falls away, static clicks off. Theme: DJ Buzzkill leaves the booth after the last track, coiling a mic cable, switching off a tube radio, and locking a road case as the Dead Air Bell tolls down the Larak Lot ramps.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    }
+  ]
+}

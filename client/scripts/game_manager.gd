@@ -17,6 +17,7 @@ var compliance_yard_scene = preload("res://scenes/arena_compliance_yard.tscn")
 var current_map_id := 1
 
 var is_human_player = false
+var radio = null
 var local_fp_pawn_id = ""
 var local_hp_seen = -1
 var fp_spawn_flashed = false
@@ -50,6 +51,26 @@ func _ready():
 	
 	net_client.connect_to_server(role, player_name)
 	hud.set_mode(str(boot.get("hud_mode", "SPECTATING")))
+	_setup_radio()
+
+## Contested Frequency radio lives under AudioPlayers and reads the audiogen manifest.
+func _setup_radio() -> void:
+	var radio_script = load("res://scripts/radio.gd")
+	if radio_script == null:
+		return
+	radio = radio_script.new()
+	radio.name = "Radio"
+	var audio_parent = get_node_or_null("AudioPlayers")
+	if audio_parent:
+		audio_parent.add_child(radio)
+	else:
+		add_child(radio)
+	radio.set_human_mode(is_human_player)
+	if hud and hud.has_method("show_radio"):
+		radio.track_started.connect(func(station, title): hud.show_radio(station, title))
+		radio.station_changed.connect(func(station, tagline, _has): hud.show_radio(station, tagline))
+	if hud and hud.has_signal("host_spoke"):
+		hud.host_spoke.connect(func(seconds): radio.duck(seconds))
 
 func _resolve_boot() -> Dictionary:
 	# Boot menu meta wins; then --solo / FRAGR_SOLO; then --human; else spectator.
@@ -95,6 +116,8 @@ func _input(event):
 			fp_spawn_flashed = false
 			net_client.connect_to_server("human", "Human Player")
 			hud.set_mode("PLAYING")
+			if radio:
+				radio.set_human_mode(true)
 			_pick_ghost_rival_from_alive()
 		elif event.keycode == KEY_L and is_human_player:
 			print("Leaving match, returning to spectator...")
@@ -105,6 +128,8 @@ func _input(event):
 			net_client.connect_to_server("spectator", "Spectator")
 			hud.set_ghost_rival("")
 			hud.set_mode("SPECTATING")
+			if radio:
+				radio.set_human_mode(false)
 
 func _process(_delta):
 	if is_human_player and net_client.connection_state == WebSocketPeer.STATE_OPEN:

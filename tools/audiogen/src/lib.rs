@@ -36,6 +36,17 @@ const SFX_SECONDS_MIN: f64 = 0.5;
 const SFX_SECONDS_MAX: f64 = 30.0;
 const MUSIC_LENGTH_MIN_MS: u32 = 3_000;
 const MUSIC_LENGTH_MAX_MS: u32 = 600_000;
+/// Text to speech defaults: the expressive v3 model and the same MP3 format as music.
+pub const DEFAULT_TTS_MODEL: &str = "eleven_v3";
+pub const DEFAULT_TTS_FORMAT: &str = "mp3_44100_128";
+const TTS_MODELS: [&str; 4] = [
+    "eleven_v3",
+    "eleven_multilingual_v2",
+    "eleven_flash_v2_5",
+    "eleven_flash_v2",
+];
+/// The v3 per-request limit. Other models allow more, but v3 is the default.
+const TTS_TEXT_MAX_CHARS: usize = 5_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Method {
@@ -145,6 +156,9 @@ pub struct SfxParams {
     pub influence: Option<f64>,
     pub looping: bool,
     pub format: String,
+    /// Display title recorded in the manifest (radio track titles).
+    #[serde(default)]
+    pub title: Option<String>,
 }
 
 impl SfxParams {
@@ -198,6 +212,9 @@ pub struct MusicParams {
     pub model: String,
     pub instrumental: bool,
     pub format: String,
+    /// Display title recorded in the manifest (radio track titles).
+    #[serde(default)]
+    pub title: Option<String>,
 }
 
 impl MusicParams {
@@ -239,6 +256,139 @@ pub fn music_request(params: &MusicParams) -> Result<Request, Error> {
         query: vec![("output_format".to_string(), params.format.clone())],
         body: Some(serde_json::Value::Object(body)),
     })
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TtsParams {
+    pub text: String,
+    pub voice_id: String,
+    pub model: String,
+    /// 0 is creative, 1 is robust. v3 follows delivery tags best near the middle.
+    pub stability: Option<f64>,
+    pub format: String,
+    #[serde(default)]
+    pub title: Option<String>,
+}
+
+impl TtsParams {
+    pub fn validate(&self) -> Result<(), Error> {
+        if self.text.trim().is_empty() {
+            return Err(Error::InvalidArgument("tts text is empty".to_string()));
+        }
+        let chars = self.text.chars().count();
+        if chars > TTS_TEXT_MAX_CHARS {
+            return Err(Error::InvalidArgument(format!(
+                "tts text is {chars} characters; the limit is {TTS_TEXT_MAX_CHARS}"
+            )));
+        }
+        let valid_voice = !self.voice_id.is_empty()
+            && self
+                .voice_id
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
+        if !valid_voice {
+            return Err(Error::InvalidArgument(format!(
+                "tts voice id '{}' is not a valid ElevenLabs voice id",
+                self.voice_id
+            )));
+        }
+        if !TTS_MODELS.contains(&self.model.as_str()) {
+            return Err(Error::InvalidArgument(format!(
+                "tts model '{}' is not one of {}",
+                self.model,
+                TTS_MODELS.join(", ")
+            )));
+        }
+        if let Some(stability) = self.stability {
+            if !(0.0..=1.0).contains(&stability) {
+                return Err(Error::InvalidArgument(format!(
+                    "tts stability {stability} is outside 0..=1"
+                )));
+            }
+        }
+        parse_format(&self.format).map(|_| ())
+    }
+}
+
+/// `POST /v1/text-to-speech/{voice_id}`. Only `stability` is sent as a voice
+/// setting because the v3 model ignores the others.
+pub fn tts_request(params: &TtsParams) -> Result<Request, Error> {
+    params.validate()?;
+    let mut body = serde_json::Map::new();
+    body.insert("text".into(), params.text.clone().into());
+    body.insert("model_id".into(), params.model.clone().into());
+    if let Some(stability) = params.stability {
+        body.insert(
+            "voice_settings".into(),
+            serde_json::json!({ "stability": stability }),
+        );
+    }
+    Ok(Request {
+        method: Method::Post,
+        path: format!("/v1/text-to-speech/{}", params.voice_id),
+        query: vec![("output_format".to_string(), params.format.clone())],
+        body: Some(serde_json::Value::Object(body)),
+    })
+}
+
+/// `GET /v2/voices` for the account's default voices, the casting sheet.
+pub fn voices_request() -> Request {
+    Request {
+        method: Method::Get,
+        path: "/v2/voices".to_string(),
+        query: vec![
+            ("voice_type".to_string(), "default".to_string()),
+            ("page_size".to_string(), "100".to_string()),
+        ],
+        body: None,
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+pub struct VoiceSummary {
+    pub voice_id: String,
+    pub name: String,
+    #[serde(default)]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub labels: BTreeMap<String, serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+struct VoicesPage {
+    #[serde(default)]
+    voices: Vec<VoiceSummary>,
+}
+
+pub fn parse_voices(body: &[u8]) -> Result<Vec<VoiceSummary>, Error> {
+    let page: VoicesPage = serde_json::from_slice(body).map_err(|err| Error::Api {
+        status: 200,
+        message: format!("unreadable voices body: {err}"),
+    })?;
+    Ok(page.voices)
+}
+
+/// One line per voice: id, name, category, then the labels that matter for casting.
+pub fn describe_voices(voices: &[VoiceSummary]) -> String {
+    if voices.is_empty() {
+        return "no voices returned (does the key have the voices_read permission?)".to_string();
+    }
+    let mut lines = Vec::with_capacity(voices.len());
+    for voice in voices {
+        let tags: Vec<String> = ["gender", "age", "accent", "use_case", "description"]
+            .iter()
+            .filter_map(|key| voice.labels.get(*key))
+            .filter_map(|value| value.as_str().map(str::to_string))
+            .collect();
+        lines.push(format!(
+            "{}  {}  [{}]  {}",
+            voice.voice_id,
+            voice.name,
+            voice.category.as_deref().unwrap_or("?"),
+            tags.join(" / ")
+        ));
+    }
+    lines.join("\n")
 }
 
 /// `GET /v1/user/subscription`, the quota check.
@@ -455,6 +605,7 @@ pub fn encode_output(
 pub enum Job {
     Sfx(SfxParams),
     Music(MusicParams),
+    Tts(TtsParams),
 }
 
 impl Job {
@@ -462,6 +613,7 @@ impl Job {
         match self {
             Job::Sfx(params) => sfx_request(params),
             Job::Music(params) => music_request(params),
+            Job::Tts(params) => tts_request(params),
         }
     }
 
@@ -473,13 +625,16 @@ impl Job {
         match self {
             Job::Sfx(params) => &params.format,
             Job::Music(params) => &params.format,
+            Job::Tts(params) => &params.format,
         }
     }
 
+    /// The generation prompt, or the spoken text for speech.
     pub fn prompt(&self) -> &str {
         match self {
             Job::Sfx(params) => &params.prompt,
             Job::Music(params) => &params.prompt,
+            Job::Tts(params) => &params.text,
         }
     }
 
@@ -487,6 +642,7 @@ impl Job {
         match self {
             Job::Sfx(_) => SFX_MODEL,
             Job::Music(params) => &params.model,
+            Job::Tts(params) => &params.model,
         }
     }
 
@@ -494,6 +650,7 @@ impl Job {
         match self {
             Job::Sfx(_) => "sfx",
             Job::Music(_) => "music",
+            Job::Tts(_) => "tts",
         }
     }
 
@@ -501,6 +658,66 @@ impl Job {
         match self {
             Job::Sfx(params) => params.seconds,
             Job::Music(params) => params.length_ms.map(|ms| f64::from(ms) / 1000.0),
+            Job::Tts(_) => None,
+        }
+    }
+
+    pub fn title(&self) -> Option<&str> {
+        match self {
+            Job::Sfx(params) => params.title.as_deref(),
+            Job::Music(params) => params.title.as_deref(),
+            Job::Tts(params) => params.title.as_deref(),
+        }
+    }
+
+    pub fn voice(&self) -> Option<&str> {
+        match self {
+            Job::Tts(params) => Some(&params.voice_id),
+            Job::Sfx(_) | Job::Music(_) => None,
+        }
+    }
+}
+
+/// Deterministic length inside `[lo, hi]` milliseconds, in whole seconds, chosen
+/// from the track name so re-running a spec never reshuffles lengths.
+pub fn pick_length_ms(name: &str, lo: u32, hi: u32) -> u32 {
+    let (lo, hi) = if lo <= hi { (lo, hi) } else { (hi, lo) };
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for byte in name.bytes() {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(0x0100_0000_01b3);
+    }
+    let span = u64::from(hi - lo) + 1;
+    let offset = u32::try_from(hash % span).unwrap_or(0);
+    lo + (offset / 1000) * 1000
+}
+
+/// Published rates: music is 900 credits per minute, sound effects 40 credits
+/// per second, or 200 flat when the model chooses the length.
+pub const MUSIC_CREDITS_PER_MINUTE: f64 = 900.0;
+pub const SFX_CREDITS_PER_SECOND: f64 = 40.0;
+pub const SFX_CREDITS_FLAT: u64 = 200;
+/// Assumed music length for the estimate when the model chooses.
+pub const MUSIC_DEFAULT_ESTIMATE_MS: u32 = 180_000;
+
+pub fn estimate_credits(job: &Job) -> u64 {
+    match job {
+        Job::Sfx(params) => match params.seconds {
+            Some(seconds) => (seconds * SFX_CREDITS_PER_SECOND).ceil() as u64,
+            None => SFX_CREDITS_FLAT,
+        },
+        Job::Music(params) => {
+            let ms = params.length_ms.unwrap_or(MUSIC_DEFAULT_ESTIMATE_MS);
+            (f64::from(ms) / 60_000.0 * MUSIC_CREDITS_PER_MINUTE).ceil() as u64
+        }
+        // Speech is one credit per character; the flash models bill about half.
+        Job::Tts(params) => {
+            let chars = params.text.chars().count() as u64;
+            if params.model.starts_with("eleven_flash") {
+                chars.div_ceil(2)
+            } else {
+                chars
+            }
         }
     }
 }
@@ -524,22 +741,38 @@ pub enum SpecItem {
         #[serde(default, rename = "loop")]
         looping: bool,
         format: Option<String>,
+        title: Option<String>,
     },
     Music {
         name: String,
         prompt: String,
         length_ms: Option<u32>,
+        /// `[lo, hi]` in milliseconds; a deterministic length per name is picked when `length_ms` is absent.
+        length_range_ms: Option<[u32; 2]>,
         model: Option<String>,
         #[serde(default)]
         instrumental: bool,
         format: Option<String>,
+        title: Option<String>,
+    },
+    Tts {
+        name: String,
+        text: String,
+        /// ElevenLabs voice id from the `voices` command.
+        voice: String,
+        model: Option<String>,
+        stability: Option<f64>,
+        format: Option<String>,
+        title: Option<String>,
     },
 }
 
 impl SpecItem {
     pub fn name(&self) -> &str {
         match self {
-            SpecItem::Sfx { name, .. } | SpecItem::Music { name, .. } => name,
+            SpecItem::Sfx { name, .. }
+            | SpecItem::Music { name, .. }
+            | SpecItem::Tts { name, .. } => name,
         }
     }
 
@@ -551,6 +784,7 @@ impl SpecItem {
                 influence,
                 looping,
                 format,
+                title,
                 ..
             } => Job::Sfx(SfxParams {
                 prompt,
@@ -558,20 +792,41 @@ impl SpecItem {
                 influence,
                 looping,
                 format: format.unwrap_or_else(|| DEFAULT_SFX_FORMAT.to_string()),
+                title,
             }),
             SpecItem::Music {
+                name,
                 prompt,
                 length_ms,
+                length_range_ms,
                 model,
                 instrumental,
                 format,
-                ..
+                title,
             } => Job::Music(MusicParams {
                 prompt,
-                length_ms,
+                length_ms: length_ms
+                    .or_else(|| length_range_ms.map(|[lo, hi]| pick_length_ms(&name, lo, hi))),
                 model: model.unwrap_or_else(|| DEFAULT_MUSIC_MODEL.to_string()),
                 instrumental,
                 format: format.unwrap_or_else(|| DEFAULT_MUSIC_FORMAT.to_string()),
+                title,
+            }),
+            SpecItem::Tts {
+                text,
+                voice,
+                model,
+                stability,
+                format,
+                title,
+                ..
+            } => Job::Tts(TtsParams {
+                text,
+                voice_id: voice,
+                model: model.unwrap_or_else(|| DEFAULT_TTS_MODEL.to_string()),
+                stability,
+                format: format.unwrap_or_else(|| DEFAULT_TTS_FORMAT.to_string()),
+                title,
             }),
         }
     }
@@ -628,6 +883,10 @@ pub struct ManifestEntry {
     pub prompt: String,
     pub model: String,
     pub format: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub voice: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub seconds: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -783,13 +1042,15 @@ impl Generator<'_> {
                 prompt: job.prompt().to_string(),
                 model: job.model().to_string(),
                 format: job.format().to_string(),
+                title: job.title().map(str::to_string),
+                voice: job.voice().map(str::to_string),
                 seconds: match job {
                     Job::Sfx(params) => params.seconds,
-                    Job::Music(_) => None,
+                    Job::Music(_) | Job::Tts(_) => None,
                 },
                 length_ms: match job {
                     Job::Music(params) => params.length_ms,
-                    Job::Sfx(_) => None,
+                    Job::Sfx(_) | Job::Tts(_) => None,
                 },
                 looping: matches!(job, Job::Sfx(params) if params.looping),
                 channels,
@@ -809,9 +1070,20 @@ impl Generator<'_> {
 /// What the binary asks the library to do, after argument parsing.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Command {
-    Generate { name: String, job: Job },
-    Batch { spec: Spec, only: Option<String> },
+    Generate {
+        name: String,
+        job: Job,
+    },
+    /// `only` matches one exact name, `prefix` matches a folder such as `radio/rock/`,
+    /// `limit` caps how many files this run generates (skipped files do not count).
+    Batch {
+        spec: Spec,
+        only: Option<String>,
+        prefix: Option<String>,
+        limit: Option<usize>,
+    },
     Quota,
+    Voices,
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -819,9 +1091,11 @@ pub struct RunOptions {
     pub out_dir: Option<PathBuf>,
     pub overwrite: bool,
     pub dry_run: bool,
+    /// Refuse to start when the estimated credits for the run exceed this.
+    pub max_credits: Option<u64>,
 }
 
-fn report(out: &mut dyn Write, name: &str, outcome: &Outcome) -> Result<(), Error> {
+fn report(out: &mut dyn Write, name: &str, outcome: &Outcome, credits: u64) -> Result<(), Error> {
     match outcome {
         Outcome::Written {
             path,
@@ -854,7 +1128,7 @@ fn report(out: &mut dyn Write, name: &str, outcome: &Outcome) -> Result<(), Erro
                 .unwrap_or_default();
             writeln!(
                 out,
-                "dry-run {name} -> {}: POST {}?{} {body}",
+                "dry-run {name} -> {} (~{credits} credits): POST {}?{} {body}",
                 path.display(),
                 request.path,
                 request
@@ -892,6 +1166,18 @@ pub fn run_command(
             writeln!(out, "{}", describe_subscription(&subscription))?;
             Ok(())
         }
+        Command::Voices => {
+            let response = send_with_retry(
+                transport,
+                api_key,
+                &voices_request(),
+                &RetryPolicy::default(),
+                sleep,
+            )?;
+            let voices = parse_voices(&response.body)?;
+            writeln!(out, "{}", describe_voices(&voices))?;
+            Ok(())
+        }
         Command::Generate { name, job } => {
             let generator = Generator {
                 transport,
@@ -904,10 +1190,23 @@ pub fn run_command(
                 dry_run: options.dry_run,
                 retry: RetryPolicy::default(),
             };
+            let credits = estimate_credits(job);
+            if let Some(max) = options.max_credits {
+                if credits > max {
+                    return Err(Error::InvalidArgument(format!(
+                        "estimated {credits} credits exceeds --max-credits {max}"
+                    )));
+                }
+            }
             let outcome = generator.run(name, job, sleep)?;
-            report(out, name, &outcome)
+            report(out, name, &outcome, credits)
         }
-        Command::Batch { spec, only } => {
+        Command::Batch {
+            spec,
+            only,
+            prefix,
+            limit,
+        } => {
             let out_dir = options
                 .out_dir
                 .clone()
@@ -921,22 +1220,60 @@ pub fn run_command(
                 dry_run: options.dry_run,
                 retry: RetryPolicy::default(),
             };
+            // Plan first so the credit estimate covers exactly what this run will generate.
             let mut matched = 0;
+            let mut planned: Vec<(String, Job)> = Vec::new();
             for item in &spec.items {
                 if only.as_deref().is_some_and(|wanted| wanted != item.name()) {
+                    continue;
+                }
+                if prefix
+                    .as_deref()
+                    .is_some_and(|wanted| !item.name().starts_with(wanted))
+                {
                     continue;
                 }
                 matched += 1;
                 let name = item.name().to_string();
                 let job = item.clone().into_job();
-                let outcome = generator.run(&name, &job, sleep)?;
-                report(out, &name, &outcome)?;
+                let encoding = job.encoding()?;
+                let path = generator
+                    .out_dir
+                    .join(format!("{name}.{}", encoding.extension()));
+                if path.exists() && !generator.overwrite {
+                    report(out, &name, &Outcome::Skipped(path), 0)?;
+                    continue;
+                }
+                if limit.is_some_and(|max| planned.len() >= max) {
+                    break;
+                }
+                planned.push((name, job));
             }
             if matched == 0 {
-                return Err(Error::Spec(format!(
-                    "no spec item named '{}'",
-                    only.as_deref().unwrap_or_default()
-                )));
+                return Err(Error::Spec(match only {
+                    Some(wanted) => format!("no spec item named '{wanted}'"),
+                    None => format!(
+                        "no spec item with prefix '{}'",
+                        prefix.as_deref().unwrap_or_default()
+                    ),
+                }));
+            }
+            let total: u64 = planned.iter().map(|(_, job)| estimate_credits(job)).sum();
+            writeln!(
+                out,
+                "batch: {} to generate, ~{total} credits estimated",
+                planned.len()
+            )?;
+            if let Some(max) = options.max_credits {
+                if total > max {
+                    return Err(Error::InvalidArgument(format!(
+                        "estimated {total} credits exceeds --max-credits {max}"
+                    )));
+                }
+            }
+            for (name, job) in &planned {
+                let outcome = generator.run(name, job, sleep)?;
+                report(out, name, &outcome, estimate_credits(job))?;
             }
             Ok(())
         }
@@ -997,6 +1334,7 @@ mod tests {
             influence: Some(0.4),
             looping: false,
             format: DEFAULT_SFX_FORMAT.to_string(),
+            title: None,
         }
     }
 
@@ -1007,6 +1345,7 @@ mod tests {
             model: DEFAULT_MUSIC_MODEL.to_string(),
             instrumental: true,
             format: DEFAULT_MUSIC_FORMAT.to_string(),
+            title: None,
         }
     }
 
@@ -1373,7 +1712,7 @@ mod tests {
                 assert_eq!(params.seconds, Some(0.9));
                 assert_eq!(params.influence, None);
             }
-            Job::Music(_) => panic!("expected sfx"),
+            other => panic!("expected sfx, got {other:?}"),
         }
         match spec.items[1].clone().into_job() {
             Job::Music(params) => {
@@ -1381,7 +1720,7 @@ mod tests {
                 assert_eq!(params.format, DEFAULT_MUSIC_FORMAT);
                 assert!(params.instrumental);
             }
-            Job::Sfx(_) => panic!("expected music"),
+            other => panic!("expected music, got {other:?}"),
         }
     }
 
@@ -1430,6 +1769,8 @@ mod tests {
                 prompt: "p".into(),
                 model: SFX_MODEL.into(),
                 format: "pcm_24000".into(),
+                title: None,
+                voice: None,
                 seconds: Some(1.0),
                 length_ms: None,
                 looping: false,
@@ -1622,6 +1963,7 @@ mod tests {
             out_dir: Some(dir.clone()),
             overwrite: false,
             dry_run: false,
+            max_credits: None,
         };
         let command = Command::Generate {
             name: "hit".into(),
@@ -1686,6 +2028,8 @@ mod tests {
         let command = Command::Batch {
             spec: spec.clone(),
             only: Some("b".into()),
+            prefix: None,
+            limit: None,
         };
         run_command(
             &command,
@@ -1696,12 +2040,16 @@ mod tests {
             &mut no_sleep(),
         )
         .unwrap();
-        assert!(String::from_utf8(out).unwrap().starts_with("wrote b -> "));
+        let text = String::from_utf8(out).unwrap();
+        assert!(text.contains("batch: 1 to generate, ~75 credits estimated"));
+        assert!(text.contains("wrote b -> "));
         assert!(dir.join("b.mp3").exists());
         assert!(!dir.join("a.wav").exists());
         let missing = Command::Batch {
             spec: spec.clone(),
             only: Some("zzz".into()),
+            prefix: None,
+            limit: None,
         };
         let err = run_command(
             &missing,
@@ -1713,7 +2061,12 @@ mod tests {
         )
         .unwrap_err();
         assert!(err.to_string().contains("no spec item named 'zzz'"));
-        let all = Command::Batch { spec, only: None };
+        let all = Command::Batch {
+            spec,
+            only: None,
+            prefix: None,
+            limit: None,
+        };
         let transport = FakeTransport::new(vec![
             Response {
                 status: 200,
@@ -1728,6 +2081,7 @@ mod tests {
             out_dir: Some(dir.clone()),
             overwrite: true,
             dry_run: false,
+            max_credits: None,
         };
         let err = run_command(
             &all,
@@ -1740,6 +2094,363 @@ mod tests {
         .unwrap_err();
         assert_eq!(err.to_string(), "API error 422: validation failed: bad");
         assert!(dir.join("a.wav").exists());
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn pick_length_is_deterministic_and_in_range() {
+        let a = pick_length_ms("radio/rock/01", 120_000, 360_000);
+        assert_eq!(a, pick_length_ms("radio/rock/01", 120_000, 360_000));
+        assert!((120_000..=360_000).contains(&a));
+        assert_eq!(a % 1000, 0);
+        assert_eq!(pick_length_ms("x", 5000, 5000), 5000);
+        assert_eq!(
+            pick_length_ms("x", 6000, 5000),
+            pick_length_ms("x", 5000, 6000)
+        );
+        let odd = pick_length_ms("y", 120_500, 121_700);
+        assert!((120_500..=121_700).contains(&odd));
+        let distinct: std::collections::BTreeSet<u32> = (0..20)
+            .map(|i| pick_length_ms(&format!("radio/edm/{i:02}"), 120_000, 360_000))
+            .collect();
+        assert!(distinct.len() > 5, "{distinct:?}");
+    }
+
+    #[test]
+    fn credit_estimates_follow_published_rates() {
+        assert_eq!(estimate_credits(&Job::Sfx(sfx("x"))), 40);
+        let open_ended = SfxParams {
+            seconds: None,
+            ..sfx("x")
+        };
+        assert_eq!(estimate_credits(&Job::Sfx(open_ended)), 200);
+        assert_eq!(estimate_credits(&Job::Music(music("x"))), 150);
+        let unknown = MusicParams {
+            length_ms: None,
+            ..music("x")
+        };
+        assert_eq!(estimate_credits(&Job::Music(unknown)), 2700);
+    }
+
+    #[test]
+    fn spec_resolves_length_ranges_and_titles() {
+        let json = r#"{"items": [
+            {"kind": "music", "name": "radio/rock/01", "title": "Dead Air Dan", "prompt": "p", "length_range_ms": [120000, 360000]},
+            {"kind": "sfx", "name": "click", "title": "Click", "prompt": "p"}
+        ]}"#;
+        let spec = parse_spec(json).unwrap();
+        match spec.items[0].clone().into_job() {
+            Job::Music(params) => {
+                let ms = params.length_ms.unwrap();
+                assert!((120_000..=360_000).contains(&ms));
+                assert_eq!(params.title.as_deref(), Some("Dead Air Dan"));
+            }
+            other => panic!("expected music, got {other:?}"),
+        }
+        let job = spec.items[1].clone().into_job();
+        assert_eq!(job.title(), Some("Click"));
+    }
+
+    #[test]
+    fn generate_respects_credit_cap() {
+        let transport = FakeTransport::ok(vec![0u8; 10]);
+        let options = RunOptions {
+            max_credits: Some(10),
+            ..RunOptions::default()
+        };
+        let command = Command::Generate {
+            name: "hit".into(),
+            job: Job::Sfx(sfx("hit")),
+        };
+        let err = run_command(
+            &command,
+            &options,
+            &transport,
+            "k",
+            &mut Vec::new(),
+            &mut no_sleep(),
+        )
+        .unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("estimated 40 credits exceeds --max-credits 10"));
+        assert!(transport.seen.borrow().is_empty());
+    }
+
+    #[test]
+    fn batch_prefix_limit_and_credit_cap() {
+        let dir = temp_dir("wave");
+        let spec = parse_spec(
+            r#"{"items": [
+            {"kind": "music", "name": "radio/rock/01", "prompt": "a", "length_ms": 60000},
+            {"kind": "music", "name": "radio/rock/02", "prompt": "b", "length_ms": 60000},
+            {"kind": "music", "name": "radio/edm/01", "prompt": "c", "length_ms": 60000}
+        ]}"#,
+        )
+        .unwrap();
+        let options = RunOptions {
+            out_dir: Some(dir.clone()),
+            overwrite: false,
+            dry_run: false,
+            max_credits: Some(1000),
+        };
+        let transport = FakeTransport::new(vec![Response {
+            status: 200,
+            body: vec![1u8; 4],
+        }]);
+        let command = Command::Batch {
+            spec: spec.clone(),
+            only: None,
+            prefix: Some("radio/rock/".into()),
+            limit: Some(1),
+        };
+        let mut out = Vec::new();
+        run_command(
+            &command,
+            &options,
+            &transport,
+            "k",
+            &mut out,
+            &mut no_sleep(),
+        )
+        .unwrap();
+        let text = String::from_utf8(out).unwrap();
+        assert!(text.contains("batch: 1 to generate, ~900 credits estimated"));
+        assert!(dir.join("radio/rock/01.mp3").exists());
+        assert!(!dir.join("radio/rock/02.mp3").exists());
+        // Second wave: the existing file is skipped and the next one is generated.
+        let transport = FakeTransport::new(vec![Response {
+            status: 200,
+            body: vec![1u8; 4],
+        }]);
+        let command = Command::Batch {
+            spec: spec.clone(),
+            only: None,
+            prefix: Some("radio/rock/".into()),
+            limit: None,
+        };
+        let mut out = Vec::new();
+        run_command(
+            &command,
+            &options,
+            &transport,
+            "k",
+            &mut out,
+            &mut no_sleep(),
+        )
+        .unwrap();
+        let text = String::from_utf8(out).unwrap();
+        assert!(text.contains("skip radio/rock/01"));
+        assert!(dir.join("radio/rock/02.mp3").exists());
+        // The whole spec has one pending track at 900 credits; a cap of 100 refuses to start.
+        let capped = RunOptions {
+            max_credits: Some(100),
+            ..options.clone()
+        };
+        let command = Command::Batch {
+            spec: spec.clone(),
+            only: None,
+            prefix: None,
+            limit: None,
+        };
+        let err = run_command(
+            &command,
+            &capped,
+            &transport,
+            "k",
+            &mut Vec::new(),
+            &mut no_sleep(),
+        )
+        .unwrap_err();
+        assert!(err.to_string().contains("exceeds --max-credits 100"));
+        assert!(!dir.join("radio/edm/01.mp3").exists());
+        let none = Command::Batch {
+            spec,
+            only: None,
+            prefix: Some("radio/country/".into()),
+            limit: None,
+        };
+        let err = run_command(
+            &none,
+            &options,
+            &transport,
+            "k",
+            &mut Vec::new(),
+            &mut no_sleep(),
+        )
+        .unwrap_err();
+        assert!(err.to_string().contains("prefix 'radio/country/'"));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    fn tts(text: &str) -> TtsParams {
+        TtsParams {
+            text: text.to_string(),
+            voice_id: "JBFqnCBsd6RMkjVDRZzb".to_string(),
+            model: DEFAULT_TTS_MODEL.to_string(),
+            stability: Some(0.5),
+            format: DEFAULT_TTS_FORMAT.to_string(),
+            title: Some("Bulletin".to_string()),
+        }
+    }
+
+    #[test]
+    fn tts_request_matches_api_shape() {
+        let request = tts_request(&tts("[sighs] Good evening.")).unwrap();
+        assert_eq!(request.method, Method::Post);
+        assert_eq!(request.path, "/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb");
+        assert_eq!(request.query[0].1, "mp3_44100_128");
+        let body = request.body.unwrap();
+        assert_eq!(body["text"], "[sighs] Good evening.");
+        assert_eq!(body["model_id"], "eleven_v3");
+        assert_eq!(body["voice_settings"]["stability"], 0.5);
+        let plain = TtsParams {
+            stability: None,
+            ..tts("x")
+        };
+        let body = tts_request(&plain).unwrap().body.unwrap();
+        assert!(body.get("voice_settings").is_none());
+    }
+
+    #[test]
+    fn tts_validation_rejects_bad_values() {
+        assert!(tts(" ").validate().is_err());
+        assert!(tts(&"a".repeat(5001)).validate().is_err());
+        assert!(TtsParams {
+            voice_id: "bad/id".into(),
+            ..tts("x")
+        }
+        .validate()
+        .is_err());
+        assert!(TtsParams {
+            voice_id: String::new(),
+            ..tts("x")
+        }
+        .validate()
+        .is_err());
+        assert!(TtsParams {
+            model: "eleven_v9".into(),
+            ..tts("x")
+        }
+        .validate()
+        .is_err());
+        assert!(TtsParams {
+            stability: Some(1.5),
+            ..tts("x")
+        }
+        .validate()
+        .is_err());
+        assert!(tts("ok").validate().is_ok());
+    }
+
+    #[test]
+    fn tts_job_accessors_and_estimate() {
+        let job = Job::Tts(tts("hello world"));
+        assert_eq!(job.kind(), "tts");
+        assert_eq!(job.prompt(), "hello world");
+        assert_eq!(job.model(), "eleven_v3");
+        assert_eq!(job.format(), DEFAULT_TTS_FORMAT);
+        assert_eq!(job.title(), Some("Bulletin"));
+        assert_eq!(job.voice(), Some("JBFqnCBsd6RMkjVDRZzb"));
+        assert_eq!(job.expected_seconds(), None);
+        assert_eq!(job.encoding().unwrap(), Encoding::Mp3);
+        assert_eq!(estimate_credits(&job), 11);
+        let flash = Job::Tts(TtsParams {
+            model: "eleven_flash_v2_5".into(),
+            ..tts("hello world")
+        });
+        assert_eq!(estimate_credits(&flash), 6);
+        assert_eq!(Job::Sfx(sfx("x")).voice(), None);
+    }
+
+    #[test]
+    fn spec_parses_tts_items() {
+        let json = r#"{"items": [
+            {"kind": "tts", "name": "radio/news/generic-01", "title": "Count", "text": "Good evening.", "voice": "abc123", "stability": 0.4}
+        ]}"#;
+        let spec = parse_spec(json).unwrap();
+        match spec.items[0].clone().into_job() {
+            Job::Tts(params) => {
+                assert_eq!(params.voice_id, "abc123");
+                assert_eq!(params.model, DEFAULT_TTS_MODEL);
+                assert_eq!(params.format, DEFAULT_TTS_FORMAT);
+                assert_eq!(params.stability, Some(0.4));
+                assert_eq!(params.title.as_deref(), Some("Count"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+    }
+
+    #[test]
+    fn voices_parse_and_describe() {
+        let body = br#"{"voices":[
+            {"voice_id":"v1","name":"George","category":"premade","labels":{"gender":"male","accent":"British","age":"middle_aged","use_case":"narration","description":"warm"}},
+            {"voice_id":"v2","name":"Nova","labels":{"gender":"female","odd":null}}
+        ],"has_more":false}"#;
+        let voices = parse_voices(body).unwrap();
+        assert_eq!(voices.len(), 2);
+        let text = describe_voices(&voices);
+        assert!(
+            text.contains("v1  George  [premade]  male / middle_aged / British / narration / warm")
+        );
+        assert!(text.contains("v2  Nova  [?]  female"));
+        assert!(describe_voices(&[]).contains("voices_read"));
+        assert!(parse_voices(b"nope").is_err());
+        let request = voices_request();
+        assert_eq!(request.method, Method::Get);
+        assert_eq!(request.path, "/v2/voices");
+    }
+
+    #[test]
+    fn run_command_voices_prints_casting_sheet() {
+        let transport =
+            FakeTransport::ok(br#"{"voices":[{"voice_id":"v1","name":"George"}]}"#.to_vec());
+        let mut out = Vec::new();
+        run_command(
+            &Command::Voices,
+            &RunOptions::default(),
+            &transport,
+            "k",
+            &mut out,
+            &mut no_sleep(),
+        )
+        .unwrap();
+        assert!(String::from_utf8(out).unwrap().contains("v1  George"));
+        assert_eq!(transport.seen.borrow()[0].1.path, "/v2/voices");
+    }
+
+    #[test]
+    fn generator_writes_tts_mp3_with_voice_in_manifest() {
+        let dir = temp_dir("tts");
+        let transport = FakeTransport::ok(b"mp3-bytes".to_vec());
+        let generator = Generator {
+            transport: &transport,
+            api_key: "k".into(),
+            out_dir: dir.clone(),
+            overwrite: false,
+            dry_run: false,
+            retry: RetryPolicy::default(),
+        };
+        let outcome = generator
+            .run(
+                "radio/news/generic-01",
+                &Job::Tts(tts("Good evening.")),
+                &mut no_sleep(),
+            )
+            .unwrap();
+        assert!(matches!(
+            outcome,
+            Outcome::Written {
+                channels: 0,
+                bytes: 9,
+                ..
+            }
+        ));
+        let entry = &load_manifest(&dir).unwrap().entries["radio/news/generic-01"];
+        assert_eq!(entry.kind, "tts");
+        assert_eq!(entry.voice.as_deref(), Some("JBFqnCBsd6RMkjVDRZzb"));
+        assert_eq!(entry.prompt, "Good evening.");
+        assert_eq!(entry.file, "radio/news/generic-01.mp3");
         fs::remove_dir_all(&dir).unwrap();
     }
 
