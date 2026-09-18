@@ -8,7 +8,7 @@ Working name **fragr** (may change). Do **not** brand as Doom or a Doom clone in
 
 **Feel blend (protect this):** **Unreal + Counter-Strike arena energy** for how it plays (3D FPS, readable fights). Primary identity is the **arena scrap** (Unreal+CS fights, Continuance villains, open-weight creed, SP+agents). **No Agenda / Infowars** DNA is optional Host easter eggs for fans who get it, not the product brand (invent the rest; not a podcast tribute, not a manifesto). Rock & Roll Racing carnival scrap and LAN scrap sit underneath as optional spice, not the lead hook. Agents and humans scrap under the same rules. No Doom / id IP (Doom-weight grit OK as analogy only).
 
-**Look lock:** world and camera are **3D** (Godot arena FPS), not flat 2D. Surfaces, sprites, and HUD stay **retro pixel / chunky grit** and theatrical. Not photoreal. Not milsim TAC. Not Doom branding or lookalikes.
+**Look lock (north star):** maximally fun **modern 3D arena shooter** with **Doom-sprite-level** chunky readable silhouettes (feeling, not IP). Unreal+CS arena feel + pixel billboard grit. Not flat 2D. Not milsim/photoreal. Not Doom branding or lookalikes. Max fun beats lore.
 
 **Single-player is first-class:** solo boot-and-scrap (feeling, not IP). Local rule bots, arcade-or-campaign loop, offline-capable boot-and-play. Same Action path and feel as MP where possible. Not "MP with an empty lobby."
 
