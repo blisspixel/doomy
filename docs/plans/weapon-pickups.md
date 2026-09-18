@@ -89,4 +89,4 @@ $0. No secrets. No attribution, emoji, or em/en dashes in commits, PR text, or d
 - [x] Godot scrap pads readable (bone-white / gunmetal / ember)
 - [x] MCP observe sees pickups
 - [x] Tests + unfiltered fail-under 80
-- [ ] PR open on `cursor/weapon-pickups`
+- [x] PR open on `cursor/weapon-pickups` (#70)
