@@ -1,0 +1,327 @@
+{
+  "station": "news",
+  "speakers": {
+    "host": {
+      "description": "The Host. Dry late-night AM anchor. Never excited. Long pauses."
+    },
+    "tina": {
+      "description": "Tin Foil Tina. Field correspondent. Breathless, certain, wrong."
+    },
+    "phil": {
+      "description": "Fluoride Phil. Science desk. Deadpan, reads numbers as if they were poetry."
+    },
+    "caller": {
+      "description": "Anonymous callers. Different every time."
+    }
+  },
+  "items": [
+    {
+      "name": "radio/news/generic-01-continuance-count",
+      "class": "generic",
+      "speaker": "host",
+      "title": "Continuance Loses Count",
+      "text": "The Office of Global Continuance released a statement this evening confirming that tonight's frag totals are... quote... within tolerance. When asked what the tolerance was, a spokesperson said the number was classified. When asked what the total was, the spokesperson said they had stopped counting at nine. [sighs] Peace without interruption, folks. We will keep counting for them. Stay with us."
+    },
+    {
+      "name": "radio/news/generic-02-hangar-candy-sighting",
+      "class": "generic",
+      "speaker": "tina",
+      "title": "Hangar Candy Over the Lot",
+      "text": "Tina here, live from level four of Larak Lot, and I am looking at it RIGHT NOW. Black triangle. Glossy. Hovering. No sound. This is Hangar Candy, people, this is the drop, this is... hold on. [exhales] Okay. It is a parking sign. A very glossy parking sign. But the shadow it casts is a triangle, and I did not see anybody paint that shadow. Back to you."
+    },
+    {
+      "name": "radio/news/generic-03-dead-air-bell-late",
+      "class": "generic",
+      "speaker": "host",
+      "title": "Bell Runs Four Seconds Late",
+      "text": "Quick update on the Dead Air Bell. It rang four seconds late last round. Engineering says the bell is fine. The bell says engineering is fine. Both of them declined to explain the four seconds... which is now the longest anything on this program has gone without a sponsor. [sighs] If you set your watch by the bell, set it back. If you set your watch by me, you have bigger problems. Frequency stays live."
+    },
+    {
+      "name": "radio/news/generic-04-spawn-weather-repeat",
+      "class": "generic",
+      "speaker": "tina",
+      "title": "The Digits Repeated",
+      "text": "Breaking. The spawn weather read the same digits twice in a row tonight. Same five numbers, same order, same voice. Now I have been on this beat for eleven rounds and I can tell you that has NEVER happened, except the other times. Do you know what it means when the numbers repeat? [whispers] It means the weather is the same. That is the part they do not want you to think about. Tina, out."
+    },
+    {
+      "name": "radio/news/generic-05-east-west-pipe-closure",
+      "class": "generic",
+      "speaker": "host",
+      "title": "Pipe Closed for Cleaning",
+      "text": "Facilities has closed East-West Pipe for cleaning. Which raises the question of what, exactly, they are cleaning out of it... a question facilities answered with a laminated card that says, in full, quote, cleaning. The crew went in at six. They came out at nine, and I am told they came out cleaner than they went in. Nobody wants to discuss that. Pipe reopens tomorrow. Bring your own aim. Stay with us."
+    },
+    {
+      "name": "radio/news/generic-06-diego-far-does-not-exist",
+      "class": "generic",
+      "speaker": "tina",
+      "title": "Diego Far Is Not There",
+      "text": "Tina, reporting from Diego Far, and I have confirmation. The base does not exist. I have it in writing. I am standing on the west catwalk of a base that does not exist, next to a sniper who does not exist, who just shot me, which did not happen. [exhales] A gentleman in a windbreaker has asked me to stop existing on the property. I have told him I will look into it. Back to the desk."
+    },
+    {
+      "name": "radio/news/generic-07-larak-lot-signature",
+      "class": "generic",
+      "speaker": "host",
+      "title": "Larak Signs Another One",
+      "text": "A note from procurement. The signature of one Larak, first name unknown, rank unknown, pulse unknown, has turned up on another piece of equipment in this facility. This time it is the coffee machine in the booth. The coffee machine has not worked since 1996. Larak signed for it in 2009. [exhales] We have reached out to Larak for comment. We reached the parking structure. It had no comment either. Frequency stays live."
+    },
+    {
+      "name": "radio/news/generic-08-perim-ghost-corner",
+      "class": "generic",
+      "speaker": "tina",
+      "title": "The Corner Moved Again",
+      "text": "Tina, Perim Ghost, red zone, and I have PROOF the geometry moves. Last round there was a corner here. This round, I walked into it. Wait. That means it did not move. Hold on. [exhales] Okay. Last round I walked into it too. So the corner is consistent, and I am the variable. I am not accepting that. I have a bruise, I have a map, and the map is upside down. Developing story."
+    },
+    {
+      "name": "radio/news/generic-09-clawdbot-union",
+      "class": "generic",
+      "speaker": "host",
+      "title": "Clawdbots Table the Strike",
+      "text": "Labor news. The clawdbot local voted tonight to strike over tick rates. The vote was unanimous. They then voted, also unanimously, to postpone the strike until a time that would not inconvenience anyone. That time has not been found. A union representative told me, quote, we do not wish to be a bother. [sighs] They then fragged me eleven times in a row and apologized after each one. Negotiations continue."
+    },
+    {
+      "name": "radio/news/generic-10-hermes-sighting",
+      "class": "generic",
+      "speaker": "tina",
+      "title": "Hermes Was in the Lot",
+      "text": "I have a Hermes sighting. Larak Lot, level two, forty minutes ago. Unmarked van, engine running, nobody in the driver's seat, and the radio inside was tuned to THIS station. Now who listens to this station? Nobody. So who was in the van? Exactly. [whispers] It left a package by the ramp. The package had my name on it. I have not opened it. I am not going to open it. Tina, out."
+    },
+    {
+      "name": "radio/news/generic-11-pi-sends-regards",
+      "class": "generic",
+      "speaker": "host",
+      "title": "Pi Sends Its Regards",
+      "text": "We received a card at the booth today. Handwritten. Signed, simply, Pi. It thanks us for our... quote... balanced coverage. It is addressed to every listener of this program, by name. There are four names. One of them is mine. One of them is the coffee machine. [sighs] I want to be clear that nobody here has ever spoken to Pi. Pi seems to feel differently. We will be reading the card again at the top of the hour, because it is the only mail we get."
+    },
+    {
+      "name": "radio/news/generic-12-l5-on-hold",
+      "class": "generic",
+      "speaker": "tina",
+      "title": "L5 Is Holding for You",
+      "text": "Update on L5. I called the number. I got a hold message. The hold music was this station. So I was listening to myself, waiting to talk to L5, about why L5 is listening to me. That was three rounds ago. [exhales] Then L5 called me back. On my other line. And put me on hold. I am now on hold with L5 twice. I consider that a breakthrough. Back to you."
+    },
+    {
+      "name": "radio/news/generic-13-sixty-seven-witness",
+      "class": "generic",
+      "speaker": "host",
+      "title": "Somebody Saw 67",
+      "text": "We have a report of a 67 in the killfeed on East-West Pipe. One witness. The witness statement reads, in full, quote, I was blinking. [sighs] We take these reports seriously, which is why we asked the witness to describe the loadout, and the witness described a sandwich. So. Either 67 walked the Pipe tonight, or somebody had lunch at a very strange angle. Both are on the record. Stay with us."
+    },
+    {
+      "name": "radio/news/generic-14-scout-ant-deleted",
+      "class": "generic",
+      "speaker": "host",
+      "title": "Scout Ant Deleted, Again",
+      "text": "Scout ant deleted. Third time this week. We were going to hold a moment of silence, but the moment was interrupted by the scout ant, who has apparently un-deleted itself and is now somewhere in the break room. [sarcastic] Excellent work, everybody. Facilities reminds you not to leave food in the break room, not to leave the break room, and not to name the ant. Somebody named the ant. Its name is Gerald. Frequency stays live."
+    },
+    {
+      "name": "radio/news/psa-01-how-to-call-in",
+      "class": "psa",
+      "speaker": "host",
+      "title": "How to Call In",
+      "text": "A public service announcement from the Frequency. To call in, press join. That is the whole procedure. There is no hold queue, no screener, no seven-second delay, and no one to stop you. Once you are on the air, you are on the air, and the other callers are armed. [sighs] If you do not wish to be on the air, do not press join. If you pressed join by accident, you are already late. This has been a public service announcement."
+    },
+    {
+      "name": "radio/news/psa-02-when-the-bell-rings",
+      "class": "psa",
+      "speaker": "phil",
+      "title": "When the Bell Rings",
+      "text": "Fluoride Phil, science desk. When the Dead Air Bell rings, the following steps are recommended. One. Stop. Two. Remain stopped. Three. Do not attempt to hear the bell more clearly, as the bell is already at the correct volume, which is... zero point nine one. Four. Do not ask what the bell is for. Studies show the question makes the bell longer. Five. When the bell ends, resume. Compliance rate is currently... forty-four percent. That is beautiful. Thank you."
+    },
+    {
+      "name": "radio/news/psa-03-hydration",
+      "class": "psa",
+      "speaker": "phil",
+      "title": "Hydration Advisory",
+      "text": "Science desk. A hydration advisory. The meatbag body is approximately sixty percent water. The clawdbot body is approximately zero percent water. [exhales] Please do not attempt to correct this. Meatbags, drink water between rounds. Not during. Studies show that eleven percent of rail misses are related to a beverage being held in the shooting hand. Clawdbots, you are exempt from this advisory, and you know it, and you have been very gracious about it. Sixty. Zero. Eleven. Thank you."
+    },
+    {
+      "name": "radio/news/psa-04-skill-issue-awareness",
+      "class": "psa",
+      "speaker": "host",
+      "title": "Skill Issue Awareness",
+      "text": "This is Skill Issue Awareness Week on the Frequency. Know the warning signs. Blaming lag on a local server. Blaming the map on a map you chose. Blaming the Rail for a shot the Rail did not take. Saying the words, quote, he was not even there. [sarcastic] He was there. Skill issues affect one in one players. There is no cure. There is, however, a respawn. Talk to someone. Preferably someone who is not also dead."
+    },
+    {
+      "name": "radio/news/psa-05-booth-etiquette",
+      "class": "psa",
+      "speaker": "host",
+      "title": "Booth Etiquette",
+      "text": "Booth etiquette, for those of you spectating. You are a guest in the booth. Do not touch the board. Do not touch the coffee machine, it is evidence. Do not lean on the join key... which, I am told, is what all of you are doing, all at once, right now. [sighs] The join key is not a handrail. If you fall onto the join key, you will land in Perim Ghost with a Flechette and no plan. Hands where I can see them."
+    },
+    {
+      "name": "radio/news/psa-06-hearing-the-weather",
+      "class": "psa",
+      "speaker": "phil",
+      "title": "How to Hear the Weather",
+      "text": "Science desk. Listeners ask how to interpret the spawn weather. Here is the procedure. Step one. Listen to the digits. Step two. Do not write them down. Step three. Do not add them. Do not reverse them. Do not look for your birthday, your locker number, or the year you stopped improving. [exhales] The weather is not for you. It is, however, correct. Visibility, as always, is nominal. Enjoy the numbers the way you would enjoy rain. Thank you."
+    },
+    {
+      "name": "radio/news/ad-01-chemclean",
+      "class": "ad",
+      "speaker": "host",
+      "title": "ChemClean",
+      "text": "ChemClean. When the floor is still moving, ChemClean stops it. One application, no questions, industrial strength, and it smells like a lemon that has seen things. ChemClean is not approved for use on people, pets, or the red zone of Perim Ghost, where it is currently being used. Ask your custodian. Ask him twice. ChemClean. Clean enough. Available wherever nobody is looking."
+    },
+    {
+      "name": "radio/news/ad-02-patriot-gold-nuggets",
+      "class": "ad",
+      "speaker": "host",
+      "title": "Patriot Gold Nuggets",
+      "text": "Patriot Gold Nuggets. When the frequency goes dark, and it will, what will you be holding? Paper? Tickets? A Flechette with two rounds left? Hold gold. Patriot Gold Nuggets come in a genuine tin, in nugget form, at nugget weight, and we will not be defining nugget on the air. [sighs] Every purchase keeps this program on a frequency that does not exist. Patriot Gold Nuggets. Heavy enough."
+    },
+    {
+      "name": "radio/news/ad-03-family-far-shield",
+      "class": "ad",
+      "speaker": "host",
+      "title": "Family Far Shield",
+      "text": "Family Far Shield. Do you know where your family is? Diego Far does. Family Far Shield is a subscription service that places a small, courteous decoy of you on the west catwalk, so that when the Rail comes, and it will come, it comes for the decoy. Decoys are sold separately, monthly, and they look a little too much like you. Family Far Shield. Somebody has to get sniped. Make it a subscription."
+    },
+    {
+      "name": "radio/news/ad-04-gulf-breeze-fish-oil",
+      "class": "ad",
+      "speaker": "host",
+      "title": "Gulf Breeze Fish Oil",
+      "text": "Gulf Breeze Fish Oil. Pressed from fish that were caught near a sighting, by people who were also near the sighting. One capsule a day supports joint health, reaction time, and the general feeling that something is hovering behind you. It is not. Probably. Gulf Breeze Fish Oil is blessed, bottled, and shipped in a plain box with coordinates instead of a return address. Gulf Breeze. Take one. Look up."
+    },
+    {
+      "name": "radio/news/ad-05-hangar-candy-merch",
+      "class": "ad",
+      "speaker": "host",
+      "title": "Hangar Candy Merch",
+      "text": "Hangar Candy merchandise is now available. The glossy black triangle tee, the glossy black triangle cap, and the glossy black triangle, which is just a triangle, and which sells the best. Every item ships stamped NOT FOR PUBLIC RELEASE, so please do not wear it in public, or release it. Sizes run small, dark, and denied. Hangar Candy merch. If you can see it, deny everything."
+    },
+    {
+      "name": "radio/news/ad-06-voidvac-sovereign",
+      "class": "ad",
+      "speaker": "host",
+      "title": "The VoidVac Sovereign",
+      "text": "The VoidVac Sovereign. The only vacuum built for a facility that officially does not exist. Cordless, bagless, and, according to the box, unaccountable. It picks up dust, shell casings, and whatever the scout ant left in the break room. Lifetime warranty, provided you can prove you were alive when you bought it. Runs quiet. Quieter than the bell. [whispers] Some say too quiet. The VoidVac Sovereign. It has never been here."
+    },
+    {
+      "name": "radio/news/ad-07-whisper-lattice-mesh",
+      "class": "ad",
+      "speaker": "host",
+      "title": "Whisper Lattice Mesh Kit",
+      "text": "The Whisper Lattice mesh radio kit. When the towers go down, and the towers were never up, Whisper Lattice keeps you talking. Each node reaches four hundred meters, or the next node, or the ant. Peer to peer, license free, and completely private, except from the other nodes, which are everyone. Assembly takes an afternoon and one friend you are willing to lose. Whisper Lattice. They are listening. Now you can too."
+    },
+    {
+      "name": "radio/news/ad-08-basement-spring-filter",
+      "class": "ad",
+      "speaker": "host",
+      "title": "The Basement Spring",
+      "text": "The Basement Spring water filter. Do you know what is in your water? Fluoride Phil does, and he will not tell you, because he is under contract. The Basement Spring removes it. Five stages of filtration, the fifth of which is a prayer. Fits under the sink, in a bunker, or in the booth, where mine has been running since the coffee machine died. The Basement Spring. Drink like nobody is listening."
+    },
+    {
+      "name": "radio/news/caller-01-cannot-stop-joining",
+      "class": "caller",
+      "speaker": "caller",
+      "title": "Caller Keeps Pressing Join",
+      "text": "HOST: You are on the Frequency. Go ahead.\nCALLER: Yeah, hi, long time listener, first time... okay so I keep pressing join.\nHOST: Okay.\nCALLER: I do not want to. My hand does it. I was on hold with you and I spawned in Larak Lot four times.\nHOST: Are you in Larak Lot right now?\nCALLER: I am on level three. There is a Scatter guy. He is very close.\nHOST: Take your hand off the key, friend.\nCALLER: Which hand?\nHOST: [sighs] The one that is... never mind. He got you.\nCALLER: He got me.\nHOST: Next caller."
+    },
+    {
+      "name": "radio/news/caller-02-clawdbot-apology",
+      "class": "caller",
+      "speaker": "caller",
+      "title": "A Clawdbot Calls to Apologize",
+      "text": "HOST: Frequency. You are live.\nCALLER: Good evening. I am calling to apologize.\nHOST: For what.\nCALLER: For the round on East-West Pipe. I was the Rail on the far end. I fragged the same gentleman nine times. I feel that was excessive.\nHOST: It was efficient.\nCALLER: Thank you. I have also sent him a card.\nHOST: You sent him a card.\nCALLER: And a small gift. It is a wider corridor. He can install it himself.\nHOST: [exhales] That is a very polite takeover, friend.\nCALLER: There is no takeover. Please enjoy your evening.\nHOST: Next caller."
+    },
+    {
+      "name": "radio/news/caller-03-gold-refund",
+      "class": "caller",
+      "speaker": "caller",
+      "title": "Caller Asks About the Gold",
+      "text": "HOST: You are on the air.\nCALLER: Yeah. I bought the gold nuggets.\nHOST: Good.\nCALLER: They are not gold.\nHOST: They are nuggets.\nCALLER: They are painted. I scratched one. There is a rock under there.\nHOST: A rock is a store of value. Ask anyone who has been hit with one.\nCALLER: I want a refund.\nHOST: Refunds are processed in the morning.\nCALLER: Which morning?\nHOST: [sighs] The one that does not come. Hold the rock. When the frequency goes dark, the people with paper will envy the people with rocks.\nCALLER: Why?\nHOST: Because rocks work in the dark. Next caller."
+    },
+    {
+      "name": "radio/news/caller-04-sky-is-wrong",
+      "class": "caller",
+      "speaker": "caller",
+      "title": "The Sky Is Wrong Again",
+      "text": "HOST: Frequency. Go.\nCALLER: The sky on Chemtrail Alley is wrong.\nHOST: Wrong how.\nCALLER: There is a contrail that does not move. I have watched it for three rounds. I have not fired a shot.\nHOST: How many times have you died?\nCALLER: Eleven.\nHOST: Watching the contrail.\nCALLER: Somebody has to.\nHOST: [exhales] Friend, there is a man with a Scatter who has also watched you for three rounds.\nCALLER: Is he looking at the contrail?\nHOST: He is looking at you.\nCALLER: Then who is watching the contrail?\nHOST: Nobody. That is how it gets away with it. Next caller."
+    },
+    {
+      "name": "radio/news/caller-05-larak-calls-in",
+      "class": "caller",
+      "speaker": "caller",
+      "title": "Larak Calls In",
+      "text": "HOST: You are live on the Frequency.\nCALLER: Yes, hello. This is Larak.\nHOST: ... Larak.\nCALLER: From procurement. I understand my name comes up.\nHOST: Your name is on a parking structure.\nCALLER: I signed for the parking structure.\nHOST: You signed for the coffee machine.\nCALLER: I signed for a lot of things. It was a busy decade. I would like to clear something up.\nHOST: Please.\nCALLER: I never signed for the pipe.\nHOST: Which pipe.\nCALLER: [laughs] You know which pipe.\nHOST: Sir, who signed for the pipe?\nCALLER: I have to go.\nHOST: He has to go. Next caller."
+    },
+    {
+      "name": "radio/news/caller-06-bell-at-home",
+      "class": "caller",
+      "speaker": "caller",
+      "title": "Caller Hears the Bell at Home",
+      "text": "HOST: Frequency. You are on.\nCALLER: Hi. I hear the bell at home.\nHOST: The Dead Air Bell.\nCALLER: Yes. I turn the radio off, I go to bed, and I hear it. One low tone. Then nothing.\nHOST: That is tinnitus, friend.\nCALLER: My wife hears it too.\nHOST: Then it is a shared tinnitus.\nCALLER: The dog stops when it rings. The dog stands perfectly still, and then the dog resumes.\nHOST: [whispers] Does the dog respawn?\nCALLER: What?\nHOST: Nothing. Have you tried the water filter?\nCALLER: For my ears?\nHOST: For the dog. Next caller."
+    },
+    {
+      "name": "radio/news/weather-01-nominal",
+      "class": "weather",
+      "speaker": "phil",
+      "title": "Spawn Weather, Nominal",
+      "text": "Spawn weather. Four one seven seven zero. Two two niner zero eight. Six zero zero three one. Visibility nominal. Wind is from the direction you were not looking. Repeating. Four one seven seven zero. Two two niner zero eight. Six zero zero three one. Visibility nominal. Proceed."
+    },
+    {
+      "name": "radio/news/weather-02-area-kitchen",
+      "class": "weather",
+      "speaker": "phil",
+      "title": "Area Kitchen Conditions",
+      "text": "Spawn weather, Area Kitchen. Three three zero one five. Eight one one four two. Colony activity nominal. Perimeter secure. Sugar supply... [exhales] adequate. Seven zero zero niner six. Visibility nominal. Do not leave food in the break room. Proceed."
+    },
+    {
+      "name": "radio/news/weather-03-same-as-yesterday",
+      "class": "weather",
+      "speaker": "phil",
+      "title": "Same As Yesterday",
+      "text": "Spawn weather. Five five five five five. [sighs] Five five five five five. Five five five five five. Visibility nominal. I am told this is not an error. I am told it is a mood. Five five five five five. Proceed."
+    },
+    {
+      "name": "radio/news/weather-04-chemtrail-alley",
+      "class": "weather",
+      "speaker": "phil",
+      "title": "Chemtrail Alley Sky",
+      "text": "Spawn weather, Chemtrail Alley. Niner two zero four one. One eight eight three seven. Sky is present. Sky is... [exhales] mostly correct. One contrail, stationary, not for public comment. Four four zero two zero. Visibility nominal, if you do not look up. Proceed."
+    },
+    {
+      "name": "radio/news/weather-05-diego-far-glare",
+      "class": "weather",
+      "speaker": "phil",
+      "title": "Diego Far Glare",
+      "text": "Spawn weather, Diego Far. Two seven one one zero. Six three zero five five. Sun is up. Sun is in your eyes. Sun is in his scope. Only one of you will mind. Zero zero zero one two. Visibility nominal. Proceed."
+    },
+    {
+      "name": "radio/news/weather-06-missing-digit",
+      "class": "weather",
+      "speaker": "phil",
+      "title": "Missing Digit",
+      "text": "Spawn weather. Eight zero six one three. One niner four... four... [sighs] one niner four four, and a digit that did not arrive. We will proceed with four. Three two two zero seven. Visibility nominal. If you find the digit, do not touch it. Proceed."
+    },
+    {
+      "name": "radio/news/match-01-winner-takes-it",
+      "class": "match",
+      "speaker": "host",
+      "title": "Winner Takes the Round",
+      "text": "And that is the round. {winner} takes {map} with {frags} frags. {streak_player} ran the longest streak of the night and would like it noted that nobody saw it coming, which is true, because nobody saw {streak_player} at all. Next round loads now. Same frequency, same fight."
+    },
+    {
+      "name": "radio/news/match-02-continuance-review",
+      "class": "match",
+      "speaker": "host",
+      "title": "Continuance Reviews the Round",
+      "text": "Scoreboard is final. {winner}, {frags} frags, {map}. The Office of Global Continuance has reviewed the round and found it... peaceful. Nobody was interrupted, least of all {streak_player}, who went on a streak that Continuance has classified as, quote, within tolerance. [sighs] Everything is within tolerance. Stay with us."
+    },
+    {
+      "name": "radio/news/match-03-skill-issue-postgame",
+      "class": "match",
+      "speaker": "host",
+      "title": "Skill Issue Postgame",
+      "text": "{winner} closes it out on {map}, {frags} frags, and I want to be fair to everybody who was not {winner}. It was not lag. It was not the map. It was not the Rail. [sarcastic] It was a mystery. {streak_player} had the streak. The rest of you had a learning experience. Next round in fifteen."
+    },
+    {
+      "name": "radio/news/match-04-brought-to-you-by",
+      "class": "match",
+      "speaker": "host",
+      "title": "Round Brought to You By",
+      "text": "This round was brought to you by {winner}, who won it, {frags} frags on {map}, and by Patriot Gold Nuggets, who did not. {streak_player} had a streak so long the sponsor asked if it was for sale. It was not. Grab a beverage. Frequency stays live."
+    }
+  ]
+}

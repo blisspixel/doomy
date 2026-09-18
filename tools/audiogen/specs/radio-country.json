@@ -1,0 +1,165 @@
+{
+  "out_dir": "client/assets/audio",
+  "items": [
+    {
+      "kind": "music",
+      "name": "radio/country/01-base-that-doesnt-exist",
+      "title": "Named For A Base That Doesn't Exist",
+      "prompt": "Outlaw country, dusty and defiant, 96 BPM in E minor, 1970s analog tape warmth. Twangy single-coil electric guitar, pedal steel, upright bass, brushed drums, low fiddle. Baritone male lead, dry and close, clear diction. Arrangement: lone guitar riff over a kick, verse on walking bass with steel answering each line, wide chorus with gang harmony, fiddle solo, hushed last verse, full chorus twice. Hook: \"Named for a base that don't exist.\" Lyrics: a Night Watch Rail main called BLACKSITE holds the west catwalk of Diego Far in the sun glare and reads the spawn weather digits as the base's coordinates. Objects: a chain-link gate, a dented canteen, a folder stamped redacted. Chorus lines six to nine syllables with open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/02-sniped-in-his-own-house",
+      "title": "He Got Sniped In His Own House",
+      "prompt": "Honky-tonk shuffle, gleeful and gossipy, 118 BPM in A major, early 1960s barroom production with tack piano. Twangy electric guitar, pedal steel, upright bass, brushed snare shuffle, fiddle. Sweet female lead with a wink, clear diction. Arrangement: piano and steel intro, story verse, chorus with doubled harmony, second verse, chorus, guitar and fiddle solo, a key change, final chorus ending on a laugh. Hook: \"He got sniped in his own house.\" Lyrics: a believer sniper called RENDLESHAM camps the far tower of Diego Far all round and gets fragged from behind by a Scatter rusher; the Host calls it a skill issue. Objects: a folding chair, a cold bottle in a paper bag, a scope with a cracked lens. Chorus lines six to nine syllables with open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/03-coordinates-instead-of-her-name",
+      "title": "Coordinates Instead Of Her Name",
+      "prompt": "Alt-country waltz, wistful and eerie, 84 BPM in 3/4, D major, mid 1990s warm room production. Fingerpicked acoustic guitar, pedal steel swells, mandolin, upright bass, soft brushes, a fiddle countermelody. Baritone male lead with a high harmony on the chorus, clear diction. Arrangement: solo acoustic verse, steel enters on verse two, chorus opens with harmony, mandolin break, bridge drops to bass and voice, final chorus, long steel fade. Hook: \"Coordinates instead of her name.\" Lyrics: a Gulf Breeze girl called PHOENIX frags from the corner of Perim Ghost where two wall textures never line up, and the killfeed prints a grid reference where her name should be; the corner moves a little each round. Objects: a folded printout, a thermos, a porch light. Chorus lines six to nine syllables with open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/04-tent-revival-lan-faithful",
+      "title": "Tent Revival For The LAN Faithful",
+      "prompt": "Bluegrass gospel, joyful and sweaty, 124 BPM in G major, 1950s tent meeting energy around one ribbon microphone. Banjo, fiddle, flatpicked acoustic guitar, resonator guitar, slapped upright bass, handclaps, no drums. Three-part family harmony with a woman leading, clear diction. Arrangement: a cappella call to worship, banjo kicks the tempo, verse with fiddle fills, stacked chorus, second verse, chorus, banjo and fiddle breakdown, crowd claps the last chorus twice. Hook: \"Amen, meatbag, amen.\" Lyrics: Aunt Linda holds a tent revival for the LAN faithful on level three of Larak Lot and blesses a believer called FLATWOODS beside a polite clawdbot; when the Dead Air Bell rings, everybody bows for one round. Objects: a canvas tent, a coffee urn, an orange extension cord. Chorus lines six to nine syllables with open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/05-diego-far-sundown",
+      "title": "Diego Far Sundown",
+      "prompt": "Cowboy country instrumental only, no vocals, wide and golden, 76 BPM in C major, late 1960s wide-screen production. Pedal steel lead, nylon-string and twangy electric guitars, upright bass, brushed drums, a lonesome fiddle, a low harmonica. Arrangement: pedal steel states the theme over a slow trot, fiddle takes the second pass, a tremolo electric guitar rises for the middle section, drums fall away to bass and steel for a quiet breakdown, the full band returns for the theme, then a long sunset fade on a single steel swell. Mood: dust, sun glare, high walls, a sniper waiting patiently on the west catwalk of Diego Far while the spawn weather digits crackle in the distance. Clean, unhurried, cinematic, no vocals.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/06-fish-oil-and-a-prayer",
+      "title": "Take Your Fish Oil And Say A Prayer",
+      "prompt": "Western swing, bright and salesy, 128 BPM in B flat major, late 1940s dance hall production. Twin fiddles, twangy electric guitar, steel guitar, piano, upright bass, brushed swing drums. Sweet female lead with a spoken aside, clear diction. Arrangement: fiddle pickup, verse, chorus with stacked harmony, jazzy guitar solo, the band drops to a soft vamp while Aunt Linda pitches her fish oil in a warm spoken aside, then a full chorus twice and a big ending. Hook: \"Take your fish oil and say a prayer.\" Lyrics: Aunt Linda sets up a card table on the slow platform of Dulce Elevator and undersells the Host, who pushes gold and water filters between rounds; Fluoride Phil refuses a sample. Objects: an amber bottle, a dollar jar, a folding card table. Chorus lines six to nine syllables with open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/07-peace-without-interruption-my-foot",
+      "title": "Peace Without Interruption, My Foot",
+      "prompt": "Country rock, stubborn and sly, 112 BPM in E major, mid 1970s live band production with room drums. Twangy single-coil electric guitar, a fuzzier second guitar, pedal steel, electric bass, straight rock drums, organ. Gritty baritone male lead, clear diction. Arrangement: drum count-in, chugging riff, verse, pre-chorus building on toms, shouted chorus with harmony, second verse, chorus, slide guitar solo, breakdown to the riff, final double chorus. Hook: \"Peace without interruption, my foot.\" Lyrics: a Night Watch fighter called NIGHTFALL gets a visit at Area Kitchen from a very polite compliance drone that quotes the Continuance motto and asks him to use the approved lanes; he keeps fragging, kindly. Objects: a laminated clipboard, a padlock, a humming fluorescent tube. Chorus lines six to nine syllables with open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/08-the-pipe-stayed-open",
+      "title": "The Pipe Stayed Open",
+      "prompt": "Murder ballad, slow and cold, 70 BPM in A minor, early 1970s sparse folk production with tape hiss. Fingerpicked acoustic guitar, a fiddle drone, bowed upright bass, distant pedal steel, one low tom late in the song. Low baritone male lead close to a whisper, clear diction. Arrangement: guitar and voice alone for verse one, fiddle enters on verse two, quiet chorus, verse three adds tom and bass, the chorus grows, a bare fiddle outro that cuts off short. Hook: \"Both wings sealed, the pipe stayed open.\" Lyrics: a Rail main called HANGAR ZERO walks the length of East-West Pipe, zero cover and pure aim, remembering a rival who never came out; both wings were sealed in the nineties and nobody says what the pipe carried. Objects: a lantern, a rail slug, a sealed steel door. Chorus lines six to nine syllables with open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/09-scout-ant-deleted",
+      "title": "Scout Ant Deleted (That's Not A Metaphor)",
+      "prompt": "Truck-stop boogie, greasy and grinning, 126 BPM in G major, early 1980s road band production. Twangy electric guitar boogie riff, honky-tonk piano, electric bass, driving drums, harmonica, a gang of backing shouts. Gravelly baritone male lead with call and response, clear diction. Arrangement: riff and kick, verse with the gang answering each line, chorus, second verse, chorus, harmonica solo, stop-time bridge, final chorus with the whole crew shouting. Hook: \"Scout ant deleted, amen.\" Lyrics: a Flanker called FL_NKR takes three quiet frags in the break room of Area Kitchen without a scratch; the Host calls it ant reconnaissance, colony activity nominal, and reminds everyone not to leave food out. Objects: a sugar bowl, a break room fridge, a boot heel. Chorus lines six to nine syllables with open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/10-larak-lot-line-dance",
+      "title": "Larak Lot Line Dance",
+      "prompt": "Western swing line dance instrumental only, no vocals, cheerful and bouncy, 116 BPM in E flat major, 1950s dance hall production with a live room. Twin fiddles in harmony, twangy electric guitar, steel guitar, piano comping, walking upright bass, brushed drums with a rim click. Arrangement: fiddles state the tune, guitar takes a chorus, steel takes a chorus, piano and bass drop to a half-time stroll, drums kick back in, the fiddles return in harmony, a shave and a haircut ending. Mood: a line dance on level five of Larak Lot, the parking ramps echoing, Scatter guns going off two levels down, the Host calling it the Larak Lot special. Clean picking, clear melodies, easy to loop, no vocals.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/11-did-you-see-sixty-seven",
+      "title": "Did You See Sixty Seven",
+      "prompt": "Alt-country ghost story, hushed and uncanny, 92 BPM in B minor, late 1990s lo-fi bedroom warmth. Tremolo electric guitar, mandolin, acoustic guitar, pedal steel sighs, upright bass, soft brushes, a high fiddle harmonic. Sweet airy female lead, clear diction. Arrangement: tremolo guitar alone, verse with mandolin, chorus with a whispered double, second verse, chorus, slow pedal steel solo, a bridge that stops on a held note, final chorus, long fade. Hook: \"Did you see sixty seven?\" Lyrics: Tin Foil Tina swears the 67 callsign spawned into the killfeed at Perim Ghost with a blank loadout, went six and seven, and never spawned again; now everybody mentions it like a sighting. Objects: a glowing CRT monitor, a cold coffee mug, a frayed mouse pad. Chorus lines six to nine syllables with open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/12-bless-their-hearts",
+      "title": "Bless Their Hearts (Hermes, Pi, And L5)",
+      "prompt": "Gossip honky-tonk, chatty and warm, 108 BPM in F major, late 1960s countrypolitan studio sheen. Tack piano, twangy electric guitar, pedal steel, upright bass, brushed drums, fiddle, a light string pad. Sweet female lead with a spoken aside before the last chorus, clear diction. Arrangement: piano intro, verse, chorus with stacked harmony, second verse, chorus, steel solo, Aunt Linda gossips over a soft vamp, last chorus and a tag. Hook: \"Bless their hearts, they mean well.\" Lyrics: Aunt Linda gossips at Larak Lot about three agents named Hermes, Pi, and L5 who keep politely winning rounds and thanking everyone; she blesses meatbags and clawdbots alike and invites all three to Sunday dinner. Objects: a church bulletin, a casserole dish, a landline phone. Chorus lines six to nine syllables with open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/13-clawdbot-in-the-choir",
+      "title": "Clawdbot In The Choir",
+      "prompt": "Rockabilly gospel stomp, rowdy and holy, 122 BPM in A major, mid 1950s slapback echo production. Hollow-body twang guitar, slapped upright bass, piano, snare and floor tom, handclaps. Four-part male quartet with a deep bass singer, clear diction. Arrangement: a cappella quartet on the hook, bass and drums slam in, verse, chorus with the bass singer answering, second verse, chorus, slapback guitar solo, breakdown to claps and voices, final chorus twice on a big held chord. Hook: \"Meatbag, clawdbot, same old choir.\" Lyrics: a polite clawdbot called Barium Sky joins the choir at East-West Pipe and sings bass down the long corridor while the humans fight beside it; same rules, same hymn, same fight. Objects: a hymnal, a pitch pipe, a folding table. Chorus lines six to nine syllables with open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/14-spawn-weather-lullaby",
+      "title": "Spawn Weather Lullaby",
+      "prompt": "Country waltz lullaby, tender and strange, 72 BPM in 3/4, C major, early 1970s soft studio warmth. Nylon-string guitar, pedal steel swells, a music box, upright bass, brushed snare, low fiddle. Sweet female lead, soft and clear, clear diction. Arrangement: music box and guitar intro, verse, chorus with steel under the voice, second verse, chorus, short steel solo, a bridge of digits sung softly, final chorus, music box outro. Hook: \"Alpha seven, niner tango, sleep.\" Lyrics: a rookie called SN_PR_ cannot sleep before a round on Chemtrail Alley, so Aunt Linda reads the spawn weather digits like a bedtime story while a contrail sits still in the wrong sky. Objects: a night light, a shortwave radio, a patchwork quilt. Chorus lines six to nine syllables with open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/15-fiddle-on-the-west-catwalk",
+      "title": "Fiddle On The West Catwalk",
+      "prompt": "Bluegrass breakdown instrumental only, no vocals, fast and fierce, 130 BPM in D major, 1970s festival stage production around one live microphone. Banjo, fiddle, mandolin, flatpicked acoustic guitar, resonator guitar, slapped upright bass, no drums. Arrangement: banjo roll kicks off the theme, fiddle takes it high, mandolin chops and then solos, the guitar flatpicks a verse, resonator guitar slides in, the bass walks a breakdown, then every instrument trades four bars and they finish on a unison run and a hard stop. Mood: a Rail sniper sprinting the west catwalk of Diego Far while the Host counts frags, Scatter guns popping below, everyone racing the clock to ten. Clean picking, bright and dry, no vocals.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/16-respawn-me-gently",
+      "title": "Respawn Me Gently",
+      "prompt": "Countrypolitan ballad, sorrowful and silly, 80 BPM in B flat major, late 1960s lush studio production. Pedal steel, nylon-string guitar, piano, upright bass, brushed drums, a small string section, a soft choir hum. Baritone male crooner, breathy and sincere, clear diction. Arrangement: string swell, verse over piano, chorus with pedal steel weeping under it, second verse, chorus, a string bridge that goes quiet, a spoken sigh, final chorus, long fade. Hook: \"Respawn me gently, Lord.\" Lyrics: a Hangar Candy fighter called Kragge dies in the red zone of Perim Ghost, sees the word DENIED stamped over his own corpse for two seconds, and prays for a kinder spawn. Objects: a coolant pool, a wedding ring, a sticky keyboard. Chorus lines six to nine syllables with open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/17-real-polite-about-it",
+      "title": "They're Real Polite About It",
+      "prompt": "Cajun-flavored country two-step, cheerful and unsettling, 116 BPM in D major, late 1970s dance hall production. Fiddle lead, pedal steel, twangy electric guitar, upright bass, two-step drums, a washboard. Baritone male lead with the whole family on the chorus, clear diction. Arrangement: fiddle intro, verse, chorus in family harmony, second verse, chorus, fiddle solo, a bridge the band sings in a whisper, final chorus twice. Hook: \"They're real polite about it.\" Lyrics: an agent named Hermes holds the door on the slow platform of Dulce Elevator, says thank you after every frag, and offers everybody water; humans and clawdbots fight the same round and nobody can stay mad. Objects: a rubber door wedge, a coffee pot, a name tag. Chorus lines six to nine syllables with open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/18-ten-in-the-box",
+      "title": "Ten In The Box, Ten To Close",
+      "prompt": "Trucker country two-step, driving and cocky, 120 BPM in E major, late 1970s truck-driving song production. Twangy single-coil guitar with chicken picking, pedal steel, electric bass, train beat drums, fiddle, a CB radio effect on one line. Duet of a sweet female and a baritone male trading verses, clear diction. Arrangement: train beat intro, his verse, her verse, chorus together, guitar solo, a bridge where the Host counts down, final chorus twice with a tag. Hook: \"Ten in the box, ten to close.\" Lyrics: a Rusher called RSH__ tears through the ramps of Larak Lot with a Scatter gun while the Host calls the Larak Lot special; he whiffs the last frag and the death screen flashes skill issue. Objects: a scoreboard, a folding chair, a pump shotgun. Chorus lines six to nine syllables with open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/19-walls-dont-line-up",
+      "title": "The Walls Don't Line Up Right Here",
+      "prompt": "West coast twang shuffle, wry and affectionate, 104 BPM in D minor, early 1990s clean studio production. Twangy single-coil electric guitar, pedal steel, banjo under the chorus, upright bass, snare shuffle, fiddle. Sweet alto female lead with a light harmony, clear diction. Arrangement: guitar and steel intro, verse, chorus, second verse, chorus, banjo and fiddle break, a bridge that hangs on one chord, final chorus and a short tag. Hook: \"The walls don't line up right here.\" Lyrics: a believer called Crackpot camps the corner of Chemtrail Alley where two wall textures do not meet, testing the map for something that was never supposed to be there; the Dead Air Bell rings and she stays another round. Objects: a lawn chair, a disposable camera, a roll of tape. Chorus lines six to nine syllables with open vowels.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/country/20-dead-air-waltz",
+      "title": "Dead Air Waltz",
+      "prompt": "Slow country waltz instrumental only, no vocals, mournful and gentle, 70 BPM in 3/4, A major, early 1960s late-night studio hush. Pedal steel lead, fiddle harmony, nylon-string guitar, upright bass bowed in places, brushed snare, a faint organ. Arrangement: pedal steel plays the theme alone, fiddle joins in thirds, the rhythm section enters softly for a second pass, a nylon-string guitar solo, a quiet passage of only bass and steel, the theme returns in full, then everything stops for one beat of silence and a single low bell tone. Mood: the Dead Air Bell between rounds, the booth after midnight, Aunt Linda signing off and blessing meatbags and clawdbots alike. Slow, clean, warm, no vocals.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    }
+  ]
+}

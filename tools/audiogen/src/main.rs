@@ -6,8 +6,9 @@
 use clap::{Parser, Subcommand};
 use fragr_audiogen::{
     parse_spec, read_dotenv_key, resolve_api_key, run_command, Command, Error, Job, Method,
-    MusicParams, Request, Response, RunOptions, SfxParams, Transport, API_KEY_ENV,
+    MusicParams, Request, Response, RunOptions, SfxParams, Transport, TtsParams, API_KEY_ENV,
     DEFAULT_BASE_URL, DEFAULT_MUSIC_FORMAT, DEFAULT_MUSIC_MODEL, DEFAULT_SFX_FORMAT,
+    DEFAULT_TTS_FORMAT, DEFAULT_TTS_MODEL,
 };
 use std::path::PathBuf;
 use std::time::Duration;
@@ -38,6 +39,9 @@ struct Cli {
     /// Print the requests without calling the API or writing files.
     #[arg(long, global = true)]
     dry_run: bool,
+    /// Refuse to start when the estimated credits for the run exceed this number.
+    #[arg(long, global = true)]
+    max_credits: Option<u64>,
     #[command(subcommand)]
     command: Cmd,
 }
@@ -70,6 +74,9 @@ enum Cmd {
         /// Asset name without extension, for example music/match_01.
         #[arg(long)]
         name: String,
+        /// Display title recorded in the manifest.
+        #[arg(long)]
+        title: Option<String>,
         /// Style, tempo, mood, instrumentation.
         #[arg(long)]
         prompt: String,
@@ -94,7 +101,39 @@ enum Cmd {
         /// Only generate the item with this name.
         #[arg(long)]
         only: Option<String>,
+        /// Only generate items whose name starts with this prefix, for example radio/rock/.
+        #[arg(long)]
+        prefix: Option<String>,
+        /// Generate at most this many new files in this run (skipped files do not count).
+        #[arg(long)]
+        limit: Option<usize>,
     },
+    /// Speak one line with a voice (news bulletins, Host lines).
+    Tts {
+        /// Asset name without extension, for example radio/news/generic-01-count.
+        #[arg(long)]
+        name: String,
+        /// Text to speak. Square-bracket delivery tags such as [sighs] work on eleven_v3.
+        #[arg(long)]
+        text: String,
+        /// ElevenLabs voice id (see the voices command).
+        #[arg(long)]
+        voice: String,
+        /// Speech model id.
+        #[arg(long, default_value = DEFAULT_TTS_MODEL)]
+        model: String,
+        /// Stability from 0 (creative) to 1 (robust).
+        #[arg(long)]
+        stability: Option<f64>,
+        /// ElevenLabs output format.
+        #[arg(long, default_value = DEFAULT_TTS_FORMAT)]
+        format: String,
+        /// Display title recorded in the manifest.
+        #[arg(long)]
+        title: Option<String>,
+    },
+    /// List the account's default voices with ids for casting.
+    Voices,
     /// Show remaining credits for the configured key.
     Quota,
 }
@@ -116,10 +155,12 @@ fn to_command(cmd: Cmd) -> Result<Command, Error> {
                 influence,
                 looping,
                 format,
+                title: None,
             }),
         },
         Cmd::Music {
             name,
+            title,
             prompt,
             length_ms,
             model,
@@ -133,15 +174,43 @@ fn to_command(cmd: Cmd) -> Result<Command, Error> {
                 model,
                 instrumental,
                 format,
+                title,
             }),
         },
-        Cmd::Batch { spec, only } => {
+        Cmd::Batch {
+            spec,
+            only,
+            prefix,
+            limit,
+        } => {
             let text = std::fs::read_to_string(&spec)?;
             Command::Batch {
                 spec: parse_spec(&text)?,
                 only,
+                prefix,
+                limit,
             }
         }
+        Cmd::Tts {
+            name,
+            text,
+            voice,
+            model,
+            stability,
+            format,
+            title,
+        } => Command::Generate {
+            name,
+            job: Job::Tts(TtsParams {
+                text,
+                voice_id: voice,
+                model,
+                stability,
+                format,
+                title,
+            }),
+        },
+        Cmd::Voices => Command::Voices,
         Cmd::Quota => Command::Quota,
     })
 }
@@ -190,7 +259,7 @@ impl Transport for HttpTransport {
 
 fn run(cli: Cli, out: &mut dyn std::io::Write) -> Result<(), Error> {
     // Dry runs never need a key. Quota always does.
-    let needs_key = !cli.dry_run || matches!(cli.command, Cmd::Quota);
+    let needs_key = !cli.dry_run || matches!(cli.command, Cmd::Quota | Cmd::Voices);
     let api_key = if needs_key {
         let from_env = match std::env::var(API_KEY_ENV) {
             Ok(value) => Some(value),
@@ -205,6 +274,7 @@ fn run(cli: Cli, out: &mut dyn std::io::Write) -> Result<(), Error> {
         out_dir: cli.out_dir,
         overwrite: cli.overwrite,
         dry_run: cli.dry_run,
+        max_credits: cli.max_credits,
     };
     let transport = HttpTransport::new(&cli.base_url)?;
     run_command(
@@ -323,7 +393,7 @@ mod tests {
         ])
         .unwrap();
         match to_command(cli.command).unwrap() {
-            Command::Batch { spec, only } => {
+            Command::Batch { spec, only, .. } => {
                 assert_eq!(spec.items.len(), 1);
                 assert_eq!(only.as_deref(), Some("a"));
             }
@@ -336,6 +406,41 @@ mod tests {
         let quota = Cli::try_parse_from(["fragr-audiogen", "quota"]).unwrap();
         assert_eq!(to_command(quota.command).unwrap(), Command::Quota);
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn parses_tts_and_voices() {
+        let cli = Cli::try_parse_from([
+            "fragr-audiogen",
+            "tts",
+            "--name",
+            "radio/news/generic-01-count",
+            "--text",
+            "[sighs] Good evening.",
+            "--voice",
+            "JBFqnCBsd6RMkjVDRZzb",
+            "--stability",
+            "0.4",
+            "--title",
+            "Count",
+        ])
+        .unwrap();
+        match to_command(cli.command).unwrap() {
+            Command::Generate {
+                name,
+                job: Job::Tts(params),
+            } => {
+                assert_eq!(name, "radio/news/generic-01-count");
+                assert_eq!(params.voice_id, "JBFqnCBsd6RMkjVDRZzb");
+                assert_eq!(params.model, DEFAULT_TTS_MODEL);
+                assert_eq!(params.format, DEFAULT_TTS_FORMAT);
+                assert_eq!(params.stability, Some(0.4));
+                assert_eq!(params.title.as_deref(), Some("Count"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        let voices = Cli::try_parse_from(["fragr-audiogen", "voices"]).unwrap();
+        assert_eq!(to_command(voices.command).unwrap(), Command::Voices);
     }
 
     #[test]

@@ -1,0 +1,165 @@
+{
+  "out_dir": "client/assets/audio",
+  "items": [
+    {
+      "kind": "music",
+      "name": "radio/lockin/01-push",
+      "title": "Push Push Push Push",
+      "prompt": "Breakcore, mood: frantic, gleeful, a five-level parking garage collapsing in time. Instrumentation: chopped and resliced breakbeats, distorted kick doubles, screaming sawtooth lead, overdriven bass, scatter-gun shell clatter as percussion. 192 BPM, E minor, late 1990s bedroom breakcore production, modern loud mastering. Vocals: a crowd of shouted male voices, no melody, the chant used as a drum. Arrangement: a four-beat count-in and the break riff on beat one, a new layer every sixteen bars, one short drop to chant and kick alone, the fastest resliced section last, hard stop. Hook: \"Push, push, push, push\". Direction: the Larak Lot special, frag count spiking on every ramp; mention a parking ramp, a scatter shell, and a tire squeal. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/02-red-zone-never-cooled",
+      "title": "Red Zone Never Cooled",
+      "prompt": "Industrial metal, instrumental only, no vocals. Mood: hostile, mechanical, a reactor that never cooled. Instrumentation: drop-tuned palm-muted guitar riff, sampled kick and snare hits, chugging sequenced bass, sheet-metal percussion, a coolant pump hiss on the offbeat. 168 BPM, D minor, mid 1990s industrial metal production, tight and dry. Arrangement: the riff from beat one, a new layer every sixteen bars, one short drop to guitar and pump hiss for four bars, a double-time thrash section last, hard stop. Theme for the title \"Red Zone Never Cooled\": Perim Ghost, the red center zone where the coolant used to pool and the geometry shifts between rounds; sound design suggests a chain-link fence, a coolant pump, and a red flare. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/03-frag-for-frag-amen",
+      "title": "Frag for Frag, Amen",
+      "prompt": "Speed thrash metal, mood: sweaty, joyful, a LAN church congregation shouting back. Instrumentation: galloping downpicked guitars, double-kick drums, snare on every upbeat, grinding bass, a gang of gloved fistbumps as percussion. 184 BPM, F sharp minor, late 1980s crossover thrash production, raw and loud. Vocals: gang shout only, a hoarse call and a crowd answer, no singing. Arrangement: the gallop riff from beat one, a new layer every sixteen bars, one short drop to bass and gang chant, the fastest tremolo section last, hard stop. Hook: \"Frag for frag, value for value\". Direction: the Host's amen fistbump bumper turned into a creed, meatbags and machines answering together; mention a fistbump, a scoreboard, and a flechette clip. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/04-niner-tango-kick-drum",
+      "title": "Niner Tango Kick Drum",
+      "prompt": "Hard techno, instrumental only, no vocals. Mood: relentless, locked, a numbers station that started the beat and refused to stop. Instrumentation: distorted rumble kick, offbeat closed hats, a one-note stabbing riff, rolling tom loops, shortwave beeps as a rhythm layer, no spoken digits. 160 BPM, A minor, late 1990s warehouse hard techno production. Arrangement: the kick and riff from beat one, a new layer every sixteen bars, one short drop to kick and beeps for eight bars, a double-time ride section last, hard stop. Theme for the title \"Niner Tango Kick Drum\": the spawn weather digits, Alpha Seven Niner Tango, visibility nominal, proceed; sound design suggests a shortwave dial, a one-time pad, and a spawn pad buzzer. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/05-ten-in-the-box",
+      "title": "Ten in the Box",
+      "prompt": "Gabber, early hardcore, mood: brutal, cartoonish, the whole box screaming the count. Instrumentation: overdriven distorted kick, hoover lead stabs, detuned rave chords, siren risers, a scatter gun cocked on the upbeat. 190 BPM, G minor, early 1990s hardcore production, kick clipping on purpose. Vocals: shouted crowd count, a mob of male voices, no melody. Arrangement: the kick on beat one with a two-bar count-in, a new layer every sixteen bars, one short drop to the chant over a siren, the fastest kick-roll section last, hard stop. Hook: \"Ten in the box, ten frags to close\". Direction: the Host's opening call, four in the box, ten frags to close; mention a spawn pad, a frag counter, and a siren horn. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/06-base-that-does-not-exist",
+      "title": "Base That Does Not Exist",
+      "prompt": "Drum and bass, techstep, instrumental only, no vocals. Mood: tense, wide open, a sniper lane with nowhere to hide. Instrumentation: fast two-step breaks, growling modulated bass, sharp snare cracks, a rail-gun charge whine as a lead, dust-storm noise hits. 174 BPM, C minor, late 1990s techstep production, dry and punchy. Arrangement: breaks and bass from beat one, a new layer every sixteen bars, one short drop to snare and rail whine for four bars, a double-drop with doubled breaks last, hard stop. Theme for the title \"Base That Does Not Exist\": Diego Far, high walls, sun glare, named after a base that officially does not exist; sound design suggests a rail coil, a west catwalk, and dust goggles. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/07-ant-reconnaissance",
+      "title": "Ant Reconnaissance, Very Effective",
+      "prompt": "Digital hardcore, mood: manic, insectoid, a break room overrun. Instrumentation: distorted breakbeats, clipped punk guitar stabs, bitcrushed bass, sampled scurrying clicks, a microwave ding on the two. 180 BPM, B minor, late 1990s digital hardcore production, everything in the red. Vocals: one shouted female voice and a crowd echo, chant only, no verses. Arrangement: guitar stab and break from beat one, a new layer every sixteen bars, one short drop to clicks and the chant, the fastest chopped section last, hard stop. Hook: \"Scout ant deleted, deleted\". Direction: the Area Kitchen spawn weather, colony activity nominal, sugar supply adequate, three clean frags and the Host calling it ant reconnaissance; mention a sugar packet, a floor plan, and a fluorescent tube. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/08-skill-issue-one-frame",
+      "title": "Skill Issue For One Frame",
+      "prompt": "Chiptune metal, instrumental only, no vocals. Mood: bright, mean, an arcade cabinet that judges you. Instrumentation: square-wave lead riffs, triangle-wave bass, noise-channel snare, real double-kick drums and downpicked guitar under the chips, a death-screen buzzer. 176 BPM, A major, late 1980s console sound chip tones with modern metal drums. Arrangement: the square-wave riff from beat one, a new layer every sixteen bars, one short drop to chip lead and buzzer for four bars, the fastest arpeggio section last, hard stop. Theme for the title \"Skill Issue For One Frame\": the death screen flashing SKILL ISSUE for a single frame after a frag you never saw coming; sound design suggests a death screen, a coin slot, and a rail coil. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/09-respawn-is-not-a-rest",
+      "title": "Respawn Is Not a Rest",
+      "prompt": "Cybergrind, mood: furious, absurd, a corridor that never gives cover. Instrumentation: programmed blast beats, downtuned eight-string chugs, glitched sample stutters, gravity-blast snare rolls, a respawn chime pitched into a scream. 200 BPM, E flat minor, mid 2000s cybergrind production, drums inhumanly tight. Vocals: a harsh bark and a pitched-down growl trading one word, chant only. Arrangement: the chug riff from beat one, a new layer every sixteen bars, one short drop to the chant over a gravity blast, the fastest blast section last, hard stop. Hook: \"Respawn, respawn, go again\". Direction: the East-West Pipe, both wings sealed, zero cover, most rage quits in rotation, nobody quits here; mention a sealed wing door, a spawn chime, and a painted floor line. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/10-denied-watermark",
+      "title": "Denied Watermark",
+      "prompt": "Electro-industrial, instrumental only, no vocals. Mood: sleek, cruel, a declassification stamp with a pulse. Instrumentation: hard sequenced electro kick, distorted sixteenth-note bass sequence, metal-plate snare, glossy FM stabs, a rubber-stamp thud on every fourth beat. 164 BPM, F minor, early 1990s electro-industrial production, cold and precise. Arrangement: the bass sequence and kick from beat one, a new layer every sixteen bars, one short drop to the stamp thud and stabs for four bars, a double-time hi-hat section last, hard stop. Theme for the title \"Denied Watermark\": Hangar Candy flechette mains leaving DENIED on every frag for two seconds; sound design suggests a rubber stamp, a gloss black triangle badge, and a flechette clip. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/11-lock-in-after-the-bell",
+      "title": "Lock In After the Bell",
+      "prompt": "Hard techno, schranz, mood: grim, focused, the second after the bell stops. Instrumentation: pounding distorted kick, rolling filtered loops, clanging steel percussion, a sub-bass tone, a low bell hit as a snare. 166 BPM, C sharp minor, early 2000s schranz production, loops crushed. Vocals: one processed male voice, flat and low, the chant as a metronome. Arrangement: the kick from beat one, a new layer every sixteen bars, one short drop to bell hit and chant, the fastest loop section last, hard stop. Hook: \"Lock in, lock in, lock in now\". Direction: the Dead Air Bell has rung, the round starts now, no silence until it ends; mention a headset, a mouse click, and a bell recorded underwater. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/12-platform-between-floors",
+      "title": "Platform Between Floors",
+      "prompt": "Breakcore with jungle chops, instrumental only, no vocals. Mood: claustrophobic, giddy, an elevator that fights back. Instrumentation: ragga-jungle style chopped breaks, timestretched snare rolls, distorted sub bass, mashed rave stabs, an elevator ding and cable groan as percussion. 186 BPM, G sharp minor, early 2000s breakcore production, breaks sliced to the sixteenth. Arrangement: the break riff from beat one, a new layer every sixteen bars, one short drop to the elevator ding and sub for four bars, the fastest micro-chopped section last, hard stop. Theme for the title \"Platform Between Floors\": the Dulce Elevator, a slow platform, cramped sightlines, everyone loves it when it shows up; sound design suggests an elevator platform, a cable groan, and a floor button. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/13-six-seven-in-the-feed",
+      "title": "Six Seven In the Feed",
+      "prompt": "Drum and bass, jump-up, mood: hyped, paranoid, a UFO sighting in the killfeed. Instrumentation: fast two-step breaks, wobbling jump-up bass riff, tight snare, a talkbox stab, radio static bursts. 174 BPM, B flat minor, late 2000s jump-up production, loud and bouncy. Vocals: one hype male voice and a crowd answer, numbers shouted as rhythm, chant only. Arrangement: a four-beat count-in and the bass riff on beat one, a new layer every sixteen bars, one short drop to the chant over static, the fastest double-drop last, hard stop. Hook: \"Sixty-seven in the feed\". Direction: the 67 ritual, a blank loadout that spawned once, went six and seven, never returned; mention a killfeed, a blank loadout screen, and a ticket stub. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/14-continuance-sweep",
+      "title": "Continuance Sweep",
+      "prompt": "Speed thrash metal, instrumental only, no vocals. Mood: hunted, defiant, compliance drones on every lane. Instrumentation: tremolo-picked guitars, double-kick drums at full sprint, a lead guitar harmony riff, grinding bass, a bureaucratic desk bell hit on the snare. 196 BPM, E phrygian, late 1980s thrash production, tight and dry. Arrangement: the tremolo riff from beat one, a new layer every sixteen bars, one short drop to bass and desk bell for four bars, the fastest blast-and-gallop section last, hard stop. Theme for the title \"Continuance Sweep\": the Office of Global Continuance sweeps Larak Lot for unapproved lanes, peace without interruption, denied; sound design suggests a compliance drone, a laminated badge, and a spray-paint can. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/15-eyes-only-ears-bleeding",
+      "title": "Eyes Only, Ears Bleeding",
+      "prompt": "Industrial metal, mood: glossy, menacing, a black triangle with a groove. Instrumentation: drop-tuned guitar chugs, sampled drum hits, a pulsing synth bass, hydraulic press hits, a stamp thud on the fourth beat. 170 BPM, C minor, late 1990s industrial metal production, drums quantized and heavy. Vocals: a whispered male voice doubled by a shouted crowd, stamps as chants, no melody. Arrangement: the chug riff from beat one, a new layer every sixteen bars, one short drop to the whisper over the press hits, the fastest double-kick section last, hard stop. Hook: \"Not for public release\". Direction: Hangar Candy stamps, denied, eyes only, access restricted, verdicts over every frag; mention a rubber stamp, a redacted folder, and a hydraulic press. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/16-gold-filters-fear",
+      "title": "Gold Filters Fear",
+      "prompt": "Gabber, hoover hardcore, instrumental only, no vocals. Mood: greedy, panicked, a late-night ad read at kick-drum speed. Instrumentation: distorted overdriven kick, hoover lead riff, cash-register hits, air-horn stabs, a water-filter gurgle sampled as a hat. 182 BPM, D minor, early 1990s hardcore production, kick square and loud. Arrangement: the kick and hoover riff from beat one, a new layer every sixteen bars, one short drop to cash-register hits and kick for four bars, the fastest kick-roll section last, hard stop. Theme for the title \"Gold Filters Fear\": the Host selling gold, filters, and fear between rounds, every frag funding tonight's emergency, donate in the morning; sound design suggests a gold coin, a water filter, and a cash register. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/17-open-weights-closed-continuance",
+      "title": "Open Weights Closed Continuance",
+      "prompt": "Electro-industrial with an EBM stomp, mood: defiant, marching, a protest at a spawn pad. Instrumentation: sequenced sixteenth-note bass, hard electro kick, metal-plate snare, sawtooth stabs, a crowd stomp. 162 BPM, F sharp minor, late 1980s EBM production, tight and dry. Vocals: a gruff male shout and a crowd answer, chant only, no verses. Arrangement: the bass sequence from beat one, a new layer every sixteen bars, one short drop to the crowd stomp and chant, the fastest double-time section last, hard stop. Hook: \"Shall not, shall not be infringed\". Direction: the open-weights creed on the wall, open weights, closed Continuance, meatbags and machines shouting it; mention a cardboard sign, a server rack fan, and a chain-link fence. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/18-hermes-pi-l5-overclock",
+      "title": "Hermes Pi L5 Overclock",
+      "prompt": "Digital hardcore, instrumental only, no vocals. Mood: gossipy, unhinged, three agents arguing at tick rate. Instrumentation: distorted breakbeats, bitcrushed punk guitar stabs, glitched sample stutters, a modem handshake as a lead, sub-bass drops. 178 BPM, G minor, late 1990s digital hardcore production, clipping on purpose. Arrangement: the guitar stab and break from beat one, a new layer every sixteen bars, one short drop to modem handshake and kick for four bars, the fastest stuttered section last, hard stop. Theme for the title \"Hermes Pi L5 Overclock\": the agents Hermes, Pi, and L5 that everyone gossips about, who plays well, who rage quit, who might be human; sound design suggests a modem, a stopwatch, and an ethernet cable. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/19-clawdbots-meatbags-same-rules",
+      "title": "Clawdbots Meatbags Same Rules",
+      "prompt": "Chiptune metal, mood: bright, savage, a boss theme for a crowd that never sits. Instrumentation: square-wave lead riffs, pulse-wave bass, noise-channel snare, double-kick drums and downpicked guitar under the chips, a coin-drop hit. 188 BPM, D major, late 1980s console sound chip tones with modern metal drums. Vocals: a gang of shouted voices and one vocoder answer, chant only, no verses. Arrangement: the square-wave riff from beat one, a new layer every sixteen bars, one short drop to vocoder and chant, the fastest arpeggio section last, hard stop. Hook: \"Clawdbots, meatbags, same rules\". Direction: clawdbots and meatbags in the same fight on Perim Ghost, new here means already late; mention a joystick, a cartridge, and a concrete pillar. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/lockin/20-gel-dummies-do-not-flinch",
+      "title": "Gel Dummies Do Not Flinch",
+      "prompt": "Cybergrind, instrumental only, no vocals. Mood: deranged, mundane, a grocery aisle at blast-beat speed. Instrumentation: programmed blast beats, downtuned chug riffs, glitched sample stutters, a barcode scanner beep as a lead, a shopping cart rattle as snare. 198 BPM, F minor, mid 2000s cybergrind production, inhumanly tight. Arrangement: the chug riff from beat one, a new layer every sixteen bars, one short drop to scanner beep and kick for four bars, the fastest gravity-blast section last, hard stop. Theme for the title \"Gel Dummies Do Not Flinch\": the Leyline killhouse, grocery aisles with gel dummies still standing, three locations forming a triangle nobody can prove; sound design suggests a ballistic gel dummy, a shopping cart, and an aisle sign. No quiet passages, no atmospheric intro, no outro fade.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    }
+  ]
+}

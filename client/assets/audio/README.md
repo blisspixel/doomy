@@ -21,6 +21,8 @@ The original effect set was synthesised with `tools/generate_audio.py` (sine, sq
 | `hit_flechette.wav`, `hit_rail.wav`, `hit_scatter.wav` | Per-weapon hit |
 | `frag.wav` | Elimination stinger |
 | `round_start.wav`, `round_end.wav` | Round cues |
-| `music/` | Music beds and radio stations (planned wiring, see `docs/ROADMAP.md`) |
+| `radio/<station>/` | Contested Frequency radio tracks, grouped by station id; `radio/stations.json` names the stations |
 
-Loading paths: `client/scripts/player_pawn.gd` (per-weapon fire and hit), `client/scripts/game_manager.gd` (frag and round cues). Import presets: keep WAV as samples, MP3 as streams, loop flags off unless the manifest marks a file as looping.
+Loading paths: `client/scripts/player_pawn.gd` (per-weapon fire and hit), `client/scripts/game_manager.gd` (frag and round cues), `client/scripts/radio.gd` (radio tracks, discovered through the manifest, never by directory listing). Import presets: keep WAV as samples, MP3 as streams, loop flags off unless the manifest marks a file as looping.
+
+Radio controls in the match: R next station, T next track, M radio on or off. The radio ducks under Host lines and sits lower while you play; LOCK IN never ducks for combat.

@@ -1,0 +1,60 @@
+{
+  "stations": [
+    {
+      "id": "lockin",
+      "name": "LOCK IN",
+      "dj": "",
+      "tagline": "No host. No ads. No bulletins. Only the signal.",
+      "ducks_in_combat": false
+    },
+    {
+      "id": "rock",
+      "name": "Larak Lot Rock",
+      "dj": "Buzzkill",
+      "tagline": "Riffs for Scatter mains. Five levels of parking. Very loud.",
+      "ducks_in_combat": true
+    },
+    {
+      "id": "edm",
+      "name": "Signal Bleed",
+      "dj": "Barium Sky",
+      "tagline": "The glitch station. Tempo-locked. Run by a machine.",
+      "ducks_in_combat": true
+    },
+    {
+      "id": "hiphop",
+      "name": "The Lot",
+      "dj": "Mega Colony",
+      "tagline": "Killfeed as air. DENIED watermarks. Receipts.",
+      "ducks_in_combat": true
+    },
+    {
+      "id": "chill",
+      "name": "Dead Air",
+      "dj": "Dead Air Dan",
+      "tagline": "3 AM. The hum of the network. Nothing happens.",
+      "ducks_in_combat": true
+    },
+    {
+      "id": "country",
+      "name": "Gulf Breeze Country",
+      "dj": "Aunt Linda",
+      "tagline": "Believers' station. Dust and coordinates.",
+      "ducks_in_combat": true
+    },
+    {
+      "id": "world",
+      "name": "Leyline World Service",
+      "dj": "Vacuum John",
+      "tagline": "Every frequency on Earth, relayed through Larak Lot.",
+      "ducks_in_combat": true
+    },
+    {
+      "id": "news",
+      "name": "Contested Frequency News",
+      "dj": "The Host",
+      "tagline": "The late-night war-room desk that is not on the air.",
+      "ducks_in_combat": true
+    }
+  ]
+}

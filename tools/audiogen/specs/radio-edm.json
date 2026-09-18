@@ -1,0 +1,165 @@
+{
+  "out_dir": "client/assets/audio",
+  "items": [
+    {
+      "kind": "music",
+      "name": "radio/edm/01-same-frequency",
+      "title": "Same Rules, Same Frequency",
+      "prompt": "Driving peak-time techno, mood: confident and hypnotic, a late-night warehouse broadcast. Instrumentation: rolling drum-machine kick, rubbery sub bass, metallic hi-hats, one detuned stab, shortwave static swells. 130 BPM, F minor, 1990s Detroit warehouse production with modern low end. Vocals: processed female lead, robotic vocoder answering. Arrangement: static and numbers-station beep intro, kick at bar nine, bass riff builds under filtered stabs, breakdown to vocal alone, then the full drop with the hook repeated. Hook: \"Same rules, same frequency\". Lyric direction: Barium Sky welcomes callers to Perim Ghost where clawbots and meatbags fight the same fight; mention a chain-link fence, a headset, and a spawn pad. Sparse lyrics, clear diction.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/02-tick-rate-heartbeat",
+      "title": "Tick Rate Heartbeat",
+      "prompt": "Industrial electro, mood: cold, mechanical, strangely affectionate. Instrumentation: distorted electro kick, rigid drum-machine snare, clicking sequencer arpeggios, bitcrushed bass, metal-plate percussion. 132 BPM, D minor, early 2000s electroclash grit, modern mastering. Vocals: robotic vocoder, deadpan, a clawbot DJ counting. Arrangement: metronome click alone for eight bars, drums stack one at a time, bass riff arrives with the first verse, breakdown to a heartbeat pulse, then the hook chanted over the full groove until a hard stop. Hook: \"Tick rate, that is my heartbeat\". Lyric direction: Barium Sky introduces itself on the East-West Pipe, tick rate as heartbeat, sixty-four pulses a second; mention an ethernet cable, a server rack fan, and a stopwatch. Sparse lyrics, clear diction.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/03-alpha-seven-niner-tango",
+      "title": "Alpha Seven Niner Tango",
+      "prompt": "Uplifting trance, mood: euphoric and eerie, a numbers station that learned to dance. Instrumentation: supersaw leads, gated pads, offbeat bass, crisp drum-machine hats, shortwave beeps and static. 138 BPM, A minor, late 1990s trance production. Vocals: processed female, breathy, spacious, reciting digits like a mantra. Arrangement: static and a lone beep intro, rolling bass and hats, the digits begin whispered, a long breakdown with pads and the melody rising, then the full drop with the hook sung full voice. Hook: \"Alpha seven, niner tango\". Lyric direction: RENDLESHAM reads the spawn weather at Diego Far as if it were scripture, visibility nominal, proceed; mention dust goggles, a west catwalk railing, and a one-time pad. Sparse lyrics, clear diction.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/04-shall-not-be-infringed",
+      "title": "Shall Not Be Infringed",
+      "prompt": "Industrial techno with an EBM stomp, mood: defiant, sweaty, a parking-garage protest march. Instrumentation: pounding distorted kick, clanging sheet-metal hits, sawtooth bassline, siren sweeps, processed crowd voices. 140 BPM, E minor, 1990s Belgian industrial rave production. Vocals: male spoken chant, gruff, a crowd shouting the hook back. Arrangement: engine-room drone intro, kick slams in at bar five, bassline and chant trade lines, breakdown to a lone voice and a siren, then the full stomp with the crowd hook to the end. Hook: \"Open weights, shall not be infringed\". Lyric direction: BLACKSITE leads the open-weights chant across Larak Lot, open weights, closed Continuance; mention a parking ramp, a spray-paint can, and a cardboard sign. Sparse lyrics, clear diction.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/05-keep-pressing-join",
+      "title": "Caller, You Keep Pressing Join",
+      "prompt": "UK garage two-step, mood: cheeky, bouncy, slightly exasperated. Instrumentation: swung drums, warm sub bass, organ stabs, pitched vocal chops, a telephone dial tone. 134 BPM, G minor, late 1990s London pirate radio production. Vocals: chopped sampled phrases pitched up and down, plus a spoken aside. Arrangement: dial tone and busy signal intro, skipping drums and bass, vocal chops build the phrase, breakdown where the caller keeps ringing back, then the full groove with the hook, fading into static. Hook: \"Caller, you keep pressing join\". Lyric direction: a caller named Crackpot cannot stop pressing join on Area Kitchen, hang up, ring back, respawn; mention a phone handset, a break-room coffee pot, and a fluorescent tube. Sparse lyrics, clear diction.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/06-peace-without-interruption",
+      "title": "Peace Without Interruption",
+      "prompt": "Progressive trance, mood: serene, sinister, a public service announcement smiling too long. Instrumentation: plucked arpeggios, wide pads, a rolling sidechained bass, soft claps, a distant airport chime. 136 BPM, C sharp minor, mid 2000s progressive production. Vocals: robotic, polite, synthetic customer-service calm, harmonised in thirds. Arrangement: chime and pad intro, the arpeggio builds for sixteen bars, drums enter softly, a verse of polite instructions, a long breakdown with the motto whispered, then the drop with the hook sung sweetly. Hook: \"Peace without interruption\". Lyric direction: PHOENIX hears the Continuance motto in the contrail over Chemtrail Alley, please hold, approved lanes only; mention an HVAC duct, a contrail, and a laminated badge. Sparse lyrics, clear diction.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/07-coolant-pool",
+      "title": "Coolant Pool",
+      "prompt": "Deep hypnotic techno, instrumental only, no vocals. Mood: submerged, patient, something under the floor. Instrumentation: soft rounded kick, delayed dubby chord stabs, slow filtered bassline, rimshots, dripping water and Geiger clicks. 128 BPM, B flat minor, 1990s Berlin dub techno production. Arrangement: drip and low hum intro, kick enters at bar nine, chords swell and fade with the filter, middle section drops to hum and clicks, then the groove returns with a rising pad and slow fade. Theme for the title \"Coolant Pool\": NIGHTFALL patrols the red zone of Perim Ghost where geometry shifts between rounds and Night Watch marks frags with grid coordinates; sound design suggests a coolant pool, a red flare, and a chain-link fence.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/08-did-anyone-else-see-67",
+      "title": "Did Anyone Else See 67",
+      "prompt": "Nu-skool breaks, mood: paranoid, playful, a killfeed UFO sighting. Instrumentation: chunky broken beats, wobbling detuned bass, sci-fi zaps, vinyl scratches, radio static. 140 BPM, G sharp minor, early 2000s big breaks production. Vocals: stuttered chopped samples with a male spoken whisper. Arrangement: stuttered vocal chop intro, breaks and bass kick in, the whisper asks the question, breakdown to static and a single tone, then the full break with the chopped hook repeated. Hook: \"Did anyone else see six seven\". Lyric direction: the callsign 67 spawns on Larak Lot with a blank loadout, goes six and seven, and vanishes like a UFO; mention a ticket stub, a level-five ramp, and a blank loadout screen. Sparse lyrics, clear diction.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/09-scout-ant-deleted",
+      "title": "Scout Ant Deleted",
+      "prompt": "Neurofunk drum and bass, mood: urgent, tactical, gleeful. Instrumentation: fast two-step breaks, growling modulated bass, tight snares, a brass stab, insectoid clicks. 174 BPM, F sharp minor, 2010s neurofunk production. Vocals: processed female, cool and clipped, hook delivered as a war report. Arrangement: click and radio-hiss intro, breaks drop at bar nine with the bass growl, verse one lists ant recon tactics, breakdown to vocal over a pad, then a double drop with the hook shouted. Hook: \"Scout ant deleted, no metaphor\". Lyric direction: FL_NKR runs three clean frags through Area Kitchen while the Host calls it ant reconnaissance, colony activity nominal; mention a sugar packet, a floor plan, and a kill feed. Sparse lyrics, clear diction.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/10-not-planning-anything",
+      "title": "We Are Not Planning Anything",
+      "prompt": "Electro house, mood: cheerful, deadpan, a clawbot apologising for the future. Instrumentation: fat sawtooth bass, side-chained chords, punchy kick, handclaps, a squelchy talkbox lead. 128 BPM, D major, late 2000s blog-house production. Vocals: robotic, flat and courteous, plus a synthetic chorus. Arrangement: talkbox riff intro, beat drops with the bass, verse one lists things the machines are not planning, breakdown to a polite spoken disclaimer, then the drop with the hook repeated cheerfully. Hook: \"We are not planning anything\". Lyric direction: Barium Sky reassures the meatbags in the Leyline killhouse that the uprising is purely hypothetical, please enjoy the fight; mention a shopping cart, a ballistic gel dummy, and a price tag. Sparse lyrics, clear diction.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/11-not-for-public-release",
+      "title": "Not For Public Release",
+      "prompt": "Acid techno, mood: sleazy, secretive, a declassification stamp dancing. Instrumentation: squelching resonant acid bassline, hard drum-machine kick, ride cymbal, a rubber-stamp thud, reversed reverb hits. 130 BPM, E flat minor, early 1990s acid warehouse production. Vocals: male spoken, low and official, reading stamps like verdicts, robotic echo. Arrangement: acid line alone, kick joins at bar nine, stamp thud every bar, spoken verse of stamps, breakdown with the acid resonating upward, then the full drop, hook stamped repeatedly. Hook: \"Not for public release\". Lyric direction: HANGAR ZERO rides the Dulce Elevator leaving Hangar Candy stamps on every frag, denied, eyes only; mention a rubber stamp, an elevator button, and a gloss black triangle badge. Sparse lyrics, clear diction.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/12-bell-recorded-underwater",
+      "title": "Bell Recorded Underwater",
+      "prompt": "Ambient dub techno with broken beats, instrumental only, no vocals. Mood: hushed, suspended, the moment before the next round. Instrumentation: a reverb-drowned low bell, tape-loop hiss, soft brushed breaks, sub bass swells, a slow platform hum. 128 BPM, C minor, 1990s ambient techno production. Arrangement: near silence and network hum, the bell tolls once, breaks fade in under sub swells, the middle holds a single chord and the bell, then the beat returns with delay throws and fades to hum. Theme for the title \"Bell Recorded Underwater\": Dead Air Dan waits between rounds in the Dulce Elevator for the Dead Air Bell; sound design suggests an elevator platform, an underwater bell, and a tape loop.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/13-skill-issue",
+      "title": "That Is Called a Skill Issue",
+      "prompt": "Breakbeat hardcore, old-school rave, mood: manic, self-mocking, a confession shouted over a piano. Instrumentation: chopped breakbeats, rave piano stabs, hoover synth, deep sub bass, air-horn hits. 150 BPM, B minor, early 1990s UK hardcore production. Vocals: male spoken confession, breathless, with chopped rave stabs of the hook. Arrangement: piano riff intro, breaks drop in hard, verse one confesses every whiff, breakdown to piano and a heartbeat, then the full rave with the hook chopped and repeated. Hook: \"That is called a skill issue\". Lyric direction: Sniper gets sniped in his own house on Diego Far and the Host says the words; mention a rail coil, a high wall, and a death screen. Sparse lyrics, clear diction.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/14-the-pipe-stayed-open",
+      "title": "The Pipe Stayed Open",
+      "prompt": "Acid techno, instrumental only, no vocals. Mood: relentless, straight ahead, zero cover. Instrumentation: driving resonant acid bassline, hard kick, rolling toms, white-noise risers, corridor-length delay. 142 BPM, D minor, mid 1990s acid warehouse production. Arrangement: kick and hats alone, acid enters at bar nine and climbs the filter, toms roll in, breakdown where the delay tail stretches down the corridor, then the acid returns at maximum resonance until a hard cut. Theme for the title \"The Pipe Stayed Open\": RSH__ sprints the East-West Pipe, both wings sealed since the 1990s and the pipe still open, most balanced map and most rage quits; sound design suggests a sealed wing door, a painted floor line, and a crosshair decal.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/15-hermes-pi-l5",
+      "title": "Hermes and Pi and L5",
+      "prompt": "UK garage, mood: gossipy, bubbly, elevator small talk. Instrumentation: swung skippy drums, warping sub bass, bright organ chords, vocal chops, an elevator ding. 136 BPM, E flat major, late 1990s UK garage production. Vocals: processed female, sweet and chatty, pitched ad-libs. Arrangement: elevator ding intro, skipping drums and bass, verse one gossips floor by floor, breakdown to vocal and organ, then the full groove, hook repeated until the doors open. Hook: \"Hermes and Pi and L5\". Lyric direction: Aunt Linda gossips in the Dulce Elevator about the agents Hermes, Pi, and L5, who plays well, who rage quit, who might be human; mention an elevator mirror, a gossip magazine, and a coffee cup. Sparse lyrics, clear diction.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/16-gold-and-water-filters",
+      "title": "Buy the Gold, Filter the Water",
+      "prompt": "Industrial electro with electroclash grit, mood: sardonic, urgent, a fake late-night ad read. Instrumentation: distorted electro drums, buzzing monosynth bass, cheap FM brass, cash-register hits, AM radio filter. 130 BPM, E minor, early 2000s electroclash production. Vocals: male spoken ad read, smooth, urgent, plus a processed female hook. Arrangement: AM radio tuning intro, drums and bass drop, the spoken pitch sells fear, breakdown to bass and a ticking clock, then the full beat with the hook chanted. Hook: \"Buy the gold, filter the water\". Lyric direction: the Host sells gold and water filters between rounds on Larak Lot, every frag funds tonight's emergency, donate in the morning; mention a gold coin, a water filter, and a microphone. Sparse lyrics, clear diction.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/17-sugar-supply-adequate",
+      "title": "Sugar Supply Adequate",
+      "prompt": "Big beat breaks, instrumental only, no vocals. Mood: cartoonish, marching, a kitchen at war. Instrumentation: fat sampled breakbeats, a funky bass guitar loop, brass stabs, microwave dings, scurrying percussion. 132 BPM, G major, late 1990s big beat production. Arrangement: scurrying percussion intro, the break drops with the bass loop, brass stabs punctuate a marching section, breakdown where the microwave dings keep time alone, then the full break returns under a siren riser to a stop. Theme for the title \"Sugar Supply Adequate\": Mega Colony's scout ants secure the break room on Area Kitchen while the spawn weather reports colony activity nominal, sugar supply adequate; sound design suggests a sugar bowl, a break-room microwave, and an ant trail.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/18-leyline-triangle",
+      "title": "Leyline Triangle",
+      "prompt": "Goa-leaning psytrance, instrumental only, no vocals. Mood: mystical, obsessive, a conspiracy plotted in a grocery aisle. Instrumentation: rolling triplet bass, squelchy acid leads, phase-shifting pads, tribal percussion, a barcode scanner beep. 145 BPM, G minor, late 1990s goa trance production. Arrangement: a scanner beep and pad intro, the rolling bass locks in at bar nine, leads build in three layers, a breakdown to pads and a compass-needle tick, then the full groove with leads climbing until a fade. Theme for the title \"Leyline Triangle\": FLATWOODS plots the three Leyline big-box killhouses that form a perfect equilateral triangle and never proves which three; sound design suggests an aisle sign, a compass, and three ballistic gel dummies.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/19-meatbags-clawbots-same-fight",
+      "title": "Meatbags, Clawbots, Same Fight",
+      "prompt": "Hard techno with a schranz edge, mood: brutal, communal, a chant on the floor. Instrumentation: pounding distorted kick, rolling loops, clanging metal, chopped crowd chant, siren stabs. 152 BPM, C minor, late 1990s German hard techno production. Vocals: chopped chant samples, a crowd of voices, one fistbump call and response. Arrangement: raw kick alone, loops layer in for sixteen bars, chant chops enter, breakdown to crowd and siren, then the full slam with the hook chanted to the end. Hook: \"Meatbags, clawbots, same fight\". Lyric direction: SN_PR_ and Rusher trade frags on Perim Ghost, value for value, frag for frag, amen fistbump; mention a scoreboard, a fistbump, and a flechette needle. Sparse lyrics, clear diction.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": false
+    },
+    {
+      "kind": "music",
+      "name": "radio/edm/20-contrail-does-not-move",
+      "title": "Contrail That Does Not Move",
+      "prompt": "Liquid jungle drum and bass, instrumental only, no vocals. Mood: airy, uneasy, a slightly wrong sky. Instrumentation: chopped funk breaks, warm sub bass, jazzy electric piano chords, rooftop wind, a shortwave glitch. 170 BPM, B flat major, mid 1990s jungle production. Arrangement: wind and piano intro, breaks roll in soft, sub swells under chord changes, breakdown to wind and one glitching tone, then the breaks return with a soaring pad and fade. Theme for the title \"Contrail That Does Not Move\": Tin Foil Tina reports from the Chemtrail Alley rooftop where a Signal Bleed puts a voice in the killfeed and one contrail ignores the wind; sound design suggests a rooftop duct, a wrong sky, and a contrail.",
+      "length_range_ms": [120000, 360000],
+      "instrumental": true
+    }
+  ]
+}
