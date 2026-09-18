@@ -79,6 +79,8 @@ func _setup_radio() -> void:
 	if hud and hud.has_method("show_radio"):
 		radio.track_started.connect(func(station, title): hud.show_radio(station, title))
 		radio.station_changed.connect(func(station, tagline, _has): hud.show_radio(station, tagline))
+	if hud and hud.has_method("show_station_card"):
+		radio.station_card.connect(func(card): hud.show_station_card(card))
 	if hud and hud.has_signal("host_spoke"):
 		hud.host_spoke.connect(func(seconds): radio.duck(seconds))
 

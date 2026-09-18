@@ -5,6 +5,8 @@ extends Node
 
 signal track_started(station_name: String, title: String)
 signal station_changed(station_name: String, tagline: String, has_tracks: bool)
+## Full card for the HUD: name, badge, color, tagline, enabled, has_tracks.
+signal station_card(card: Dictionary)
 
 const STATIONS_PATH := "res://assets/audio/radio/stations.json"
 const MANIFEST_PATH := "res://assets/audio/audiogen-manifest.json"
@@ -17,6 +19,7 @@ const DUCK_DB := -9.0
 const MUTE_DB := -80.0
 const DUCK_SECONDS := 3.0
 const DUCK_RECOVER_SECONDS := 1.5
+const DEFAULT_BADGE_COLOR := "#5A554F"
 
 var stations: Array = []
 var station_index := 0
@@ -41,6 +44,8 @@ func _ready() -> void:
 		return
 	_apply_volume(0.0, true)
 	play_random()
+	# Signals connected by the parent after add_child would miss an emit here.
+	call_deferred("announce_station")
 
 
 ## Build the station list. Texts can be injected for headless tests.
@@ -81,10 +86,15 @@ static func build_stations(station_list: Array, entries: Dictionary) -> Array:
 				"title": title,
 				"length_ms": int(entry.get("length_ms", 0)),
 			})
+		var badge := str(raw.get("badge", ""))
+		if badge == "":
+			badge = id.substr(0, 2).to_upper()
 		result.append({
 			"id": id,
 			"name": str(raw.get("name", id)),
 			"dj": str(raw.get("dj", "")),
+			"badge": badge,
+			"color": str(raw.get("color", DEFAULT_BADGE_COLOR)),
 			"tagline": str(raw.get("tagline", "")),
 			"ducks_in_combat": bool(raw.get("ducks_in_combat", true)),
 			"tracks": tracks,
@@ -96,6 +106,26 @@ func current_station() -> Dictionary:
 	if stations.is_empty():
 		return {}
 	return stations[station_index]
+
+
+## What the HUD shows on a station switch or toggle.
+func station_card_for(station: Dictionary) -> Dictionary:
+	return {
+		"id": str(station.get("id", "")),
+		"name": str(station.get("name", "")),
+		"badge": str(station.get("badge", "")),
+		"color": str(station.get("color", DEFAULT_BADGE_COLOR)),
+		"tagline": str(station.get("tagline", "")),
+		"enabled": enabled,
+		"has_tracks": not station.get("tracks", []).is_empty(),
+	}
+
+
+func announce_station() -> void:
+	var station := current_station()
+	if station.is_empty():
+		return
+	station_card.emit(station_card_for(station))
 
 
 ## Pick a track not heard in the last NO_REPEAT_WINDOW plays for this station.
@@ -124,7 +154,7 @@ func play_random() -> void:
 	var station := current_station()
 	var track := pick_next(station)
 	if track.is_empty():
-		# Off the air: station_changed already told the HUD there are no tracks.
+		# Off the air: the station card already says there are no tracks.
 		current_title = ""
 		if player:
 			player.stop()
@@ -155,6 +185,7 @@ func _step_station(delta: int) -> void:
 	station_index = posmod(station_index + delta, stations.size())
 	var station := current_station()
 	station_changed.emit(str(station.get("name", "")), str(station.get("tagline", "")), not station.get("tracks", []).is_empty())
+	announce_station()
 	if enabled:
 		play_random()
 
@@ -173,6 +204,7 @@ func toggle() -> void:
 		current_title = ""
 	var station := current_station()
 	station_changed.emit(str(station.get("name", "")), "on" if enabled else "off", enabled)
+	announce_station()
 
 
 func set_human_mode(on: bool) -> void:
