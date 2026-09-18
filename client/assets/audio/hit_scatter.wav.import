@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://b5d112287adfb413"
-path="res://.godot/imported/hit_scatter.wav-5d112287adfb41317bf789bfc170471f.sample"
+uid="uid://ctm80t32wvmiu"
+path="res://.godot/imported/hit_scatter.wav-156746227ddf91af93b08a7e7df97694.sample"
 
 [deps]
 
 source_file="res://assets/audio/hit_scatter.wav"
-dest_files=["res://.godot/imported/hit_scatter.wav-5d112287adfb41317bf789bfc170471f.sample"]
+dest_files=["res://.godot/imported/hit_scatter.wav-156746227ddf91af93b08a7e7df97694.sample"]
 
 [params]
 

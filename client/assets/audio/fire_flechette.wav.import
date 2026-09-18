@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://bc626464c31840d1"
-path="res://.godot/imported/fire_flechette.wav-c626464c31840d18b1b55231af7a3a5d.sample"
+uid="uid://b7i3jry88bc4c"
+path="res://.godot/imported/fire_flechette.wav-f6dbf140a704a44e63e7c1e49be1132c.sample"
 
 [deps]
 
 source_file="res://assets/audio/fire_flechette.wav"
-dest_files=["res://.godot/imported/fire_flechette.wav-c626464c31840d18b1b55231af7a3a5d.sample"]
+dest_files=["res://.godot/imported/fire_flechette.wav-f6dbf140a704a44e63e7c1e49be1132c.sample"]
 
 [params]
 

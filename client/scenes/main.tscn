@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://ba4u2t3o17x7x"]
+[gd_scene load_steps=12 format=3 uid="uid://ba4u2t3o17x7x"]
 
 [ext_resource type="Script" path="res://scripts/game_manager.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/net_client.gd" id="2_net"]
@@ -6,6 +6,10 @@
 [ext_resource type="PackedScene" uid="uid://bcompyardscrap02" path="res://scenes/arena_compliance_yard.tscn" id="3b_yard"]
 [ext_resource type="Script" path="res://scripts/spectator_cam.gd" id="4_camera"]
 [ext_resource type="Script" path="res://scripts/hud.gd" id="5_hud"]
+[ext_resource type="Texture2D" path="res://assets/ui/chrome_strip_hud.png" id="6_chrome"]
+[ext_resource type="Texture2D" path="res://assets/ui/on_air_badge.png" id="7_onair"]
+[ext_resource type="Texture2D" path="res://assets/ui/contested_frequency_badge.png" id="8_cf"]
+[ext_resource type="Texture2D" path="res://assets/ui/hangar_candy_badge.png" id="9_hangar"]
 
 [sub_resource type="StyleBoxFlat" id="PanelStyleBox_Weapon"]
 bg_color = Color(0.039, 0.039, 0.047, 0.92)
@@ -86,6 +90,72 @@ text = "SCRAP LEAGUE
 CONTESTED FREQUENCY
 (waiting for scrap)"
 theme_override_colors/font_color = Color(0.91, 0.886, 0.839, 1)
+
+
+[node name="ChromeStrip" type="TextureRect" parent="HUD"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 360.0
+offset_top = 8.0
+offset_right = -16.0
+offset_bottom = 80.0
+grow_horizontal = 2
+mouse_filter = 2
+texture_filter = 0
+texture = ExtResource("6_chrome")
+expand_mode = 1
+stretch_mode = 5
+modulate = Color(1, 1, 1, 0.88)
+
+[node name="OnAirBadge" type="TextureRect" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -130.0
+offset_top = 88.0
+offset_right = -16.0
+offset_bottom = 140.0
+grow_horizontal = 0
+mouse_filter = 2
+texture_filter = 0
+texture = ExtResource("7_onair")
+expand_mode = 1
+stretch_mode = 5
+modulate = Color(1, 1, 1, 0.92)
+visible = false
+
+[node name="ContestedFrequencyBadge" type="TextureRect" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -250.0
+offset_top = 88.0
+offset_right = -140.0
+offset_bottom = 140.0
+grow_horizontal = 0
+mouse_filter = 2
+texture_filter = 0
+texture = ExtResource("8_cf")
+expand_mode = 1
+stretch_mode = 5
+modulate = Color(0.95, 0.95, 0.98, 0.9)
+visible = true
+
+[node name="HangarCandyBadge" type="TextureRect" parent="HUD"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -72.0
+offset_right = 130.0
+offset_bottom = -16.0
+grow_vertical = 0
+mouse_filter = 2
+texture_filter = 0
+texture = ExtResource("9_hangar")
+expand_mode = 1
+stretch_mode = 5
+modulate = Color(1, 1, 1, 0.82)
 
 [node name="FragLabel" type="Label" parent="HUD"]
 anchors_preset = 8
