@@ -81,7 +81,7 @@ export FRAGR_SERVER="192.168.1.100:6767"  # or Tailscale IP
 ## Agent adapter (MCP-compatible)
 
 ```bash
-cd agent-adapter && cargo run -- mcp  # or scripted-bot --name MyBot
+cd agent-adapter && cargo run -- mcp --name ArenaFox  # or scripted-bot --name MyBot
 ```
 
 External agents (clawbots, MCP clients) can observe and act via structured JSON (no vision API, no LLM required for bots).
