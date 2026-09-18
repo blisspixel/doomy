@@ -257,7 +257,7 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
                         },
                         {
                             "name": "get_events",
-                            "description": "Get recent game events (frags, respawns). Includes last 50 events.",
+                            "description": "Get recent game events (player joins/leaves, frags, respawns, round start/end). Includes last 50 events.",
                             "inputSchema": {
                                 "type": "object",
                                 "properties": {
@@ -1020,5 +1020,77 @@ mod tests {
         let action = ClientMessage::Action(protocol::Action::default());
         let json = serde_json::to_string(&action).unwrap();
         assert!(json.contains(r#""type":"action""#));
+    }
+
+    #[test]
+    fn test_join_leave_event_parsing() {
+        let join_msg = r#"{"type":"event","event":"player_joined","player":"Agent1","role":"agent","round_number":1,"player_count":5}"#;
+        let parsed: Result<protocol::ServerMessage, _> = serde_json::from_str(join_msg);
+        assert!(parsed.is_ok(), "Failed to parse join event: {:?}", parsed);
+
+        match parsed.unwrap() {
+            protocol::ServerMessage::Event(protocol::GameEvent::PlayerJoined {
+                player,
+                role,
+                round_number,
+                player_count,
+            }) => {
+                assert_eq!(player, "Agent1");
+                assert_eq!(role, "agent");
+                assert_eq!(round_number, 1);
+                assert_eq!(player_count, 5);
+            }
+            _ => panic!("Expected Event(PlayerJoined)"),
+        }
+
+        let leave_msg = r#"{"type":"event","event":"player_left","player":"Agent1","score":7,"round_number":2,"player_count":4}"#;
+        let parsed: Result<protocol::ServerMessage, _> = serde_json::from_str(leave_msg);
+        assert!(parsed.is_ok(), "Failed to parse leave event: {:?}", parsed);
+
+        match parsed.unwrap() {
+            protocol::ServerMessage::Event(protocol::GameEvent::PlayerLeft {
+                player,
+                score,
+                round_number,
+                player_count,
+            }) => {
+                assert_eq!(player, "Agent1");
+                assert_eq!(score, 7);
+                assert_eq!(round_number, 2);
+                assert_eq!(player_count, 4);
+            }
+            _ => panic!("Expected Event(PlayerLeft)"),
+        }
+    }
+
+    #[test]
+    fn test_join_leave_events_in_buffer() {
+        let mut buffer = Vec::new();
+
+        let join_event = serde_json::json!({
+            "event": "player_joined",
+            "player": "TestAgent",
+            "role": "agent",
+            "round_number": 1,
+            "player_count": 5
+        });
+        buffer.push(join_event);
+
+        let leave_event = serde_json::json!({
+            "event": "player_left",
+            "player": "TestAgent",
+            "score": 3,
+            "round_number": 1,
+            "player_count": 4
+        });
+        buffer.push(leave_event);
+
+        assert_eq!(buffer.len(), 2);
+        assert_eq!(buffer[0]["event"], "player_joined");
+        assert_eq!(buffer[0]["player"], "TestAgent");
+        assert_eq!(buffer[0]["role"], "agent");
+        assert_eq!(buffer[1]["event"], "player_left");
+        assert_eq!(buffer[1]["player"], "TestAgent");
+        assert_eq!(buffer[1]["score"], 3);
     }
 }

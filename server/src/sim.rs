@@ -170,7 +170,7 @@ impl GameState {
 
         self.players.push(Player {
             id,
-            name,
+            name: name.clone(),
             x: angle.cos() * spawn_radius,
             y: 1.5,
             z: angle.sin() * spawn_radius,
