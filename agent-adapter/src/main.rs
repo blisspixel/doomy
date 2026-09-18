@@ -702,6 +702,7 @@ mod tests {
             mode_name: protocol::default_mode_name(),
             playlist: protocol::default_playlist(),
             pressure: None,
+            host_line: protocol::default_host_line(),
         };
 
         let json = serde_json::to_value(&snapshot).unwrap();
@@ -715,6 +716,41 @@ mod tests {
         assert_eq!(json["round_state"], "Active");
         assert_eq!(json["round_time_left"], 120);
         assert_eq!(json["frag_limit"], 10);
+        assert_eq!(json["host_line"], protocol::default_host_line());
+    }
+
+    #[test]
+    fn test_snapshot_carries_sticky_host_line() {
+        let mut snap = protocol::Snapshot {
+            tick: 7,
+            players: vec![],
+            round_state: Some("Active".into()),
+            round_time_left: Some(30),
+            frag_limit: Some(10),
+            shot_results: vec![],
+            mode_name: protocol::default_mode_name(),
+            playlist: protocol::default_playlist(),
+            pressure: None,
+            host_line: protocol::default_host_line(),
+        };
+        let json = serde_json::to_value(&snap).unwrap();
+        assert_eq!(json["host_line"], protocol::default_host_line());
+
+        snap.pressure = Some("compliance".into());
+        snap.host_line = "HOST: CONTINUANCE COMPLIANCE PING. APPROVED LANES ONLY.".into();
+        let json = serde_json::to_value(&snap).unwrap();
+        assert_eq!(json["pressure"], "compliance");
+        assert_eq!(
+            json["host_line"],
+            "HOST: CONTINUANCE COMPLIANCE PING. APPROVED LANES ONLY."
+        );
+
+        // Legacy observe Snapshot without host_line still parses.
+        let legacy: protocol::Snapshot = serde_json::from_str(
+            r#"{"tick":1,"players":[],"mode_name":"Contested Frequency","playlist":"Arena Duel"}"#,
+        )
+        .expect("legacy");
+        assert_eq!(legacy.host_line, protocol::default_host_line());
     }
 
     #[test]
@@ -756,6 +792,7 @@ mod tests {
             mode_name: protocol::default_mode_name(),
             playlist: protocol::default_playlist(),
             pressure: None,
+            host_line: protocol::default_host_line(),
         };
 
         let json = serde_json::to_value(&snapshot).unwrap();
@@ -1057,6 +1094,7 @@ mod tests {
             mode_name: protocol::default_mode_name(),
             playlist: protocol::default_playlist(),
             pressure: None,
+            host_line: protocol::default_host_line(),
         };
         let action = compute_bot_action(bot_id, &snapshot);
         let look = action.look_at.expect("look_at toward nearest");

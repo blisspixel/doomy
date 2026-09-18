@@ -19,6 +19,8 @@ var host_bumper_index = 0
 var league_mode_name = "Contested Frequency"
 var league_playlist = "Arena Duel"
 var pressure_id = ""
+var sticky_host_line = ""
+var host_line_seen = false
 var client_mode = "SPECTATING"
 
 const HOST_BUMPERS = [
@@ -73,6 +75,9 @@ func _refresh_mode_label():
 	if not mode_label:
 		return
 	var league = league_mode_name.to_upper() + " // " + league_playlist.to_upper()
+	var host_chip = ""
+	if sticky_host_line != "":
+		host_chip = "\n" + sticky_host_line
 	var controls = ""
 	if client_mode == "SPECTATING":
 		controls = "SPECTATING (J: Join, F: Cycle Cam, ESC: Mouse)"
@@ -81,7 +86,7 @@ func _refresh_mode_label():
 	var pressure_chip = ""
 	if pressure_id == "compliance":
 		pressure_chip = "\nPRESSURE: CONTINUANCE COMPLIANCE"
-	mode_label.text = league + "\n" + controls + pressure_chip
+	mode_label.text = league + host_chip + "\n" + controls + pressure_chip
 
 func set_tick(tick: int):
 	if tick_label:
@@ -200,12 +205,39 @@ func show_frag(killer: String, victim: String, killer_color: Color = Color.WHITE
 			frag_label.visible = false
 			frag_label.modulate = Color.WHITE
 
+func set_host_line(line: String, flash_on_first: bool = false):
+	if line == "":
+		return
+	sticky_host_line = line
+	_refresh_mode_label()
+	if flash_on_first and not host_line_seen:
+		host_line_seen = true
+		show_host_join(line)
+
+func show_host_join(host_line: String):
+	# Mid-join Host bumper: show sticky line without waiting for RoundStart.
+	if round_message:
+		var line = host_line
+		if line == "":
+			line = "HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE. ARENA DUEL IS LIVE."
+		round_message.text = line + "\n" + league_mode_name.to_upper() + " // " + league_playlist.to_upper()
+		round_message.visible = true
+		var tween = create_tween()
+		tween.tween_property(round_message, "scale", Vector2(1.2, 1.2), 0.15)
+		tween.tween_property(round_message, "scale", Vector2(1.0, 1.0), 0.2)
+		await get_tree().create_timer(2.5).timeout
+		if is_instance_valid(round_message):
+			round_message.visible = false
+
 func show_round_start(round_number: int, host_line: String = ""):
 	if round_message:
 		var line = host_line
 		if line == "":
 			line = HOST_BUMPERS[host_bumper_index % HOST_BUMPERS.size()]
 			host_bumper_index += 1
+		sticky_host_line = line
+		host_line_seen = true
+		_refresh_mode_label()
 		round_message.text = line + "\n" + league_playlist.to_upper() + " ROUND " + str(round_number) + " - FIGHT!"
 		if ghost_rival != "":
 			round_message.text += "\nGHOST RIVAL: " + ghost_rival
@@ -222,6 +254,9 @@ func show_compliance_ping(message: String, duration_sec: float = 6.0):
 		var line = message
 		if line == "":
 			line = "HOST: CONTINUANCE COMPLIANCE PING. APPROVED LANES ONLY."
+		sticky_host_line = line
+		host_line_seen = true
+		_refresh_mode_label()
 		round_message.text = line + "\n" + league_mode_name.to_upper() + " PRESSURE"
 		round_message.visible = true
 		var tween = create_tween()

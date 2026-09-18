@@ -1,6 +1,7 @@
 use crate::protocol::{
-    default_host_line, default_mode_name, default_playlist, Action, GameEvent, PlayerScore,
-    PlayerState, Role, ShotResult, Snapshot, WeaponType, MODE_NAME, PLAYLIST_NAME,
+    compliance_host_line, default_host_line, default_mode_name, default_playlist, Action,
+    GameEvent, PlayerScore, PlayerState, Role, ShotResult, Snapshot, WeaponType, MODE_NAME,
+    PLAYLIST_NAME,
 };
 use std::collections::HashMap;
 use std::f32::consts::PI;
@@ -606,6 +607,11 @@ impl GameState {
             } else {
                 None
             },
+            host_line: if self.compliance_ticks_left > 0 {
+                compliance_host_line()
+            } else {
+                default_host_line()
+            },
         }
     }
 
@@ -613,7 +619,7 @@ impl GameState {
         self.compliance_fired = true;
         self.compliance_ticks_left = self.config.compliance_duration_ticks;
         self.events.push(GameEvent::CompliancePing {
-            message: "HOST: CONTINUANCE COMPLIANCE PING. APPROVED LANES ONLY.".to_string(),
+            message: compliance_host_line(),
             duration_ticks: self.config.compliance_duration_ticks,
         });
         tracing::info!(

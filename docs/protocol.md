@@ -180,7 +180,8 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
   ],
   "mode_name": "Contested Frequency",
   "playlist": "Arena Duel",
-  "pressure": "compliance"
+  "pressure": "compliance",
+  "host_line": "HOST: CONTINUANCE COMPLIANCE PING. APPROVED LANES ONLY."
 }
 ```
 
@@ -203,6 +204,7 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
 - `mode_name`: Contested Frequency (scrap league that denies it exists)
 - `playlist`: Arena Duel under the league lie
 - `pressure`: (optional) Live pressure beat id. `"compliance"` during Continuance compliance ping slow.
+- `host_line`: Sticky Contested Frequency Host chrome for mid-join / mid-round observe. League Host line by default; switches to the compliance Host line while pressure is live. Clients show this on join without waiting for the next `round_start`.
 
 **Notes:**
 - Dead players (HP ≤ 0) are omitted from the snapshot
