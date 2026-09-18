@@ -120,6 +120,8 @@ func cycle_next_target():
 	if len(available_targets) > 0:
 		follow_target_index = (follow_target_index + 1) % len(available_targets)
 		auto_cycle_timer = 0.0
+		camera_shake_intensity = 0.12
+		camera_zoom_offset = -0.6
 
 func set_available_targets(targets: Array):
 	available_targets = targets
