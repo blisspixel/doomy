@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://bgah5r5qw6x5m"]
+[gd_scene load_steps=12 format=3 uid="uid://bgah5r5qw6x5m"]
 
 [ext_resource type="Texture2D" path="res://assets/tiles/16/floor.png" id="1_floor"]
 [ext_resource type="Texture2D" path="res://assets/tiles/16/wall.png" id="2_wall"]
@@ -20,6 +20,39 @@ albedo_color = Color(0.7, 0.7, 0.75, 1)
 albedo_texture = ExtResource("2_wall")
 texture_filter = 0
 uv1_scale = Vector3(50, 5, 1)
+
+[sub_resource type="PlaneMesh" id="ZoneMesh"]
+size = Vector2(8, 8)
+
+[sub_resource type="StandardMaterial3D" id="ZoneMaterial_Red"]
+albedo_color = Color(0.8, 0.15, 0.15, 1)
+emission_enabled = true
+emission = Color(0.5, 0.05, 0.05, 1)
+emission_energy_multiplier = 0.3
+
+[sub_resource type="StandardMaterial3D" id="ZoneMaterial_Cyan"]
+albedo_color = Color(0.15, 0.7, 0.9, 1)
+emission_enabled = true
+emission = Color(0.05, 0.4, 0.6, 1)
+emission_energy_multiplier = 0.3
+
+[sub_resource type="StandardMaterial3D" id="ZoneMaterial_Gold"]
+albedo_color = Color(0.9, 0.7, 0.1, 1)
+emission_enabled = true
+emission = Color(0.6, 0.4, 0.05, 1)
+emission_energy_multiplier = 0.3
+
+[sub_resource type="StandardMaterial3D" id="ZoneMaterial_Green"]
+albedo_color = Color(0.2, 0.8, 0.3, 1)
+emission_enabled = true
+emission = Color(0.1, 0.5, 0.15, 1)
+emission_energy_multiplier = 0.3
+
+[sub_resource type="StandardMaterial3D" id="ZoneMaterial_Purple"]
+albedo_color = Color(0.6, 0.2, 0.8, 1)
+emission_enabled = true
+emission = Color(0.3, 0.1, 0.5, 1)
+emission_energy_multiplier = 0.3
 
 [node name="Arena" type="Node3D"]
 
@@ -58,39 +91,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10, 0)
 light_energy = 0.5
 light_color = Color(0.8, 0.9, 1, 1)
 omni_range = 60.0
-
-[sub_resource type="PlaneMesh" id="ZoneMesh"]
-size = Vector2(8, 8)
-
-[sub_resource type="StandardMaterial3D" id="ZoneMaterial_Red"]
-albedo_color = Color(0.8, 0.15, 0.15, 1)
-emission_enabled = true
-emission = Color(0.5, 0.05, 0.05, 1)
-emission_energy = 0.3
-
-[sub_resource type="StandardMaterial3D" id="ZoneMaterial_Cyan"]
-albedo_color = Color(0.15, 0.7, 0.9, 1)
-emission_enabled = true
-emission = Color(0.05, 0.4, 0.6, 1)
-emission_energy = 0.3
-
-[sub_resource type="StandardMaterial3D" id="ZoneMaterial_Gold"]
-albedo_color = Color(0.9, 0.7, 0.1, 1)
-emission_enabled = true
-emission = Color(0.6, 0.4, 0.05, 1)
-emission_energy = 0.3
-
-[sub_resource type="StandardMaterial3D" id="ZoneMaterial_Green"]
-albedo_color = Color(0.2, 0.8, 0.3, 1)
-emission_enabled = true
-emission = Color(0.1, 0.5, 0.15, 1)
-emission_energy = 0.3
-
-[sub_resource type="StandardMaterial3D" id="ZoneMaterial_Purple"]
-albedo_color = Color(0.6, 0.2, 0.8, 1)
-emission_enabled = true
-emission = Color(0.3, 0.1, 0.5, 1)
-emission_energy = 0.3
 
 [node name="ZoneCenter" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0)
