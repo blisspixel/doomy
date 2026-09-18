@@ -15,7 +15,7 @@ Take Slice 1 from "scaffold that mostly demos bots" to an **exceptional** loopba
 - Prediction / rollback
 - LLM agents or paid APIs
 - Public hosting / Tailscale packaging
-- Full rename of crate/binary names off `doomy-*` (optional note only; product rename pass later)
+- Full rename of crate/binary names off `doomy-*` to `fragr-*` (completed in separate rename PR)
 - CI (Gitty when asked)
 
 ## Findings from code review (evidence)
@@ -61,7 +61,7 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo build --workspace
-cargo run -p doomy-server -- --bots 4   # frags in logs within ~30s
+cargo run -p fragr-server -- --bots 4   # frags in logs within ~30s
 ```
 
 Manual: Godot 4.7.2 open `client/`, F5 spectator, press J, confirm own pawn moves/shoots and can frag; press L back to spectate. Kill server: client handles disconnect cleanly.
