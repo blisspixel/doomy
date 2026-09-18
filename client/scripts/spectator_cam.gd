@@ -2,10 +2,12 @@ extends Node3D
 
 @export var move_speed = 10.0
 @export var look_sensitivity = 0.003
+@export var auto_cycle_interval = 6.0
 
-var follow_mode = false
+var follow_mode = true
 var follow_target_index = 0
 var available_targets = []
+var auto_cycle_timer = 0.0
 
 var mouse_motion = Vector2.ZERO
 
@@ -30,6 +32,10 @@ func _process(delta):
 		toggle_follow_mode()
 	
 	if follow_mode and len(available_targets) > 0:
+		auto_cycle_timer += delta
+		if auto_cycle_timer >= auto_cycle_interval:
+			cycle_next_target()
+			auto_cycle_timer = 0.0
 		_follow_target()
 	else:
 		_free_fly(delta)
@@ -65,17 +71,30 @@ func _follow_target():
 	
 	if is_instance_valid(target):
 		var target_pos = target.global_position
-		position = target_pos + Vector3(0, 5, 8)
-		look_at(target_pos, Vector3.UP)
+		var offset = Vector3(0, 4, 7)
+		var cam_pos = target_pos + offset.rotated(Vector3.UP, target.rotation.y)
+		position = position.lerp(cam_pos, 0.1)
+		
+		var look_target = target_pos + Vector3(0, 1.5, 0)
+		var desired_transform = global_transform.looking_at(look_target, Vector3.UP)
+		global_transform = global_transform.interpolate_with(desired_transform, 0.15)
 	else:
-		follow_mode = false
+		cycle_next_target()
 
 func toggle_follow_mode():
 	follow_mode = not follow_mode
+	auto_cycle_timer = 0.0
 	if follow_mode:
-		print("Follow mode ON")
+		print("Follow cam ON (auto-cycles every 6s)")
 	else:
-		print("Follow mode OFF (free fly)")
+		print("Free fly ON (WASD + mouse)")
+
+func cycle_next_target():
+	if len(available_targets) > 0:
+		follow_target_index = (follow_target_index + 1) % len(available_targets)
+		auto_cycle_timer = 0.0
 
 func set_available_targets(targets: Array):
 	available_targets = targets
+	if follow_mode and len(targets) > 0:
+		follow_target_index = follow_target_index % len(targets)
