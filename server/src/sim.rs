@@ -21,7 +21,6 @@ pub struct GameState {
 pub struct Player {
     pub id: Uuid,
     pub name: String,
-    pub role: Role,
     pub x: f32,
     pub y: f32,
     pub z: f32,
@@ -42,14 +41,13 @@ impl GameState {
         }
     }
 
-    pub fn add_player(&mut self, id: Uuid, name: String, role: Role) {
+    pub fn add_player(&mut self, id: Uuid, name: String, _role: Role) {
         let angle = (self.players.len() as f32) * (2.0 * PI / 8.0);
         let spawn_radius = ARENA_SIZE * 0.3;
-        
+
         self.players.push(Player {
             id,
             name,
-            role,
             x: angle.cos() * spawn_radius,
             y: 1.5,
             z: angle.sin() * spawn_radius,
@@ -94,7 +92,7 @@ impl GameState {
             }
 
             let action = &player.pending_action;
-            
+
             let mut dx = 0.0;
             let mut dz = 0.0;
             if action.forward {
@@ -123,8 +121,14 @@ impl GameState {
             player.x += dx * MOVE_SPEED * dt;
             player.z += dz * MOVE_SPEED * dt;
 
-            player.x = player.x.clamp(-ARENA_SIZE / 2.0 + PLAYER_RADIUS, ARENA_SIZE / 2.0 - PLAYER_RADIUS);
-            player.z = player.z.clamp(-ARENA_SIZE / 2.0 + PLAYER_RADIUS, ARENA_SIZE / 2.0 - PLAYER_RADIUS);
+            player.x = player.x.clamp(
+                -ARENA_SIZE / 2.0 + PLAYER_RADIUS,
+                ARENA_SIZE / 2.0 - PLAYER_RADIUS,
+            );
+            player.z = player.z.clamp(
+                -ARENA_SIZE / 2.0 + PLAYER_RADIUS,
+                ARENA_SIZE / 2.0 - PLAYER_RADIUS,
+            );
 
             if action.turn_left {
                 player.yaw -= TURN_SPEED * dt;
@@ -144,7 +148,7 @@ impl GameState {
         let mut hits = Vec::new();
         for i in 0..self.players.len() {
             let player = &self.players[i];
-            
+
             if player.respawn_timer.is_some() {
                 continue;
             }
@@ -162,7 +166,7 @@ impl GameState {
             if let Some(victim_idx) = maybe_victim_idx {
                 let shooter_name = self.players[shooter_idx].name.clone();
                 let victim = &mut self.players[victim_idx];
-                
+
                 victim.hp -= HITSCAN_DAMAGE;
                 if victim.hp <= 0 {
                     let victim_name = victim.name.clone();
@@ -225,7 +229,7 @@ impl GameState {
         if let Some(player) = self.players.iter_mut().find(|p| p.id == player_id) {
             let angle = rand::random::<f32>() * 2.0 * PI;
             let spawn_radius = ARENA_SIZE * 0.3;
-            
+
             player.x = angle.cos() * spawn_radius;
             player.y = 1.5;
             player.z = angle.sin() * spawn_radius;
@@ -233,7 +237,7 @@ impl GameState {
             player.hp = PLAYER_MAX_HP;
             player.respawn_timer = None;
             player.fire_cooldown = 0;
-            
+
             self.events.push(GameEvent::Respawn {
                 player: player.name.clone(),
             });
@@ -281,7 +285,10 @@ pub enum BotBehavior {
 
 impl BotController {
     pub fn new(player_id: Uuid, behavior: BotBehavior) -> Self {
-        Self { player_id, behavior }
+        Self {
+            player_id,
+            behavior,
+        }
     }
 
     pub fn update(&self, state: &GameState) -> Action {
@@ -344,7 +351,7 @@ impl BotController {
                     action.fire = true;
                 }
             }
-            
+
             BotBehavior::Defensive => {
                 // Keep distance, strafe, precise shooting
                 if angle_diff.abs() > 0.15 {
@@ -354,7 +361,7 @@ impl BotController {
                         action.turn_left = true;
                     }
                 }
-                
+
                 if nearest_dist < 8.0 {
                     action.back = true;
                 } else if nearest_dist > 15.0 {
@@ -367,12 +374,12 @@ impl BotController {
                         action.right = true;
                     }
                 }
-                
+
                 if angle_diff.abs() < 0.3 && nearest_dist < 25.0 {
                     action.fire = true;
                 }
             }
-            
+
             BotBehavior::Flanker => {
                 // Circle around target, fire from sides
                 if angle_diff.abs() > 0.25 {
@@ -382,7 +389,7 @@ impl BotController {
                         action.turn_left = true;
                     }
                 }
-                
+
                 if nearest_dist > 10.0 {
                     action.forward = true;
                 } else {
@@ -396,12 +403,12 @@ impl BotController {
                         action.turn_right = true;
                     }
                 }
-                
+
                 if angle_diff.abs() < 0.5 && nearest_dist < 30.0 {
                     action.fire = true;
                 }
             }
-            
+
             BotBehavior::Balanced => {
                 // Standard chase and shoot
                 if angle_diff.abs() > 0.3 {

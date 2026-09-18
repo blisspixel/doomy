@@ -57,10 +57,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("Hunter", sim::BotBehavior::Aggressive),
         ("Striker", sim::BotBehavior::Balanced),
     ];
-    
+
     for i in 0..args.bots {
         let bot_id = Uuid::new_v4();
-        let (bot_name, behavior) = bot_configs.get(i).unwrap_or(&("Bot", sim::BotBehavior::Balanced));
+        let (bot_name, behavior) = bot_configs
+            .get(i)
+            .unwrap_or(&("Bot", sim::BotBehavior::Balanced));
         state.add_player(bot_id, bot_name.to_string(), Role::Agent);
         bots.push(BotController::new(bot_id, *behavior));
         tracing::info!("Spawned bot: {} ({:?}, {})", bot_name, behavior, bot_id);
@@ -84,7 +86,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 let snapshot = state.snapshot();
                 let snapshot_msg = ServerMessage::Snapshot(snapshot);
-                
+
                 let clients_lock = clients.lock().await;
                 for client in clients_lock.iter() {
                     let _ = client.tx.send(snapshot_msg.clone());
@@ -103,7 +105,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             Some(cmd) = game_rx.recv() => {
                 match cmd {
-                    GameCommand::ClientConnected { id, role, name, tx: _ } => {
+                    GameCommand::Connected { id, role, name } => {
                         if role != Role::Spectator {
                             let player_id = Uuid::new_v4();
                             state.add_player(player_id, name, role);
@@ -114,14 +116,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
 
-                    GameCommand::ClientDisconnected { id } => {
+                    GameCommand::Disconnected { id } => {
                         if let Some(player_id) = client_to_player.remove(&id) {
                             state.remove_player(player_id);
                             tracing::info!("Player {} left", player_id);
                         }
                     }
 
-                    GameCommand::ClientAction { player_id, action } => {
+                    GameCommand::Action { player_id, action } => {
                         state.set_action(player_id, action);
                     }
                 }

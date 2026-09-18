@@ -6,7 +6,6 @@ use protocol::{ClientMessage, Role, ServerMessage};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::io::{self, BufRead, Write};
-use tokio::sync::mpsc;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tracing_subscriber::EnvFilter;
 
@@ -24,11 +23,11 @@ enum Commands {
         #[arg(long, default_value = "ws://127.0.0.1:7777")]
         server: String,
     },
-    
+
     ScriptedBot {
         #[arg(long, default_value = "ws://127.0.0.1:7777")]
         server: String,
-        
+
         #[arg(long, default_value = "ScriptedBot")]
         name: String,
     },
@@ -92,14 +91,8 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
         .send(Message::Text(serde_json::to_string(&hello)?))
         .await?;
 
-    let mut player_id = None;
     if let Some(Ok(Message::Text(text))) = ws_stream.next().await {
-        if let Ok(ServerMessage::Welcome {
-            player_id: pid,
-            role: _,
-        }) = serde_json::from_str(&text)
-        {
-            player_id = pid;
+        if let Ok(ServerMessage::Welcome { player_id, role: _ }) = serde_json::from_str(&text) {
             tracing::info!("Connected to game server, player_id: {:?}", player_id);
         }
     }
@@ -196,7 +189,7 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
                             "tick": 0,
                             "players": []
                         }))
-                    },
+                    }
 
                     "act" => {
                         let arguments = request
@@ -211,8 +204,14 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
                                 .get("forward")
                                 .and_then(|v| v.as_bool())
                                 .unwrap_or(false),
-                            back: arguments.get("back").and_then(|v| v.as_bool()).unwrap_or(false),
-                            left: arguments.get("left").and_then(|v| v.as_bool()).unwrap_or(false),
+                            back: arguments
+                                .get("back")
+                                .and_then(|v| v.as_bool())
+                                .unwrap_or(false),
+                            left: arguments
+                                .get("left")
+                                .and_then(|v| v.as_bool())
+                                .unwrap_or(false),
                             right: arguments
                                 .get("right")
                                 .and_then(|v| v.as_bool())
@@ -225,7 +224,10 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
                                 .get("turn_right")
                                 .and_then(|v| v.as_bool())
                                 .unwrap_or(false),
-                            fire: arguments.get("fire").and_then(|v| v.as_bool()).unwrap_or(false),
+                            fire: arguments
+                                .get("fire")
+                                .and_then(|v| v.as_bool())
+                                .unwrap_or(false),
                         });
 
                         ws_sink
@@ -279,7 +281,11 @@ async fn run_scripted_bot(
     server_url: String,
     name: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    tracing::info!("Starting scripted bot '{}', connecting to {}", name, server_url);
+    tracing::info!(
+        "Starting scripted bot '{}', connecting to {}",
+        name,
+        server_url
+    );
 
     let (ws_stream, _) = connect_async(&server_url).await?;
     let (mut ws_sink, mut ws_stream) = ws_stream.split();
@@ -323,7 +329,7 @@ async fn run_scripted_bot(
                 if let Some(ref snapshot) = last_snapshot {
                     let action = compute_bot_action(bot_id, snapshot);
                     let action_msg = ClientMessage::Action(action);
-                    
+
                     if ws_sink.send(Message::Text(serde_json::to_string(&action_msg)?)).await.is_err() {
                         break;
                     }
@@ -339,10 +345,7 @@ async fn run_scripted_bot(
 fn compute_bot_action(bot_id: uuid::Uuid, snapshot: &protocol::Snapshot) -> protocol::Action {
     use std::f32::consts::PI;
 
-    let bot = snapshot
-        .players
-        .iter()
-        .find(|p| p.id == bot_id);
+    let bot = snapshot.players.iter().find(|p| p.id == bot_id);
 
     let Some(bot) = bot else {
         return protocol::Action::default();
