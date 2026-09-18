@@ -155,6 +155,69 @@ grow_horizontal = 0
 grow_vertical = 0
 theme_override_styles/panel = SubResource("PanelStyleBox_Weapon")
 
+
+[node name="Crosshair" type="Control" parent="HUD"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="HBar" type="ColorRect" parent="HUD/Crosshair"]
+offset_left = -10.0
+offset_top = -1.0
+offset_right = 10.0
+offset_bottom = 1.0
+color = Color(0.91, 0.886, 0.839, 0.85)
+
+[node name="VBar" type="ColorRect" parent="HUD/Crosshair"]
+offset_left = -1.0
+offset_top = -10.0
+offset_right = 1.0
+offset_bottom = 10.0
+color = Color(0.91, 0.886, 0.839, 0.85)
+
+[node name="DamageFlash" type="ColorRect" parent="HUD"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.55, 0.08, 0.06, 0)
+visible = false
+
+[node name="SpawnFlash" type="ColorRect" parent="HUD"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.85, 0.45, 0.18, 0)
+visible = false
+
+[node name="FpWeapon" type="TextureRect" parent="HUD"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -280.0
+offset_top = -220.0
+offset_right = -40.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+texture_filter = 0
+expand_mode = 1
+stretch_mode = 5
+visible = false
+
 [node name="AudioPlayers" type="Node" parent="."]
 
 [node name="FragSound" type="AudioStreamPlayer" parent="AudioPlayers"]

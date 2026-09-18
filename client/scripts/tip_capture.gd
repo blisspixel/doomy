@@ -65,6 +65,7 @@ func _run_capture() -> void:
 
 	# Mid-join Host flash proof: disconnect after Active, reconnect, capture bumper once.
 	await _capture_midjoin_host_flash(out_dir)
+	await _capture_human_join_fp(out_dir)
 
 	print("tip_capture: done")
 	quit(0)
@@ -173,3 +174,49 @@ func _looks_like_pink_placeholder(img: Image) -> bool:
 		if c.r > 0.85 and c.b > 0.85 and c.g < 0.25:
 			pinkish += 1
 	return pinkish >= 3
+
+func _capture_human_join_fp(out_dir: String) -> void:
+	# Join as human and grab one FP scrap-juice still (crosshair + viewmodel).
+	var gm: Node = _find_game_manager()
+	if gm == null:
+		push_warning("tip_capture: GameManager missing; skip human join FP shot")
+		return
+	var net: Node = gm.get_node_or_null("NetClient")
+	var hud: Node = gm.get_node_or_null("HUD")
+	if net == null or hud == null:
+		push_warning("tip_capture: NetClient/HUD missing; skip human join FP shot")
+		return
+
+	if net.has_method("disconnect_from_server"):
+		net.disconnect_from_server()
+	await create_timer(0.4).timeout
+
+	if "is_human_player" in gm:
+		gm.is_human_player = true
+	if "fp_spawn_flashed" in gm:
+		gm.fp_spawn_flashed = false
+
+	if net.has_method("connect_to_server"):
+		net.connect_to_server("human", "Human Player")
+	if hud.has_method("set_mode"):
+		hud.set_mode("PLAYING")
+
+	# Wait for welcome + first snapshots so FP latch can fire.
+	await create_timer(2.5).timeout
+	if gm.has_method("_refresh_fp_target"):
+		gm._refresh_fp_target()
+	await create_timer(0.4).timeout
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+
+	var shot_name: String = "10_tip_human_join_fp_16x9.png"
+	var img: Image = get_root().get_viewport().get_texture().get_image()
+	if img == null:
+		push_error("tip_capture: viewport image was null for " + shot_name)
+		return
+	var path: String = out_dir.path_join(shot_name)
+	var err: Error = img.save_png(path)
+	if err != OK:
+		push_error("tip_capture: save_png failed (%s) -> %s" % [str(err), path])
+		return
+	print("tip_capture: wrote ", path, " size=", img.get_width(), "x", img.get_height())

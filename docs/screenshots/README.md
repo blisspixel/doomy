@@ -46,3 +46,9 @@ Live captures must show what currently runs. No aspirational features. No concep
 ## Tip screenshot capture plan
 
 See [`../plans/tip-screenshots.md`](../plans/tip-screenshots.md).
+
+## Human join FP juice
+
+![Human join FP](10_tip_human_join_fp_16x9.png)
+
+Join-mode first-person scrap juice: crosshair, held-weapon face, spawn/damage flash overlays on Contested Frequency.

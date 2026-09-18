@@ -10,6 +10,10 @@ extends CanvasLayer
 @onready var round_message = $RoundMessage
 @onready var scoreboard = $Panel/VBoxContainer/Scoreboard
 @onready var weapon_icon = $WeaponIcon
+@onready var crosshair = $Crosshair
+@onready var damage_flash = $DamageFlash
+@onready var spawn_flash = $SpawnFlash
+@onready var fp_weapon = $FpWeapon
 
 var scores = {}
 var behaviors = {}
@@ -33,6 +37,11 @@ const HOST_BUMPERS = [
 
 var weapon_textures = {}
 var followed_player_name = ""
+var fp_juice_enabled = false
+var fp_bob_t = 0.0
+var fp_weapon_base_pos = Vector2.ZERO
+var damage_flash_timer = 0.0
+var spawn_flash_timer = 0.0
 
 func _ready():
 	weapon_textures["Flechette"] = load("res://assets/weapons/32/flechette.png")
@@ -50,6 +59,17 @@ func _ready():
 		weapon_icon.visible = false
 	set_mode("SPECTATING")
 	update_scoreboard()
+	if crosshair:
+		crosshair.visible = false
+	if damage_flash:
+		damage_flash.visible = false
+		damage_flash.modulate.a = 0.0
+	if spawn_flash:
+		spawn_flash.visible = false
+		spawn_flash.modulate.a = 0.0
+	if fp_weapon:
+		fp_weapon.visible = false
+		fp_weapon_base_pos = fp_weapon.position
 
 func set_status(text: String):
 	if status_label:
@@ -430,3 +450,71 @@ func set_followed_weapon(weapon_name: String, player_name: String = "", behavior
 	weapon_icon.texture = weapon_textures[weapon_name]
 	weapon_icon.modulate = Color(1.15, 1.1, 1.05, 1)
 	weapon_icon.visible = true
+
+func _process(delta):
+	if damage_flash_timer > 0:
+		damage_flash_timer -= delta
+		if damage_flash:
+			damage_flash.visible = true
+			damage_flash.modulate.a = clampf(damage_flash_timer / 0.22, 0.0, 0.55)
+		if damage_flash_timer <= 0 and damage_flash:
+			damage_flash.visible = false
+			damage_flash.modulate.a = 0.0
+	if spawn_flash_timer > 0:
+		spawn_flash_timer -= delta
+		if spawn_flash:
+			spawn_flash.visible = true
+			spawn_flash.modulate.a = clampf(spawn_flash_timer / 0.35, 0.0, 0.45)
+		if spawn_flash_timer <= 0 and spawn_flash:
+			spawn_flash.visible = false
+			spawn_flash.modulate.a = 0.0
+	if fp_juice_enabled and fp_weapon and fp_weapon.visible:
+		fp_bob_t += delta * 9.0
+		var bob_y = sin(fp_bob_t) * 4.0
+		var bob_x = cos(fp_bob_t * 0.5) * 2.0
+		fp_weapon.position = fp_weapon_base_pos + Vector2(bob_x, bob_y)
+
+func set_fp_juice(enabled: bool) -> void:
+	fp_juice_enabled = enabled
+	if crosshair:
+		crosshair.visible = enabled
+	if not enabled:
+		if fp_weapon:
+			fp_weapon.visible = false
+		if damage_flash:
+			damage_flash.visible = false
+			damage_flash.modulate.a = 0.0
+		if spawn_flash:
+			spawn_flash.visible = false
+			spawn_flash.modulate.a = 0.0
+		damage_flash_timer = 0.0
+		spawn_flash_timer = 0.0
+		fp_bob_t = 0.0
+
+func set_fp_weapon(weapon_name: String) -> void:
+	if not fp_weapon:
+		return
+	if not fp_juice_enabled or weapon_name == "" or not weapon_textures.has(weapon_name):
+		fp_weapon.visible = false
+		return
+	fp_weapon.texture = weapon_textures[weapon_name]
+	# Bone lift, not neon.
+	fp_weapon.modulate = Color(1.08, 1.04, 0.98, 1)
+	fp_weapon.visible = true
+
+func show_damage_flash() -> void:
+	if not fp_juice_enabled:
+		return
+	damage_flash_timer = 0.22
+	if damage_flash:
+		damage_flash.visible = true
+		damage_flash.modulate = Color(0.55, 0.08, 0.06, 0.55)
+
+func show_spawn_flash() -> void:
+	if not fp_juice_enabled:
+		return
+	spawn_flash_timer = 0.35
+	if spawn_flash:
+		spawn_flash.visible = true
+		# Ember grit flash on spawn / join.
+		spawn_flash.modulate = Color(0.85, 0.45, 0.18, 0.45)

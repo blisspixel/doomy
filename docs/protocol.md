@@ -394,7 +394,8 @@ Health example:
 ```
 
 **Fields:**
-- `event`: Event type (`frag`, `hit`, `respawn`, `round_start`, `round_end`, `player_joined`, `player_left`, `compliance_ping`, `boss_spawn`, `boss_down`, `speak`)
+- `event`: Event type (`frag`, `hit`, `respawn`, `round_start`, `round_end`, `player_joined`, `player_left`, `compliance_ping`, `boss_spawn`, `boss_down`, `speak`, `pickup`)
+- `kind`: (pickup only) Pad kind: `"weapon"` / `"health"` / `"armor"` (default `"weapon"`). Weapon pads also carry `weapon`; health/armor pads carry `amount`.
 - `killer` / `victim`: Player names involved in frag
 - `killer_score`: Killer's score after the frag
 - `shooter` / `target` / `shooter_id` / `target_id` / `damage` / `target_hp_after`: Hit event fields

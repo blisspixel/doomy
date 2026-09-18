@@ -14,6 +14,9 @@ var pickup_scene = preload("res://scenes/weapon_pickup.tscn")
 var player_scene = preload("res://scenes/player.tscn")
 
 var is_human_player = false
+var local_fp_pawn_id = ""
+var local_hp_seen = -1
+var fp_spawn_flashed = false
 var action_state = {
 	"forward": false,
 	"back": false,
@@ -84,6 +87,7 @@ func _input(event):
 			net_client.disconnect_from_server()
 			await get_tree().create_timer(0.5).timeout
 			is_human_player = true
+			fp_spawn_flashed = false
 			net_client.connect_to_server("human", "Human Player")
 			hud.set_mode("PLAYING")
 			_pick_ghost_rival_from_alive()
@@ -92,6 +96,7 @@ func _input(event):
 			net_client.disconnect_from_server()
 			await get_tree().create_timer(0.5).timeout
 			is_human_player = false
+			_clear_fp_state()
 			net_client.connect_to_server("spectator", "Spectator")
 			hud.set_ghost_rival("")
 			hud.set_mode("SPECTATING")
@@ -103,7 +108,11 @@ func _process(_delta):
 		action_state.left = Input.is_action_pressed("move_left")
 		action_state.right = Input.is_action_pressed("move_right")
 		action_state.fire = Input.is_action_pressed("fire")
-		
+		var turns = {"turn_left": false, "turn_right": false}
+		if camera and camera.has_method("consume_turn_bits"):
+			turns = camera.consume_turn_bits()
+		action_state.turn_left = turns.get("turn_left", false)
+		action_state.turn_right = turns.get("turn_right", false)
 		net_client.send_action(action_state)
 
 func _on_connected():
@@ -115,6 +124,7 @@ func _on_disconnected():
 	_clear_world()
 
 func _clear_world() -> void:
+	_clear_fp_state()
 	# Drop presentation nodes so rejoin does not keep stale pawns/pads.
 	for id in players.keys():
 		if is_instance_valid(players[id]):
@@ -198,6 +208,9 @@ func _on_snapshot_received(data):
 	
 	_update_followed_weapon()
 	_sync_pickups(data.get("pickups", []))
+	if is_human_player:
+		_refresh_fp_target()
+		_update_local_fp_hud(data.get("players", []))
 
 func _on_event_received(data):
 	var event_type = data.get("event", "")
@@ -253,6 +266,21 @@ func _on_event_received(data):
 	elif event_type == "boss_down":
 		hud.set_pressure("")
 		hud.show_boss_down(str(data.get("message", "")), str(data.get("killer", "")))
+	elif event_type == "hit":
+		var target_id = str(data.get("target_id", ""))
+		var my_id = str(net_client.player_id) if net_client.player_id != null else ""
+		if is_human_player and my_id != "" and target_id == my_id:
+			if hud and hud.has_method("show_damage_flash"):
+				hud.show_damage_flash()
+			if camera:
+				camera.camera_punch()
+	elif event_type == "respawn":
+		var who = str(data.get("player", ""))
+		var my_name = str(net_client.player_name) if net_client else ""
+		if is_human_player and who != "" and who == my_name:
+			if hud and hud.has_method("show_spawn_flash"):
+				hud.show_spawn_flash()
+			fp_spawn_flashed = true
 	elif event_type == "pickup":
 		var who = str(data.get("player", "?"))
 		var kind = str(data.get("kind", "weapon"))
@@ -316,6 +344,10 @@ func _update_followed_weapon():
 	if not camera or not hud:
 		return
 	
+	if is_human_player:
+		# FP path owns weapon chrome via _update_local_fp_hud.
+		return
+	
 	if not camera.follow_mode or len(camera.available_targets) == 0:
 		hud.set_followed_weapon("", "")
 		return
@@ -369,3 +401,73 @@ func _maybe_assign_ghost_rival(player_list: Array):
 		return
 	names.shuffle()
 	hud.set_ghost_rival(names[0])
+
+func _set_human_fp(enabled: bool) -> void:
+	if not enabled:
+		_clear_fp_state()
+		return
+	_refresh_fp_target()
+
+func _clear_fp_state() -> void:
+	if local_fp_pawn_id != "" and players.has(local_fp_pawn_id):
+		var old = players[local_fp_pawn_id]
+		if is_instance_valid(old) and old.has_method("set_local_fp"):
+			old.set_local_fp(false)
+	local_fp_pawn_id = ""
+	local_hp_seen = -1
+	fp_spawn_flashed = false
+	if camera and camera.has_method("set_fp_mode"):
+		camera.set_fp_mode(false)
+	if hud and hud.has_method("set_fp_juice"):
+		hud.set_fp_juice(false)
+
+func _refresh_fp_target() -> void:
+	if not is_human_player:
+		return
+	var pid = str(net_client.player_id) if net_client.player_id != null else ""
+	if pid == "" or not players.has(pid):
+		return
+	var pawn = players[pid]
+	if not is_instance_valid(pawn):
+		return
+	if local_fp_pawn_id != "" and local_fp_pawn_id != pid and players.has(local_fp_pawn_id):
+		var prev = players[local_fp_pawn_id]
+		if is_instance_valid(prev) and prev.has_method("set_local_fp"):
+			prev.set_local_fp(false)
+	local_fp_pawn_id = pid
+	if pawn.has_method("set_local_fp"):
+		pawn.set_local_fp(true)
+	if camera and camera.has_method("set_fp_mode"):
+		camera.set_fp_mode(true, pawn)
+	if hud and hud.has_method("set_fp_juice"):
+		hud.set_fp_juice(true)
+		if pawn.has_method("get_weapon_name"):
+			hud.set_fp_weapon(pawn.get_weapon_name())
+	if not fp_spawn_flashed and hud and hud.has_method("show_spawn_flash"):
+		hud.show_spawn_flash()
+		fp_spawn_flashed = true
+
+func _update_local_fp_hud(player_list: Array) -> void:
+	var pid = str(net_client.player_id) if net_client.player_id != null else ""
+	if pid == "":
+		return
+	for pdata in player_list:
+		if str(pdata.get("id", "")) != pid:
+			continue
+		var hp = int(pdata.get("hp", 100))
+		if local_hp_seen >= 0 and hp < local_hp_seen and hp > 0:
+			if hud and hud.has_method("show_damage_flash"):
+				hud.show_damage_flash()
+			if camera:
+				camera.camera_punch()
+		# Respawn: hp jumped back up while we were playing.
+		if local_hp_seen >= 0 and local_hp_seen <= 0 and hp > 0:
+			if hud and hud.has_method("show_spawn_flash"):
+				hud.show_spawn_flash()
+		local_hp_seen = hp
+		var weapon = str(pdata.get("weapon", ""))
+		if hud and hud.has_method("set_fp_weapon"):
+			hud.set_fp_weapon(weapon)
+		if hud and hud.has_method("set_followed_weapon"):
+			hud.set_followed_weapon(weapon, str(pdata.get("name", "YOU")), "")
+		return

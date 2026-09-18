@@ -15,6 +15,15 @@ var camera_zoom_offset = 0.0
 
 var mouse_motion = Vector2.ZERO
 
+# First-person join: eye follow on local pawn. Pitch is client-only.
+var fp_mode = false
+var fp_target: Node3D = null
+var fp_pitch = 0.0
+var turn_accum = 0.0
+const FP_EYE_HEIGHT = 1.55
+const FP_FORWARD_NUDGE = 0.15
+const TURN_ACCUM_THRESHOLD = 2.5
+
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
@@ -33,6 +42,12 @@ func _process(delta):
 	camera_zoom_offset = lerp(camera_zoom_offset, 0.0, delta * 5.0)
 	
 	if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
+		mouse_motion = Vector2.ZERO
+		turn_accum = 0.0
+		return
+	
+	if fp_mode:
+		_process_fp(delta)
 		return
 	
 	if Input.is_action_just_pressed("toggle_follow"):
@@ -133,12 +148,16 @@ func camera_punch():
 	camera_zoom_offset = -1.5
 
 func get_followed_target():
+	if fp_mode and is_instance_valid(fp_target):
+		return fp_target
 	if follow_mode and len(available_targets) > 0:
 		var idx = follow_target_index % len(available_targets)
 		return available_targets[idx]
 	return null
 
 func lock_on_frag(killer_id: String, duration: float = 1.5):
+	if fp_mode:
+		return
 	frag_follow_target_id = killer_id
 	frag_follow_timer = duration
 	auto_cycle_timer = 0.0
@@ -158,3 +177,55 @@ func _follow_frag_target():
 			var desired_transform = global_transform.looking_at(look_target, Vector3.UP)
 			global_transform = global_transform.interpolate_with(desired_transform, 0.2)
 			return
+
+func _process_fp(delta):
+	# Mouse look: yaw becomes turn bits for Action; pitch stays local.
+	if mouse_motion.length() > 0:
+		turn_accum += mouse_motion.x
+		fp_pitch -= mouse_motion.y * look_sensitivity
+		fp_pitch = clamp(fp_pitch, -1.15, 1.15)
+		mouse_motion = Vector2.ZERO
+
+	if not is_instance_valid(fp_target):
+		return
+
+	var eye = fp_target.global_position + Vector3(0, FP_EYE_HEIGHT, 0)
+	var yaw = fp_target.rotation.y
+	eye += Vector3(sin(yaw), 0, cos(yaw)) * FP_FORWARD_NUDGE
+
+	if camera_shake_intensity > 0:
+		eye += Vector3(
+			randf_range(-camera_shake_intensity, camera_shake_intensity) * 0.35,
+			randf_range(-camera_shake_intensity, camera_shake_intensity) * 0.25,
+			0
+		)
+
+	position = position.lerp(eye, min(1.0, 18.0 * delta))
+	rotation.y = yaw
+	rotation.x = fp_pitch
+
+func consume_turn_bits() -> Dictionary:
+	# Discrete turn for Action. Called each tick while human; clears accum.
+	var left = false
+	var right = false
+	if turn_accum <= -TURN_ACCUM_THRESHOLD:
+		left = true
+		turn_accum = 0.0
+	elif turn_accum >= TURN_ACCUM_THRESHOLD:
+		right = true
+		turn_accum = 0.0
+	return {"turn_left": left, "turn_right": right}
+
+func set_fp_mode(enabled: bool, target: Node3D = null) -> void:
+	fp_mode = enabled
+	fp_target = target
+	if not enabled:
+		fp_pitch = 0.0
+		turn_accum = 0.0
+		fp_target = null
+	elif is_instance_valid(target):
+		# Snap once so join does not tween from spectator orbit.
+		var yaw = target.rotation.y
+		position = target.global_position + Vector3(0, FP_EYE_HEIGHT, 0)
+		rotation.y = yaw
+		rotation.x = fp_pitch
