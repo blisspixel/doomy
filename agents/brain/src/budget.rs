@@ -40,10 +40,15 @@ impl Pricing {
     }
 }
 
-/// Planning estimate of tokens in a text: four characters per token, rounded
-/// up, so caps err on the side of refusing.
+/// Characters per token assumed when estimating. Measured on 2026-09-18: a
+/// 1.5 kB decision body billed 726 input tokens through OpenRouter, about two
+/// characters per token, so the usual four would undercount by half.
+pub const CHARS_PER_TOKEN: u64 = 2;
+
+/// Planning estimate of tokens in a text, rounded up, so caps err on the side
+/// of refusing. Settlement uses the provider's reported count.
 pub fn estimate_tokens(text: &str) -> u64 {
-    (text.len() as u64).div_ceil(4)
+    (text.len() as u64).div_ceil(CHARS_PER_TOKEN)
 }
 
 /// One paid call as the ledger remembers it.
@@ -332,8 +337,8 @@ mod tests {
         };
         assert!((custom.cost(1_000_000, 1_000_000) - 6.0).abs() < 1e-12);
         assert_eq!(estimate_tokens(""), 0);
-        assert_eq!(estimate_tokens("abcd"), 1);
-        assert_eq!(estimate_tokens("abcde"), 2);
+        assert_eq!(estimate_tokens("abcd"), 2);
+        assert_eq!(estimate_tokens("abcde"), 3);
     }
 
     #[test]

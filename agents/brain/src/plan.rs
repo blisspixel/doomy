@@ -59,16 +59,16 @@ impl Stance {
     pub fn criteria(self) -> &'static str {
         match self {
             Stance::PushEnemy => {
-                "Own HP is high or the enemy is low: close the distance and keep firing"
+                "Close in and keep firing. For: we are healthier than the enemy, or the enemy is low. Not for: low health, or heavy incoming damage."
             }
             Stance::FallBackHeal => {
-                "Own HP is low or damage is pouring in and a health pad is reachable: break off and go heal"
+                "Break off toward the health pad. For: low health with a health pad near. Not for: no pad near, or the enemy is low and we are healthy."
             }
             Stance::HoldAngle => {
-                "No enemy near or the position is good: hold, strafe, and shoot what comes"
+                "Hold position, strafe, shoot what comes. For: no enemy, or an enemy at far range. Not for: low health with a pad near, or an enemy close."
             }
             Stance::KiteDistance => {
-                "The enemy is close with a short-range weapon: back off while firing"
+                "Back away while firing. For: a close enemy with a shotgun while we hold a longer weapon. Not for: we hold the shotgun ourselves, or the enemy is far."
             }
         }
     }
@@ -273,7 +273,7 @@ mod tests {
     fn stance_names_roundtrip_and_have_criteria() {
         for stance in Stance::ALL {
             assert_eq!(Stance::parse(stance.name()), Some(stance));
-            assert!(stance.criteria().len() > 20);
+            assert!(stance.criteria().contains("Not for"));
             let json = serde_json::to_string(&stance).unwrap();
             assert_eq!(json, format!("\"{}\"", stance.name()));
         }

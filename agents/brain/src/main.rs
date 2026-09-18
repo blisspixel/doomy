@@ -8,7 +8,7 @@
 use clap::{Args, Parser, Subcommand};
 use fragr_brain::bot::{run_bot, BotConfig};
 use fragr_brain::budget::{Budget, Caps, Pricing};
-use fragr_brain::decision::tactical_questions;
+use fragr_brain::decision::{tactical_questions, Gate};
 use fragr_brain::dotenv::resolve_key;
 use fragr_brain::provider::{
     decide, decision_request, key_request, parse_key_status, HttpTransport, Provider, Transport,
@@ -38,7 +38,7 @@ struct Common {
     /// Decision source: local (free, default), typesafe, or openrouter.
     #[arg(long, default_value = "local", global = true)]
     provider: String,
-    /// Model id; defaults to jev-latest (typesafe) or typesafe/jev-1.13 (openrouter).
+    /// Model id; defaults to jev-1.13.0 (typesafe) or typesafe/jev-1.13 (openrouter).
     #[arg(long, global = true)]
     model: Option<String>,
     /// Dollars this run may spend. Zero (the default) means no paid call at all.
@@ -85,7 +85,10 @@ enum Command {
         /// Decisions per second (0.1 to 5).
         #[arg(long, default_value_t = 3.0)]
         decision_hz: f64,
-        /// Below this confidence the local rules decide the stance.
+        /// Accept an answer whose top option leads the runner-up by at least this.
+        #[arg(long, default_value_t = 0.2)]
+        margin_floor: f64,
+        /// Also accept an answer whose reported confidence reaches this.
         #[arg(long, default_value_t = 0.65)]
         confidence_floor: f64,
         /// Leave after this many seconds.
@@ -183,6 +186,7 @@ fn run(cli: Cli, transport: Arc<dyn Transport>, out: &mut dyn std::io::Write) ->
             server,
             name,
             decision_hz,
+            margin_floor,
             confidence_floor,
             max_seconds,
         } => {
@@ -201,7 +205,10 @@ fn run(cli: Cli, transport: Arc<dyn Transport>, out: &mut dyn std::io::Write) ->
                 model,
                 api_key,
                 decision_hz,
-                confidence_floor,
+                gate: Gate {
+                    confidence_floor,
+                    margin_floor,
+                },
                 max_seconds,
             };
             let budget = Arc::new(Mutex::new(budget));
@@ -230,6 +237,11 @@ fn run(cli: Cli, transport: Arc<dyn Transport>, out: &mut dyn std::io::Write) ->
             } else {
                 require_key(&cli.common, provider)?
             };
+            // A JSON object is sent as given; anything else goes as a plain string.
+            let state = serde_json::from_str::<serde_json::Value>(&state)
+                .ok()
+                .filter(serde_json::Value::is_object)
+                .unwrap_or(serde_json::Value::String(state));
             let request =
                 decision_request(provider, &model, &api_key, &state, &tactical_questions())?;
             let estimate = fragr_brain::provider::estimate_cost(&request, &budget.pricing);
@@ -414,9 +426,14 @@ mod tests {
             "X",
             "--max-seconds",
             "5",
+            "--margin-floor",
+            "0.3",
         ]);
         assert!(
             matches!(cli.command, Command::Play { ref server, ref name, max_seconds: Some(5), .. } if server == "ws://h:1" && name.as_deref() == Some("X"))
+        );
+        assert!(
+            matches!(cli.command, Command::Play { margin_floor, .. } if (margin_floor - 0.3).abs() < 1e-9)
         );
         assert_eq!(cli.common.provider, "local");
         assert_eq!(cli.common.max_spend_usd, 0.0);
@@ -533,6 +550,28 @@ mod tests {
         assert!(text.contains("Bearer ***"));
         assert!(!text.contains("sk_secret"));
         assert!(text.contains("estimated_usd"));
+        assert!(
+            text.contains("\"state\": \"SELF hp=10\""),
+            "plain text stays a string: {text}"
+        );
+        let cli = parse(&[
+            "--provider",
+            "typesafe",
+            "--no-ledger",
+            "--env-file",
+            env_file.to_str().unwrap(),
+            "ask",
+            "--state",
+            "{\"self\":{\"health\":\"low\"}}",
+            "--dry-run",
+        ]);
+        let mut out = Vec::new();
+        run(cli, transport.clone(), &mut out).unwrap();
+        let text = String::from_utf8(out).unwrap();
+        assert!(
+            text.contains("\"health\": \"low\""),
+            "JSON objects go through as objects: {text}"
+        );
         assert_eq!(transport.calls.load(Ordering::SeqCst), 0);
         let cli = parse(&["--no-ledger", "ask", "--state", "x"]);
         assert!(

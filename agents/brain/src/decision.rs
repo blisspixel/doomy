@@ -42,20 +42,82 @@ pub const Q_STANCE: &str = "stance";
 pub const Q_WEAPON: &str = "weapon";
 pub const Q_DANGER: &str = "danger";
 
-/// Danger levels, safest first. The score answer indexes into this list.
+/// Danger level names, safest first. The score answer's probabilities are
+/// keyed by zero-based level index; `score` is the expectation over indices.
 pub const DANGER_LEVELS: [&str; 5] = ["safe", "watchful", "pressured", "critical", "dying"];
 
-/// The fixed question set for arena play. Stable across calls so the provider
-/// can cache and so estimates stay honest.
+/// When a remote answer is trusted. A choice passes when the top option leads
+/// the runner-up by `margin_floor`, or when the provider's own `confidence`
+/// statistic reaches `confidence_floor`. TypeSafe's worked example calls a
+/// 0.60 versus 0.38 split "clear enough to act on" at a confidence of 0.39, so
+/// the margin is the primary test and the confidence number the backup.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Gate {
+    pub confidence_floor: f64,
+    pub margin_floor: f64,
+}
+
+impl Default for Gate {
+    fn default() -> Self {
+        Gate {
+            confidence_floor: 0.65,
+            margin_floor: 0.2,
+        }
+    }
+}
+
+/// Top probability minus the runner-up; `None` when no probabilities came back.
+pub fn choice_margin(probabilities: &BTreeMap<String, f64>) -> Option<f64> {
+    let mut sorted: Vec<f64> = probabilities
+        .values()
+        .copied()
+        .filter(|p| p.is_finite())
+        .collect();
+    if sorted.is_empty() {
+        return None;
+    }
+    sorted.sort_by(|a, b| b.total_cmp(a));
+    Some(sorted[0] - sorted.get(1).copied().unwrap_or(0.0))
+}
+
+impl Gate {
+    /// Whether a choice answer is trusted, and the trust figure to report
+    /// (the margin when probabilities exist, else the confidence).
+    pub fn accepts(
+        &self,
+        confidence: Option<f64>,
+        probabilities: &BTreeMap<String, f64>,
+    ) -> (bool, f64) {
+        let margin = choice_margin(probabilities);
+        let confidence = confidence.unwrap_or(0.0);
+        let by_margin = margin.is_some_and(|m| m >= self.margin_floor);
+        let by_confidence = confidence >= self.confidence_floor;
+        (by_margin || by_confidence, margin.unwrap_or(confidence))
+    }
+}
+
+/// The most likely level index from a score answer's probabilities, if keyed by index.
+pub fn score_argmax(probabilities: &BTreeMap<String, f64>) -> Option<usize> {
+    probabilities
+        .iter()
+        .filter_map(|(key, p)| key.parse::<usize>().ok().map(|i| (i, *p)))
+        .filter(|(_, p)| p.is_finite())
+        .max_by(|a, b| a.1.total_cmp(&b.1))
+        .map(|(i, _)| i)
+}
+
+/// The fixed question set for arena play. Stable across calls so estimates
+/// stay honest. Written to TypeSafe's guidance: short atomic questions,
+/// criteria that say what belongs and what belongs to a neighbour, score
+/// levels that describe situations rather than degrees, no numbers.
 pub fn tactical_questions() -> BTreeMap<String, Question> {
     let mut questions = BTreeMap::new();
     questions.insert(
         Q_STANCE.to_string(),
         Question::Choice {
-            instructions: "Pick the stance for the next second of an arena deathmatch. \
-Distances are in world units. Health pads restore HP. A fighter respawns after death \
-with full HP, so trading is fine when ahead."
-                .to_string(),
+            instructions:
+                "Arena deathmatch. Pick the stance for the next second. Death only costs a respawn."
+                    .to_string(),
             criteria: Stance::ALL
                 .into_iter()
                 .map(|s| (s.name().to_string(), s.criteria().to_string()))
@@ -70,16 +132,15 @@ with full HP, so trading is fine when ahead."
             criteria: BTreeMap::from([
                 (
                     "scatter".to_string(),
-                    "Shotgun, 15 damage per pellet, reaches 14 units: best inside 10 units"
-                        .to_string(),
+                    "Shotgun. For a close enemy. Not for mid or far range.".to_string(),
                 ),
                 (
                     "flechette".to_string(),
-                    "Needle gun, 25 damage, reaches 42 units: best from 10 to 40 units".to_string(),
+                    "Needle gun. For a mid-range enemy. Not for close or far.".to_string(),
                 ),
                 (
                     "rail".to_string(),
-                    "Railgun, 75 damage, slow, reaches 100 units: best beyond 30 units with a clear line"
+                    "Railgun, one heavy slow shot. For a far enemy. Not for close range."
                         .to_string(),
                 ),
             ]),
@@ -88,9 +149,14 @@ with full HP, so trading is fine when ahead."
     questions.insert(
         Q_DANGER.to_string(),
         Question::Score {
-            instructions: "Rate how close this fighter is to dying in the next few seconds."
-                .to_string(),
-            criteria: DANGER_LEVELS.iter().map(|s| s.to_string()).collect(),
+            instructions: "How close is this fighter to dying in the next few seconds?".to_string(),
+            criteria: vec![
+                "Healthy, not taking damage, no enemy close.".to_string(),
+                "Healthy, an enemy at mid or far range, not taking damage.".to_string(),
+                "Taking damage or an enemy close, with health to spare.".to_string(),
+                "Low health with an enemy in range.".to_string(),
+                "Low health, taking damage, enemy close, no health pad near.".to_string(),
+            ],
         },
     );
     questions
@@ -159,25 +225,28 @@ impl DecisionResponse {
     }
 }
 
-/// Turn answers into a plan. Anything below the confidence floor, unparseable,
-/// or missing falls back to the local plan for that field. The stance decides
-/// the plan's `source`; weapon and danger are best effort.
-pub fn plan_from_answers(answers: &BTreeMap<String, Answer>, floor: f64, fallback: &Plan) -> Plan {
+/// Turn answers into a plan. Anything the gate rejects, unparseable, or
+/// missing falls back to the local plan for that field. The stance decides
+/// the plan's `source`; weapon and danger are best effort. Danger takes the
+/// most likely level, never the interpolated expectation, because TypeSafe
+/// documents the score's numerical calibration as weak.
+pub fn plan_from_answers(answers: &BTreeMap<String, Answer>, gate: &Gate, fallback: &Plan) -> Plan {
     let mut plan = fallback.clone();
     match answers.get(Q_STANCE) {
         Some(Answer::Choice {
-            choice, confidence, ..
+            choice,
+            confidence,
+            probabilities,
         }) => {
-            let confidence = confidence.unwrap_or(0.0);
+            let (trusted, figure) = gate.accepts(*confidence, probabilities);
+            plan.confidence = figure;
             match Stance::parse(choice) {
-                Some(stance) if confidence >= floor => {
+                Some(stance) if trusted => {
                     plan.stance = stance;
-                    plan.confidence = confidence;
                     plan.source = Source::Remote;
                 }
                 _ => {
                     plan.source = Source::LowConfidence;
-                    plan.confidence = confidence;
                 }
             }
         }
@@ -186,19 +255,30 @@ pub fn plan_from_answers(answers: &BTreeMap<String, Answer>, floor: f64, fallbac
         }
     }
     if let Some(Answer::Choice {
-        choice, confidence, ..
+        choice,
+        confidence,
+        probabilities,
     }) = answers.get(Q_WEAPON)
     {
-        if confidence.unwrap_or(0.0) >= floor {
+        if gate.accepts(*confidence, probabilities).0 {
             if let Some(weapon) = parse_weapon(choice) {
                 plan.weapon = Some(weapon);
             }
         }
     }
-    if let Some(Answer::Score { score, .. }) = answers.get(Q_DANGER) {
-        if score.is_finite() {
-            let level = score.round().clamp(1.0, DANGER_LEVELS.len() as f64);
-            plan.danger = level as u8;
+    if let Some(Answer::Score {
+        score,
+        probabilities,
+        ..
+    }) = answers.get(Q_DANGER)
+    {
+        let level = match score_argmax(probabilities) {
+            Some(index) => Some(index as i64 + 1),
+            None if score.is_finite() => Some(score.round() as i64 + 1),
+            None => None,
+        };
+        if let Some(level) = level {
+            plan.danger = level.clamp(1, DANGER_LEVELS.len() as i64) as u8;
         }
     }
     plan
@@ -214,6 +294,13 @@ mod tests {
             choice: choice.to_string(),
             confidence: Some(confidence),
             probabilities: BTreeMap::new(),
+        }
+    }
+
+    fn loose() -> Gate {
+        Gate {
+            confidence_floor: 0.0,
+            margin_floor: 0.0,
         }
     }
 
@@ -321,16 +408,16 @@ mod tests {
                 probabilities: BTreeMap::new(),
             },
         );
-        let plan = plan_from_answers(&answers, 0.65, &local());
+        let plan = plan_from_answers(&answers, &Gate::default(), &local());
         assert_eq!(plan.stance, Stance::PushEnemy);
         assert_eq!(plan.weapon, Some(WeaponType::Rail));
-        assert_eq!(plan.danger, 4);
+        assert_eq!(plan.danger, 5, "3.6 rounds to index 4, the last level");
         assert_eq!(plan.source, Source::Remote);
         assert!((plan.confidence - 0.9).abs() < 1e-9);
 
         answers.insert(Q_STANCE.to_string(), choice("push_enemy", 0.5));
         answers.insert(Q_WEAPON.to_string(), choice("rail", 0.5));
-        let plan = plan_from_answers(&answers, 0.65, &local());
+        let plan = plan_from_answers(&answers, &Gate::default(), &local());
         assert_eq!(
             plan.stance,
             Stance::HoldAngle,
@@ -342,7 +429,7 @@ mod tests {
 
         answers.insert(Q_STANCE.to_string(), choice("teleport", 0.99));
         answers.insert(Q_WEAPON.to_string(), choice("bfg", 0.99));
-        let plan = plan_from_answers(&answers, 0.65, &local());
+        let plan = plan_from_answers(&answers, &Gate::default(), &local());
         assert_eq!(
             plan.stance,
             Stance::HoldAngle,
@@ -351,7 +438,7 @@ mod tests {
         assert_eq!(plan.weapon, None);
         assert_eq!(plan.source, Source::LowConfidence);
 
-        let plan = plan_from_answers(&BTreeMap::new(), 0.65, &local());
+        let plan = plan_from_answers(&BTreeMap::new(), &Gate::default(), &local());
         assert_eq!(plan.source, Source::LowConfidence);
         assert_eq!(plan.danger, 1);
 
@@ -373,7 +460,7 @@ mod tests {
                 probabilities: BTreeMap::new(),
             },
         );
-        let plan = plan_from_answers(&odd, 0.0, &local());
+        let plan = plan_from_answers(&odd, &loose(), &local());
         assert_eq!(
             plan.source,
             Source::Remote,
@@ -390,9 +477,108 @@ mod tests {
             },
         );
         assert_eq!(
-            plan_from_answers(&odd, 0.0, &local()).danger,
+            plan_from_answers(&odd, &loose(), &local()).danger,
             5,
             "scores clamp"
+        );
+        for (score, level) in [(0.29, 1u8), (0.5, 2), (1.4, 2), (2.6, 4), (3.67, 5)] {
+            odd.insert(
+                Q_DANGER.to_string(),
+                Answer::Score {
+                    score,
+                    confidence: None,
+                    legend: Value::Null,
+                    probabilities: BTreeMap::new(),
+                },
+            );
+            assert_eq!(
+                plan_from_answers(&odd, &loose(), &local()).danger,
+                level,
+                "score {score}"
+            );
+        }
+    }
+    #[test]
+    fn margin_gate_accepts_clear_splits_below_the_confidence_floor() {
+        let gate = Gate::default();
+        let split = BTreeMap::from([
+            ("push_enemy".to_string(), 0.6),
+            ("hold_angle".to_string(), 0.38),
+            ("kite_distance".to_string(), 0.02),
+        ]);
+        assert!((choice_margin(&split).unwrap() - 0.22).abs() < 1e-9);
+        assert!(gate.accepts(Some(0.39), &split).0);
+        let tight = BTreeMap::from([
+            ("push_enemy".to_string(), 0.5),
+            ("hold_angle".to_string(), 0.4),
+        ]);
+        assert!(!gate.accepts(Some(0.3), &tight).0);
+        assert!(
+            gate.accepts(Some(0.7), &tight).0,
+            "confidence floor still counts"
+        );
+        assert_eq!(choice_margin(&BTreeMap::new()), None);
+        assert_eq!(gate.accepts(None, &BTreeMap::new()), (false, 0.0));
+        let single = BTreeMap::from([("x".to_string(), 0.9)]);
+        assert!((choice_margin(&single).unwrap() - 0.9).abs() < 1e-9);
+        let nan = BTreeMap::from([("x".to_string(), f64::NAN)]);
+        assert_eq!(choice_margin(&nan), None);
+        let mut answers = BTreeMap::new();
+        answers.insert(
+            Q_STANCE.to_string(),
+            Answer::Choice {
+                choice: "push_enemy".into(),
+                confidence: Some(0.39),
+                probabilities: split,
+            },
+        );
+        let plan = plan_from_answers(&answers, &gate, &local());
+        assert_eq!(plan.source, Source::Remote);
+        assert!(
+            (plan.confidence - 0.22).abs() < 1e-9,
+            "the margin is reported"
+        );
+    }
+
+    #[test]
+    fn danger_takes_the_most_likely_level() {
+        let probs = BTreeMap::from([
+            ("0".to_string(), 0.0),
+            ("1".to_string(), 0.01),
+            ("2".to_string(), 0.03),
+            ("3".to_string(), 0.25),
+            ("4".to_string(), 0.71),
+        ]);
+        assert_eq!(score_argmax(&probs), Some(4));
+        let mut answers = BTreeMap::new();
+        answers.insert(
+            Q_DANGER.to_string(),
+            Answer::Score {
+                score: 3.67,
+                confidence: Some(0.72),
+                legend: Value::Null,
+                probabilities: probs,
+            },
+        );
+        assert_eq!(
+            plan_from_answers(&answers, &Gate::default(), &local()).danger,
+            5
+        );
+        let named = BTreeMap::from([("safe".to_string(), 0.9)]);
+        assert_eq!(score_argmax(&named), None);
+        answers.insert(
+            Q_DANGER.to_string(),
+            Answer::Score {
+                score: 1.2,
+                confidence: None,
+                legend: Value::Null,
+                probabilities: named,
+            },
+        );
+        assert_eq!(
+            plan_from_answers(&answers, &Gate::default(), &local()).danger,
+            2,
+            "falls back to the rounded expectation"
         );
     }
 }
