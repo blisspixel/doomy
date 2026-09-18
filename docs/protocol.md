@@ -478,7 +478,7 @@ MVP is the top scorer (same selection as `winner`). `mvp` / `mvp_frags` / `host_
 - **Collision**: Simple AABB with 0.5 unit radius
 
 ### Round System
-- **Warmup**: 2 seconds (40 ticks) with Contested Frequency Host countdown drama on Snapshot
+- **Warmup**: 2 seconds (40 ticks) with Contested Frequency Host countdown drama on Snapshot (`host_line` + `round_time_left`; Godot full-frame Warmup TV with GOES LIVE IN N)
 - **Frag limit**: Default 10 kills
 - **Time limit**: Default 180 seconds (3600 ticks)
 - **End delay**: 5 seconds between rounds

@@ -26,6 +26,8 @@ Live captures from the current build (Godot 4.7.2-stable against a loopback serv
 
 ![Weapons and frags](docs/screenshots/09_tip_weapons_frags_16x9.png)
 
+![Warmup TV bumper (tip)](docs/screenshots/11_tip_warmup_tv_bumper_16x9.png)
+
 ![Host flash on mid-join](docs/screenshots/08_tip_host_flash_midjoin_16x9.png)
 
 ## Quick start

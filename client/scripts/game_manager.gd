@@ -256,19 +256,25 @@ func _on_snapshot_received(data):
 		hud.set_pressure(str(pressure))
 	# Sticky Host chrome always. Flash once on Warmup / Active / Ended join so
 	# pre-round Contested Frequency drama is readable (RoundStart still fights).
+	var roster = _warmup_roster_callsigns(player_list)
 	if host_line != "":
 		var flash = round_state == "Warmup" or round_state == "Active" or round_state == "Ended"
 		var did_flash = hud.set_host_line(host_line, false)
 		if flash and not hud.host_line_seen:
 			hud.host_line_seen = true
 			if round_state == "Warmup" and hud.has_method("show_warmup_bumper"):
-				hud.show_warmup_bumper(host_line, int(round_time_left) if round_time_left != null else 0)
+				hud.show_warmup_bumper(host_line, int(round_time_left) if round_time_left != null else 0, roster)
 			else:
 				hud.show_host_join(host_line)
 			did_flash = true
+		elif round_state == "Warmup" and hud.has_method("refresh_warmup_tv"):
+			# Live giant countdown + roster chips while Warmup TV is up.
+			hud.refresh_warmup_tv(host_line, int(round_time_left) if round_time_left != null else 0, roster)
 		if did_flash:
 			if round_start_sound and round_start_sound.stream:
 				round_start_sound.play()
+	elif round_state == "Warmup" and hud.has_method("refresh_warmup_tv"):
+		hud.refresh_warmup_tv("", int(round_time_left) if round_time_left != null else 0, roster)
 	hud.set_tick(tick)
 	hud.set_player_count(len(player_list))
 	hud.sync_scores_from_players(player_list)
@@ -540,6 +546,15 @@ func _pick_ghost_rival_from_alive():
 		return
 	names.shuffle()
 	hud.set_ghost_rival(names[0])
+
+func _warmup_roster_callsigns(player_list: Array) -> Array:
+	var names = []
+	for p in player_list:
+		var n = str(p.get("name", ""))
+		if n == "" or n == "Spectator":
+			continue
+		names.append(n)
+	return names
 
 func _maybe_assign_ghost_rival(player_list: Array):
 	if is_human_player:

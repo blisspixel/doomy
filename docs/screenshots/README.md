@@ -2,7 +2,7 @@
 
 ## Current status: live tip captures + archived mood plates
 
-`01_arena_overview_16x9.png`, `02_spectator_hud_16x9.png`, `07_tip_compliance_pressure_16x9.png`, `08_tip_host_flash_midjoin_16x9.png`, `09_tip_weapons_frags_16x9.png`, and `10_tip_human_join_fp_16x9.png` are **live tip captures** from Godot 4.7.2-stable under Xvfb + opengl3 against a loopback `fragr-server --bots 4`. They show Contested Frequency spectator HUD, Host flash on mid-join, weapons/frags combat, and Join FP scrap juice. Regenerated after weapon roles excellence (#76) so choke + FP + killstreak + role face match tip.
+`01_arena_overview_16x9.png`, `02_spectator_hud_16x9.png`, `07_tip_compliance_pressure_16x9.png`, `08_tip_host_flash_midjoin_16x9.png`, `09_tip_weapons_frags_16x9.png`, `10_tip_human_join_fp_16x9.png`, and `11_tip_warmup_tv_bumper_16x9.png` are **live tip captures** from Godot 4.7.2-stable under Xvfb + opengl3 against a loopback `fragr-server --bots 4`. They show Contested Frequency spectator HUD, unmissable Warmup TV bumper, Host flash on mid-join, weapons/frags combat, and Join FP scrap juice. Regenerated for Warmup TV bumper so scrap open is visible at tip.
 
 Archived mood / concept plates remain under `mood/` for vision direction only. Do not treat mood plates as tip gameplay proof.
 
@@ -20,8 +20,9 @@ README screenshots MUST match the current playable UI. Stale mood stubs labeled 
 | `08_tip_host_flash_midjoin_16x9.png` | 16:9 | Live tip: mid-join Host bumper flash from first Active Snapshot |
 | `09_tip_weapons_frags_16x9.png` | 16:9 | Live tip: weapons / muzzle / killfeed combat still |
 | `10_tip_human_join_fp_16x9.png` | 16:9 | Live tip: Join FP scrap juice (crosshair + weapon face) |
+| `11_tip_warmup_tv_bumper_16x9.png` | 16:9 | Live tip: unmissable Warmup Contested Frequency TV bumper |
 
-Recaptured on tip after weapon roles (#76) via `tools/capture_tip_screenshots.sh`. `10_tip_human_join_fp` remains a first-class tip embed.
+Recaptured on tip for Warmup TV bumper via `tools/capture_tip_screenshots.sh`. `11_tip_warmup_tv_bumper` is a first-class tip embed.
 
 ## Mood plates (archived)
 
@@ -55,3 +56,9 @@ See [`../plans/tip-screenshots.md`](../plans/tip-screenshots.md).
 ![Human join FP](10_tip_human_join_fp_16x9.png)
 
 Join-mode first-person scrap juice: crosshair, held-weapon face, spawn/damage flash overlays on Contested Frequency.
+
+## Warmup TV bumper
+
+![Warmup TV bumper](11_tip_warmup_tv_bumper_16x9.png)
+
+Full-frame Contested Frequency Warmup: huge map title, roster callsigns, giant GOES LIVE IN N, Host flash.
