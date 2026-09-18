@@ -6,19 +6,20 @@ Each plan should cover: goal, non-goals, architecture impact, protocol or API ch
 
 Do not treat chat as the plan of record.
 
-## Tip priorities (after d3cbc9c + junk-act/HUD PR; releases through v0.4.0)
+## Tip priorities (after v0.5.0)
 
-Ship order after this PR (Researcher DIY / one MCP door):
+Named agents / SKILL.md shipped in **v0.5.0**. Ship order from tip:
 
-1. **Adapter `--name` / session join-leave** - tip hardcodes MCP Agent; named sessions + clean join/leave.
-2. **SKILL.md + Hermes / OpenClaw snips** - one adapter door to the same Action on public :6767; LLM off tick; L5 aspiration not DoD.
-3. **Off-tick speak / taunt** - only after the door is trusted.
-4. **Spectator face juice / one mode fantasy / amazement bar** - Host bumpers + readable HUD started this PR; muted accents OK for later art (not neon everywhere). Not an MCP cell farm.
+1. **Honest coverage lock** - unfiltered llvm-cov >=80%; no production-crate carve-outs (KAPU). See [`honest-coverage-lock.md`](./honest-coverage-lock.md).
+2. **Tip screenshots** - replace mood README embeds with live Godot captures; clear MOOD-ART-ONLY banner when stills are real. See [`tip-screenshots.md`](./tip-screenshots.md).
+3. **Mode fantasy / spectator face juice** - Host bumpers + readable HUD started earlier; muted accents OK for later art (not neon everywhere). Not an MCP cell farm.
+4. **Off-tick speak / taunt** - only after the adapter door stays trusted.
 5. **Pixel-3D look bar** - Unreal+CS arena play feel; 3D Godot world/camera; retro pixel surfaces/sprites/HUD; SP boot-and-scrap first-class alongside watch-or-join MP; no Doom/id IP.
 
 Port is **6767**. Public TCP+UDP 6767 for strangers/agents. Tailscale is private/dev only. Scale ladder: Always Free e2-micro then bigger/second arena. Never Cloud Run as combat tick. Infra stays plan-only until spend ACK.
 
-**Chief dedicated-server bar:** rock-solid / secure / cheap (home LAN or small VM). Hardening (auth/session, junk-act reject this PR, rate limits, input validation, no trust client sim). Stability (Rust tick, clean join/leave/reconnect, second-peer + public 6767). Cost ladder under $50. Canonical port 6767; scrub leftover 7777.
+**Chief dedicated-server bar:** rock-solid / secure / cheap (home LAN or small VM). Hardening (auth/session, junk-act reject, rate limits, input validation, no trust client sim). Stability (Rust tick, clean join/leave/reconnect, second-peer + public 6767). Cost ladder under $50. Canonical port 6767; scrub leftover 7777.
+
 
 ## Index
 

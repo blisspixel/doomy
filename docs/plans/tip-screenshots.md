@@ -59,7 +59,7 @@ The fragr client is a thin presenter. The following conditions may produce misle
 - New optional capture mode (script or Movie Maker config) for client
 - No changes to server or protocol
 - No changes to existing mood art files (unless explicitly re-labeled as mood-only)
-- Potential new `scripts/capture_tip_screenshot.sh` or similar wrapper for Xvfb + Godot
+- Landed: `tools/capture_tip_screenshots.sh` + `client/scripts/tip_capture.gd` (Xvfb + opengl3 + Viewport API). Requires Godot 4.7.2-stable on PATH; this box may lack the editor binary.
 
 ## Verification
 
@@ -89,3 +89,7 @@ The fragr client is a thin presenter. The following conditions may produce misle
 - Researcher HOLD brief on Godot tip screenshots (commits 71290cb, ad78d41)
 - Godot docs: Viewport.get_texture(), Image.save_png(), Movie Maker mode
 - Xvfb manpage and OpenGL vs Vulkan renderer trade-offs
+
+## Status note (honest-coverage PR)
+
+Capture automation is in-tree. Live PNG replacement is blocked on a Godot 4.7.2-stable binary for this environment. Mood plates remain labeled as mood (not tip) in README and `docs/screenshots/README.md` until captures are regenerated.
