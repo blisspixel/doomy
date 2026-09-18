@@ -1,0 +1,18 @@
+# Agent scratch (indexes, plans, receipts). Promote durable knowledge into docs/ or source.
+.agents/
+.agent/
+
+# Rust
+**/target/
+**/*.rs.bk
+
+# Godot
+**/.godot/
+**/export_presets.cfg
+*.translation
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
