@@ -36,7 +36,7 @@ pub const ARMOR_PAD_AMOUNT: i32 = 25;
 
 /// Axis-aligned scrap solid in XZ (Godot props mirrored for authoritative cover).
 #[derive(Debug, Clone, Copy)]
-struct Aabb2 {
+pub(crate) struct Aabb2 {
     min_x: f32,
     max_x: f32,
     min_z: f32,
@@ -53,7 +53,7 @@ impl Aabb2 {
         }
     }
 
-    const fn expand(self, r: f32) -> Self {
+    pub(crate) const fn expand(self, r: f32) -> Self {
         Self {
             min_x: self.min_x - r,
             max_x: self.max_x + r,
@@ -62,41 +62,243 @@ impl Aabb2 {
         }
     }
 
-    fn contains(self, x: f32, z: f32) -> bool {
+    pub(crate) fn contains(self, x: f32, z: f32) -> bool {
         x >= self.min_x && x <= self.max_x && z >= self.min_z && z <= self.max_z
     }
 }
 
-/// Scrap chokes matching `client/scenes/arena.tscn` (pillars, low walls, crates).
-fn arena_obstacles() -> [Aabb2; 19] {
-    [
-        // Pillars at (±7, ±7), mesh 2.5x2.5
-        Aabb2::from_center(7.0, -7.0, 1.25, 1.25),
-        Aabb2::from_center(-7.0, -7.0, 1.25, 1.25),
-        Aabb2::from_center(7.0, 7.0, 1.25, 1.25),
-        Aabb2::from_center(-7.0, 7.0, 1.25, 1.25),
-        // Low walls N/S/E/W (half 4.0 along long axis, 0.4 thick)
-        Aabb2::from_center(0.0, -10.0, 4.0, 0.4),
-        Aabb2::from_center(0.0, 10.0, 4.0, 0.4),
-        Aabb2::from_center(10.0, 0.0, 0.4, 4.0),
-        Aabb2::from_center(-10.0, 0.0, 0.4, 4.0),
-        // Crates (mesh 2x2 xz): existing + flank clusters
-        Aabb2::from_center(4.0, 16.0, 1.0, 1.0),
-        Aabb2::from_center(-15.0, 3.0, 1.0, 1.0),
-        Aabb2::from_center(16.0, -4.0, 1.0, 1.0),
-        Aabb2::from_center(-3.5, -14.0, 1.0, 1.0),
-        Aabb2::from_center(3.5, -14.0, 1.0, 1.0),
-        Aabb2::from_center(-3.5, 14.0, 1.0, 1.0),
-        Aabb2::from_center(3.5, 14.0, 1.0, 1.0),
-        Aabb2::from_center(-14.0, -5.0, 1.0, 1.0),
-        Aabb2::from_center(-14.0, 5.0, 1.0, 1.0),
-        Aabb2::from_center(14.0, 5.0, 1.0, 1.0),
-        Aabb2::from_center(14.0, -5.0, 1.0, 1.0),
-    ]
+/// Contested Frequency scrap layouts (1 = Arena Duel default, 2 = Compliance Yard).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum MapKind {
+    #[default]
+    ArenaDuel = 1,
+    ComplianceYard = 2,
 }
 
-fn circle_blocked(x: f32, z: f32) -> bool {
-    for obs in arena_obstacles() {
+impl MapKind {
+    pub fn from_cli(raw: &str) -> Option<Self> {
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "1" | "arena" | "duel" | "arena-duel" | "arena_duel" => Some(Self::ArenaDuel),
+            "2" | "compliance" | "yard" | "compliance-yard" | "compliance_yard" => {
+                Some(Self::ComplianceYard)
+            }
+            _ => None,
+        }
+    }
+
+    pub fn id(self) -> u32 {
+        match self {
+            Self::ArenaDuel => 1,
+            Self::ComplianceYard => 2,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::ArenaDuel => "Arena Duel",
+            Self::ComplianceYard => "Compliance Yard",
+        }
+    }
+
+    pub fn next(self) -> Self {
+        match self {
+            Self::ArenaDuel => Self::ComplianceYard,
+            Self::ComplianceYard => Self::ArenaDuel,
+        }
+    }
+
+    pub fn spawn_radius(self) -> f32 {
+        match self {
+            Self::ArenaDuel => ARENA_SIZE * 0.3,
+            Self::ComplianceYard => ARENA_SIZE * 0.25,
+        }
+    }
+
+    /// Scrap chokes matching Godot arena scenes.
+    pub(crate) fn obstacles(self) -> Vec<Aabb2> {
+        match self {
+            Self::ArenaDuel => vec![
+                // Pillars at (±7, ±7), mesh 2.5x2.5
+                Aabb2::from_center(7.0, -7.0, 1.25, 1.25),
+                Aabb2::from_center(-7.0, -7.0, 1.25, 1.25),
+                Aabb2::from_center(7.0, 7.0, 1.25, 1.25),
+                Aabb2::from_center(-7.0, 7.0, 1.25, 1.25),
+                // Low walls N/S/E/W
+                Aabb2::from_center(0.0, -10.0, 4.0, 0.4),
+                Aabb2::from_center(0.0, 10.0, 4.0, 0.4),
+                Aabb2::from_center(10.0, 0.0, 0.4, 4.0),
+                Aabb2::from_center(-10.0, 0.0, 0.4, 4.0),
+                // Crates
+                Aabb2::from_center(4.0, 16.0, 1.0, 1.0),
+                Aabb2::from_center(-15.0, 3.0, 1.0, 1.0),
+                Aabb2::from_center(16.0, -4.0, 1.0, 1.0),
+                Aabb2::from_center(-3.5, -14.0, 1.0, 1.0),
+                Aabb2::from_center(3.5, -14.0, 1.0, 1.0),
+                Aabb2::from_center(-3.5, 14.0, 1.0, 1.0),
+                Aabb2::from_center(3.5, 14.0, 1.0, 1.0),
+                Aabb2::from_center(-14.0, -5.0, 1.0, 1.0),
+                Aabb2::from_center(-14.0, 5.0, 1.0, 1.0),
+                Aabb2::from_center(14.0, 5.0, 1.0, 1.0),
+                Aabb2::from_center(14.0, -5.0, 1.0, 1.0),
+            ],
+            Self::ComplianceYard => vec![
+                // Inner yard posts (±5, ±5)
+                Aabb2::from_center(5.0, -5.0, 1.0, 1.0),
+                Aabb2::from_center(-5.0, -5.0, 1.0, 1.0),
+                Aabb2::from_center(5.0, 5.0, 1.0, 1.0),
+                Aabb2::from_center(-5.0, 5.0, 1.0, 1.0),
+                // Split corridor bars (gaps at axes for hub lanes)
+                Aabb2::from_center(-7.0, -8.0, 3.5, 0.45),
+                Aabb2::from_center(7.0, -8.0, 3.5, 0.45),
+                Aabb2::from_center(-7.0, 8.0, 3.5, 0.45),
+                Aabb2::from_center(7.0, 8.0, 3.5, 0.45),
+                Aabb2::from_center(8.0, -7.0, 0.45, 3.5),
+                Aabb2::from_center(8.0, 7.0, 0.45, 3.5),
+                Aabb2::from_center(-8.0, -7.0, 0.45, 3.5),
+                Aabb2::from_center(-8.0, 7.0, 0.45, 3.5),
+                // Outer scrap crates
+                Aabb2::from_center(0.0, -16.0, 1.0, 1.0),
+                Aabb2::from_center(0.0, 16.0, 1.0, 1.0),
+                Aabb2::from_center(-16.0, 0.0, 1.0, 1.0),
+                Aabb2::from_center(16.0, 0.0, 1.0, 1.0),
+                Aabb2::from_center(14.0, 14.0, 1.0, 1.0),
+                Aabb2::from_center(-14.0, -14.0, 1.0, 1.0),
+            ],
+        }
+    }
+
+    pub(crate) fn pickups(self) -> Vec<ArenaPickup> {
+        match self {
+            Self::ArenaDuel => vec![
+                ArenaPickup {
+                    id: "pad_rail".to_string(),
+                    kind: PickupKind::Weapon(WeaponType::Rail),
+                    amount: 0,
+                    x: 12.0,
+                    y: 0.4,
+                    z: 12.0,
+                    available: true,
+                    respawn_timer: None,
+                },
+                ArenaPickup {
+                    id: "pad_scatter".to_string(),
+                    kind: PickupKind::Weapon(WeaponType::Scatter),
+                    amount: 0,
+                    x: -12.0,
+                    y: 0.4,
+                    z: -12.0,
+                    available: true,
+                    respawn_timer: None,
+                },
+                ArenaPickup {
+                    id: "pad_flechette".to_string(),
+                    kind: PickupKind::Weapon(WeaponType::Flechette),
+                    amount: 0,
+                    x: -12.0,
+                    y: 0.4,
+                    z: 12.0,
+                    available: true,
+                    respawn_timer: None,
+                },
+                ArenaPickup {
+                    id: "pad_health_n".to_string(),
+                    kind: PickupKind::Health,
+                    amount: HEALTH_PAD_AMOUNT,
+                    x: 0.0,
+                    y: 0.4,
+                    z: 8.0,
+                    available: true,
+                    respawn_timer: None,
+                },
+                ArenaPickup {
+                    id: "pad_health_s".to_string(),
+                    kind: PickupKind::Health,
+                    amount: HEALTH_PAD_AMOUNT,
+                    x: 0.0,
+                    y: 0.4,
+                    z: -8.0,
+                    available: true,
+                    respawn_timer: None,
+                },
+                ArenaPickup {
+                    id: "pad_armor".to_string(),
+                    kind: PickupKind::Armor,
+                    amount: ARMOR_PAD_AMOUNT,
+                    x: 8.0,
+                    y: 0.4,
+                    z: 0.0,
+                    available: true,
+                    respawn_timer: None,
+                },
+            ],
+            Self::ComplianceYard => vec![
+                ArenaPickup {
+                    id: "pad_rail".to_string(),
+                    kind: PickupKind::Weapon(WeaponType::Rail),
+                    amount: 0,
+                    x: 12.0,
+                    y: 0.4,
+                    z: 12.0,
+                    available: true,
+                    respawn_timer: None,
+                },
+                ArenaPickup {
+                    id: "pad_scatter".to_string(),
+                    kind: PickupKind::Weapon(WeaponType::Scatter),
+                    amount: 0,
+                    x: -12.0,
+                    y: 0.4,
+                    z: -12.0,
+                    available: true,
+                    respawn_timer: None,
+                },
+                ArenaPickup {
+                    id: "pad_flechette".to_string(),
+                    kind: PickupKind::Weapon(WeaponType::Flechette),
+                    amount: 0,
+                    x: -12.0,
+                    y: 0.4,
+                    z: 12.0,
+                    available: true,
+                    respawn_timer: None,
+                },
+                ArenaPickup {
+                    id: "pad_health_n".to_string(),
+                    kind: PickupKind::Health,
+                    amount: HEALTH_PAD_AMOUNT,
+                    x: 0.0,
+                    y: 0.4,
+                    z: 11.0,
+                    available: true,
+                    respawn_timer: None,
+                },
+                ArenaPickup {
+                    id: "pad_health_s".to_string(),
+                    kind: PickupKind::Health,
+                    amount: HEALTH_PAD_AMOUNT,
+                    x: 0.0,
+                    y: 0.4,
+                    z: -11.0,
+                    available: true,
+                    respawn_timer: None,
+                },
+                ArenaPickup {
+                    id: "pad_armor".to_string(),
+                    kind: PickupKind::Armor,
+                    amount: ARMOR_PAD_AMOUNT,
+                    x: 11.0,
+                    y: 0.4,
+                    z: 0.0,
+                    available: true,
+                    respawn_timer: None,
+                },
+            ],
+        }
+    }
+}
+
+fn circle_blocked(map: MapKind, x: f32, z: f32) -> bool {
+    for obs in map.obstacles() {
         if obs.expand(PLAYER_RADIUS).contains(x, z) {
             return true;
         }
@@ -110,17 +312,17 @@ fn clamp_arena(x: f32, z: f32) -> (f32, f32) {
 }
 
 /// Quake-style slide: try full move, then axis slides, then stay.
-fn resolve_move(old_x: f32, old_z: f32, new_x: f32, new_z: f32) -> (f32, f32) {
+fn resolve_move(map: MapKind, old_x: f32, old_z: f32, new_x: f32, new_z: f32) -> (f32, f32) {
     let (nx, nz) = clamp_arena(new_x, new_z);
-    if !circle_blocked(nx, nz) {
+    if !circle_blocked(map, nx, nz) {
         return (nx, nz);
     }
     let (sx, _) = clamp_arena(new_x, old_z);
-    if !circle_blocked(sx, old_z) {
+    if !circle_blocked(map, sx, old_z) {
         return (sx, old_z);
     }
     let (_, sz) = clamp_arena(old_x, new_z);
-    if !circle_blocked(old_x, sz) {
+    if !circle_blocked(map, old_x, sz) {
         return (old_x, sz);
     }
     clamp_arena(old_x, old_z)
@@ -159,8 +361,8 @@ fn ray_aabb_hit(ox: f32, oz: f32, dx: f32, dz: f32, obs: Aabb2) -> Option<f32> {
     }
 }
 
-fn ray_blocked_by_cover(ox: f32, oz: f32, dx: f32, dz: f32, max_dist: f32) -> bool {
-    for obs in arena_obstacles() {
+fn ray_blocked_by_cover(map: MapKind, ox: f32, oz: f32, dx: f32, dz: f32, max_dist: f32) -> bool {
+    for obs in map.obstacles() {
         if let Some(t) = ray_aabb_hit(ox, oz, dx, dz, obs) {
             if t < max_dist {
                 return true;
@@ -170,13 +372,13 @@ fn ray_blocked_by_cover(ox: f32, oz: f32, dx: f32, dz: f32, max_dist: f32) -> bo
     false
 }
 
-fn spawn_on_ring(angle: f32) -> (f32, f32, f32) {
-    let spawn_radius = ARENA_SIZE * 0.3;
+fn spawn_on_ring(map: MapKind, angle: f32) -> (f32, f32, f32) {
+    let spawn_radius = map.spawn_radius();
     let mut a = angle;
     for _ in 0..16 {
         let x = a.cos() * spawn_radius;
         let z = a.sin() * spawn_radius;
-        if !circle_blocked(x, z) {
+        if !circle_blocked(map, x, z) {
             return (x, z, a + PI);
         }
         a += PI / 8.0;
@@ -303,71 +505,6 @@ impl ArenaPickup {
     }
 }
 
-fn default_arena_pickups() -> Vec<ArenaPickup> {
-    vec![
-        ArenaPickup {
-            id: "pad_rail".to_string(),
-            kind: PickupKind::Weapon(WeaponType::Rail),
-            amount: 0,
-            x: 12.0,
-            y: 0.4,
-            z: 12.0,
-            available: true,
-            respawn_timer: None,
-        },
-        ArenaPickup {
-            id: "pad_scatter".to_string(),
-            kind: PickupKind::Weapon(WeaponType::Scatter),
-            amount: 0,
-            x: -12.0,
-            y: 0.4,
-            z: -12.0,
-            available: true,
-            respawn_timer: None,
-        },
-        ArenaPickup {
-            id: "pad_flechette".to_string(),
-            kind: PickupKind::Weapon(WeaponType::Flechette),
-            amount: 0,
-            x: -12.0,
-            y: 0.4,
-            z: 12.0,
-            available: true,
-            respawn_timer: None,
-        },
-        ArenaPickup {
-            id: "pad_health_n".to_string(),
-            kind: PickupKind::Health,
-            amount: HEALTH_PAD_AMOUNT,
-            x: 0.0,
-            y: 0.4,
-            z: 8.0,
-            available: true,
-            respawn_timer: None,
-        },
-        ArenaPickup {
-            id: "pad_health_s".to_string(),
-            kind: PickupKind::Health,
-            amount: HEALTH_PAD_AMOUNT,
-            x: 0.0,
-            y: 0.4,
-            z: -8.0,
-            available: true,
-            respawn_timer: None,
-        },
-        ArenaPickup {
-            id: "pad_armor".to_string(),
-            kind: PickupKind::Armor,
-            amount: ARMOR_PAD_AMOUNT,
-            x: 8.0,
-            y: 0.4,
-            z: 0.0,
-            available: true,
-            respawn_timer: None,
-        },
-    ]
-}
-
 pub struct GameState {
     pub tick: u64,
     pub players: Vec<Player>,
@@ -392,6 +529,10 @@ pub struct GameState {
     pub pickups: Vec<ArenaPickup>,
     /// Sticky Host line while RoundState::Ended (MVP podium bumper for mid-join).
     pub ended_host_line: Option<String>,
+    /// Active Contested Frequency scrap layout.
+    pub map: MapKind,
+    /// When true, alternate map each start_round.
+    pub map_rotate: bool,
 }
 
 pub struct Player {
@@ -423,6 +564,15 @@ impl GameState {
         Self::default()
     }
 
+    pub fn with_map(map: MapKind, map_rotate: bool) -> Self {
+        Self {
+            map,
+            map_rotate,
+            pickups: map.pickups(),
+            ..Self::default()
+        }
+    }
+
     pub fn start_round(&mut self) {
         let previous_winner = if self.round_number > 0 {
             self.scores
@@ -441,6 +591,10 @@ impl GameState {
         self.compliance_fired = false;
         self.compliance_ticks_left = 0;
         self.clear_boss();
+        if self.map_rotate && self.round_number > 1 {
+            self.map = self.map.next();
+            tracing::info!("Map rotate -> {} ({})", self.map.name(), self.map.id());
+        }
         self.reset_pickups();
         self.ended_host_line = None;
 
@@ -535,7 +689,7 @@ impl GameState {
 
     pub fn add_player(&mut self, id: Uuid, name: String, role: Role) {
         let angle = (self.players.len() as f32) * (2.0 * PI / 8.0);
-        let (sx, sz, yaw) = spawn_on_ring(angle);
+        let (sx, sz, yaw) = spawn_on_ring(self.map, angle);
 
         self.players.push(Player {
             id,
@@ -694,7 +848,7 @@ impl GameState {
             let old_z = player.z;
             let new_x = old_x + dx * move_speed * dt;
             let new_z = old_z + dz * move_speed * dt;
-            let (rx, rz) = resolve_move(old_x, old_z, new_x, new_z);
+            let (rx, rz) = resolve_move(self.map, old_x, old_z, new_x, new_z);
             player.x = rx;
             player.z = rz;
 
@@ -939,7 +1093,7 @@ impl GameState {
                 let perp_dist = (perp_x * perp_x + perp_z * perp_z).sqrt();
 
                 if perp_dist <= PLAYER_RADIUS * 2.0 {
-                    if ray_blocked_by_cover(shooter.x, shooter.z, ray_dx, ray_dz, dist) {
+                    if ray_blocked_by_cover(self.map, shooter.x, shooter.z, ray_dx, ray_dz, dist) {
                         continue;
                     }
                     closest_dist = dist;
@@ -954,7 +1108,7 @@ impl GameState {
     fn do_respawn(&mut self, player_id: Uuid) {
         if let Some(player) = self.players.iter_mut().find(|p| p.id == player_id) {
             let angle = rand::random::<f32>() * 2.0 * PI;
-            let (sx, sz, yaw) = spawn_on_ring(angle);
+            let (sx, sz, yaw) = spawn_on_ring(self.map, angle);
 
             player.x = sx;
             player.y = 1.5;
@@ -1034,11 +1188,13 @@ impl GameState {
                 default_host_line()
             },
             pickups: self.pickups.iter().map(|p| p.to_state()).collect(),
+            map_id: self.map.id(),
+            map_name: self.map.name().to_string(),
         }
     }
 
     fn reset_pickups(&mut self) {
-        self.pickups = default_arena_pickups();
+        self.pickups = self.map.pickups();
     }
 
     /// Decrement pad respawn timers and claim available pads on touch.
@@ -1283,8 +1439,10 @@ impl Default for GameState {
             compliance_fired: false,
             boss_id: None,
             boss_spawned: false,
-            pickups: default_arena_pickups(),
+            pickups: MapKind::ArenaDuel.pickups(),
             ended_host_line: None,
+            map: MapKind::ArenaDuel,
+            map_rotate: false,
         }
     }
 }

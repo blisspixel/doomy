@@ -42,6 +42,8 @@ Or two terminals:
 ```bash
 # Terminal 1: local authoritative server (4 named rule bots)
 cargo run -p fragr-server -- --bind 127.0.0.1:6767 --bots 4
+# Map 2 (Compliance Yard): add --map 2
+# Or: FRAGR_MAP=2 ./tools/solo_scrap.sh
 
 # Terminal 2: Godot 4.7.2
 # Open client/ and press F5 -> Boot menu -> Solo Scrap (local bots)
@@ -50,7 +52,7 @@ cargo run -p fragr-server -- --bind 127.0.0.1:6767 --bots 4
 
 **Offline bar:** Solo Scrap is loopback `127.0.0.1:6767` only. Same Action path as multiplayer. Bots refill if the arena would otherwise sit empty (`min_bots`).
 
-**Boot menu:** Solo Scrap (default) | Spectate Local | Join Host (MP). Press L in-match to spectate; J to join again.
+**Boot menu:** Solo Scrap (default) | Spectate Local | Join Host (MP). Map picker: 1 Arena Duel (default) or 2 Compliance Yard (match server `--map` / `FRAGR_MAP`). Press L in-match to spectate; J to join again.
 
 **That is it.** Living opponents on one machine. No accounts, no cloud, no spend.
 

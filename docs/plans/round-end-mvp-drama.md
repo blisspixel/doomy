@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `cursor/round-end-mvp`
 **Spend:** $0. No ElevenLabs, no GCP apply, no renet, no look_at/hit reopen.
-**Status:** Plan of record. Tip face: round-end MVP Host drama.
+**Status:** Shipped (#79 / `986af60`).
 
 ## Goal
 
@@ -11,7 +11,7 @@ Raise sticky spectator/join fun: round-end MVP / podium Host drama (leader name,
 
 ## Tip priorities
 
-Coverage climb main shipped (#78 / `2223fb1`). **Round-end MVP drama is the NOW tip.** look_at / hit HOLD. Port 6767. Coverage fail-under 80.
+Shipped. Second scrap map is the NOW tip. See [`second-scrap-map.md`](./second-scrap-map.md). look_at / hit HOLD. Port 6767. Coverage fail-under 80.
 
 ## Non-goals
 

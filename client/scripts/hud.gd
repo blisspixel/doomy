@@ -29,6 +29,7 @@ var leader_name = ""
 var host_bumper_index = 0
 var league_mode_name = "Contested Frequency"
 var league_playlist = "Arena Duel"
+var map_label = "Arena Duel"
 var pressure_id = ""
 var sticky_host_line = ""
 var host_line_seen = false
@@ -107,6 +108,11 @@ func set_league_identity(mode_name: String, playlist: String):
 	_refresh_mode_label()
 	update_scoreboard()
 
+func set_map_name(name: String):
+	if name != "":
+		map_label = name
+	_refresh_mode_label()
+
 func set_pressure(pressure: String):
 	pressure_id = pressure
 	_refresh_mode_label()
@@ -119,6 +125,7 @@ func _refresh_mode_label():
 	if not mode_label:
 		return
 	var league = league_mode_name.to_upper() + " // " + league_playlist.to_upper()
+	var map_chip = "\nMAP: " + map_label.to_upper()
 	var host_chip = ""
 	if sticky_host_line != "":
 		host_chip = "\n" + sticky_host_line
@@ -132,7 +139,7 @@ func _refresh_mode_label():
 		pressure_chip = "\nPRESSURE: CONTINUANCE COMPLIANCE DRONE"
 	elif pressure_id == "compliance":
 		pressure_chip = "\nPRESSURE: CONTINUANCE COMPLIANCE"
-	mode_label.text = league + host_chip + "\n" + controls + pressure_chip
+	mode_label.text = league + map_chip + host_chip + "\n" + controls + pressure_chip
 
 func set_tick(tick: int):
 	if tick_label:

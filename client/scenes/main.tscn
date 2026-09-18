@@ -1,8 +1,9 @@
-[gd_scene load_steps=7 format=3 uid="uid://ba4u2t3o17x7x"]
+[gd_scene load_steps=8 format=3 uid="uid://ba4u2t3o17x7x"]
 
 [ext_resource type="Script" path="res://scripts/game_manager.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/net_client.gd" id="2_net"]
 [ext_resource type="PackedScene" uid="uid://bgah5r5qw6x5m" path="res://scenes/arena.tscn" id="3_arena"]
+[ext_resource type="PackedScene" uid="uid://bcompyardscrap02" path="res://scenes/arena_compliance_yard.tscn" id="3b_yard"]
 [ext_resource type="Script" path="res://scripts/spectator_cam.gd" id="4_camera"]
 [ext_resource type="Script" path="res://scripts/hud.gd" id="5_hud"]
 
@@ -20,7 +21,9 @@ script = ExtResource("1_main")
 [node name="NetClient" type="Node" parent="."]
 script = ExtResource("2_net")
 
-[node name="Arena" parent="." instance=ExtResource("3_arena")]
+[node name="Arena" type="Node3D" parent="."]
+
+[node name="Layout" parent="Arena" instance=ExtResource("3_arena")]
 
 [node name="SpectatorCamera" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10, 15)
