@@ -22,10 +22,12 @@ func _run_capture() -> void:
 	await RenderingServer.frame_post_draw
 
 	# Seconds after scene load (warmup ~2s; compliance ~15s into Active).
-	var shot_waits: Array[float] = [4.0, 10.0, 18.0]
+	# 12s lands mid-scrap for weapons / frags killfeed still.
+	var shot_waits: Array[float] = [4.0, 10.0, 12.0, 18.0]
 	var shot_names: Array[String] = [
 		"01_arena_overview_16x9.png",
 		"02_spectator_hud_16x9.png",
+		"09_tip_weapons_frags_16x9.png",
 		"07_tip_compliance_pressure_16x9.png",
 	]
 

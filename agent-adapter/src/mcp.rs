@@ -1,4 +1,5 @@
-//! MCP request dispatch for observe / act / get_events (and initialize / tools/list).
+//! MCP request dispatch for observe / act / get_events / speak / join / leave / round_state
+//! (and initialize / tools/list).
 //! Kept free of stdin/WebSocket I/O so behavioral unit tests can cover the real tool paths.
 
 use crate::protocol::{self, Action, Speak};
@@ -34,22 +35,55 @@ pub struct McpError {
 pub const SPEAK_COOLDOWN_TICKS: u64 = 60;
 
 /// In-memory MCP tool state mirrored from the WebSocket receive loop.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct ToolState {
     pub last_snapshot: Option<Value>,
     pub recent_events: Vec<Value>,
     pub player_id: Option<Uuid>,
     /// Tick of last MCP speak that was accepted for send (rate-limit honesty).
     pub last_speak_tick: Option<u64>,
+    /// True after Welcome / successful join; false after leave or before join.
+    pub connected: bool,
+    /// Display name from `--name` / `FRAGR_AGENT_NAME` (join reuses when args omit name).
+    pub default_name: String,
+    /// Name used for the current joined session.
+    pub session_name: Option<String>,
+}
+
+impl Default for ToolState {
+    fn default() -> Self {
+        Self {
+            last_snapshot: None,
+            recent_events: Vec::new(),
+            player_id: None,
+            last_speak_tick: None,
+            connected: false,
+            default_name: "MCP Agent".to_string(),
+            session_name: None,
+        }
+    }
 }
 
 /// Outcome of handling one MCP request.
 /// `pending_action` is set when `act` validated; `pending_speak` when `speak` validated.
+/// `pending_join` / `pending_leave` drive WebSocket Hello reconnect / clean disconnect in main.
 #[derive(Debug)]
 pub struct HandleOutcome {
     pub response: McpResponse,
     pub pending_action: Option<Action>,
     pub pending_speak: Option<Speak>,
+    pub pending_join: Option<String>,
+    pub pending_leave: bool,
+}
+
+fn empty_outcome(response: McpResponse) -> HandleOutcome {
+    HandleOutcome {
+        response,
+        pending_action: None,
+        pending_speak: None,
+        pending_join: None,
+        pending_leave: false,
+    }
 }
 
 const ACT_ALLOWED_KEYS: &[&str] = &[
@@ -65,6 +99,8 @@ const ACT_ALLOWED_KEYS: &[&str] = &[
 ];
 
 const LOOK_AT_ALLOWED_KEYS: &[&str] = &["x", "z", "player_id"];
+
+const JOIN_ALLOWED_KEYS: &[&str] = &["name"];
 
 /// Validate MCP `act` arguments. Empty/missing args are OK (all defaults).
 /// Unknown keys and bad weapon_swap values are schema errors (do not coerce).
@@ -242,6 +278,78 @@ pub fn validate_speak_arguments(arguments: &Value) -> Result<Speak, String> {
     })
 }
 
+/// Validate MCP `join` arguments. Optional `name`; otherwise reuse default_name.
+pub fn validate_join_arguments(arguments: &Value, default_name: &str) -> Result<String, String> {
+    if arguments.is_null() {
+        return Ok(default_name.to_string());
+    }
+
+    let obj = match arguments.as_object() {
+        Some(o) => o,
+        None => return Err("schema error: join arguments must be an object".to_string()),
+    };
+
+    let mut unknowns: Vec<&str> = obj
+        .keys()
+        .filter(|k| !JOIN_ALLOWED_KEYS.contains(&k.as_str()))
+        .map(|k| k.as_str())
+        .collect();
+    unknowns.sort();
+    if !unknowns.is_empty() {
+        let listed = unknowns
+            .iter()
+            .map(|k| format!("'{}'", k))
+            .collect::<Vec<_>>()
+            .join(", ");
+        return Err(format!("schema error: unknown join field(s) {}", listed));
+    }
+
+    match obj.get("name") {
+        None => Ok(default_name.to_string()),
+        Some(v) if v.is_null() => Ok(default_name.to_string()),
+        Some(v) => {
+            let s = v
+                .as_str()
+                .ok_or_else(|| "schema error: join.name must be a string".to_string())?;
+            let trimmed = s.trim();
+            if trimmed.is_empty() {
+                return Err("schema error: join.name must be non-empty".to_string());
+            }
+            Ok(trimmed.to_string())
+        }
+    }
+}
+
+/// Validate MCP `leave` / `round_state` arguments: empty object or null only.
+pub fn validate_no_arg_tool(tool: &str, arguments: &Value) -> Result<(), String> {
+    if arguments.is_null() {
+        return Ok(());
+    }
+    let obj = match arguments.as_object() {
+        Some(o) => o,
+        None => {
+            return Err(format!(
+                "schema error: {} arguments must be an object",
+                tool
+            ))
+        }
+    };
+    if !obj.is_empty() {
+        let mut keys: Vec<&str> = obj.keys().map(|k| k.as_str()).collect();
+        keys.sort();
+        let listed = keys
+            .iter()
+            .map(|k| format!("'{}'", k))
+            .collect::<Vec<_>>()
+            .join(", ");
+        return Err(format!(
+            "schema error: {} takes no fields; unknown field(s) {}",
+            tool, listed
+        ));
+    }
+    Ok(())
+}
+
 pub fn build_observe_result(state: &ToolState) -> Value {
     match state.last_snapshot.as_ref() {
         Some(snapshot) => {
@@ -277,6 +385,74 @@ pub fn build_get_events_result(state: &mut ToolState, clear: bool) -> Value {
             "type": "text",
             "text": format!("Recent events: {}", serde_json::to_string_pretty(&events_copy).unwrap())
         }]
+    })
+}
+
+fn snap_field(snap: Option<&Value>, key: &str) -> Value {
+    snap.and_then(|s| s.get(key))
+        .cloned()
+        .unwrap_or(Value::Null)
+}
+
+/// Round summary from last snapshot + recent round_start / round_end (no observe scrape).
+pub fn build_round_state_result(state: &ToolState) -> Value {
+    let snap = state.last_snapshot.as_ref();
+    let mut round_number = Value::Null;
+    let mut last_round_start = Value::Null;
+    let mut last_round_end = Value::Null;
+
+    for ev in state.recent_events.iter().rev() {
+        match ev.get("event").and_then(|e| e.as_str()) {
+            Some("round_start") if last_round_start.is_null() => {
+                last_round_start = ev.clone();
+                if let Some(n) = ev.get("round_number") {
+                    round_number = n.clone();
+                }
+            }
+            Some("round_end") if last_round_end.is_null() => {
+                last_round_end = ev.clone();
+            }
+            _ => {}
+        }
+    }
+
+    // Prefer live snapshot mode/host/pressure; fall back to last round_start fields.
+    let mode_name = match snap_field(snap, "mode_name") {
+        Value::Null => last_round_start
+            .get("mode_name")
+            .cloned()
+            .unwrap_or(Value::Null),
+        other => other,
+    };
+    let host_line = match snap_field(snap, "host_line") {
+        Value::Null => last_round_start
+            .get("host_line")
+            .cloned()
+            .unwrap_or(Value::Null),
+        other => other,
+    };
+    let frag_limit = match snap_field(snap, "frag_limit") {
+        Value::Null => last_round_start
+            .get("frag_limit")
+            .cloned()
+            .unwrap_or(Value::Null),
+        other => other,
+    };
+
+    serde_json::json!({
+        "connected": state.connected,
+        "self_player_id": state.player_id.map(|id| id.to_string()),
+        "session_name": state.session_name,
+        "round_state": snap_field(snap, "round_state"),
+        "round_number": round_number,
+        "round_time_left": snap_field(snap, "round_time_left"),
+        "frag_limit": frag_limit,
+        "mode_name": mode_name,
+        "playlist": snap_field(snap, "playlist"),
+        "host_line": host_line,
+        "pressure": snap_field(snap, "pressure"),
+        "last_round_start": last_round_start,
+        "last_round_end": last_round_end
     })
 }
 
@@ -342,6 +518,38 @@ fn tools_list_result() -> Value {
                     "required": ["text"],
                     "additionalProperties": false
                 }
+            },
+            {
+                "name": "join",
+                "description": "Join the arena as an agent (Hello/Welcome). Optional name reuses --name / FRAGR_AGENT_NAME when omitted. Idempotent if already joined.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string", "description": "Display name for Hello (optional; defaults to adapter --name)"}
+                    },
+                    "required": [],
+                    "additionalProperties": false
+                }
+            },
+            {
+                "name": "leave",
+                "description": "Leave the arena with a clean WebSocket disconnect. Returns isError if not connected.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                    "additionalProperties": false
+                }
+            },
+            {
+                "name": "round_state",
+                "description": "Current round summary (state, number, time left, frag limit, mode_name, host_line, pressure) from last snapshot plus recent round_start/round_end. Prefer this over scraping observe.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                    "additionalProperties": false
+                }
             }
         ]
     })
@@ -387,36 +595,28 @@ pub fn handle_mcp_request(request: McpRequest, state: &mut ToolState) -> HandleO
     let id = request.id.clone().unwrap_or(Value::Null);
 
     match request.method.as_str() {
-        "initialize" => HandleOutcome {
-            response: McpResponse {
-                jsonrpc: "2.0".to_string(),
-                id,
-                result: Some(serde_json::json!({
-                    "protocolVersion": "2024-11-05",
-                    "capabilities": {
-                        "tools": {}
-                    },
-                    "serverInfo": {
-                        "name": "fragr-agent-adapter",
-                        "version": "0.1.0"
-                    }
-                })),
-                error: None,
-            },
-            pending_action: None,
-            pending_speak: None,
-        },
+        "initialize" => empty_outcome(McpResponse {
+            jsonrpc: "2.0".to_string(),
+            id,
+            result: Some(serde_json::json!({
+                "protocolVersion": "2024-11-05",
+                "capabilities": {
+                    "tools": {}
+                },
+                "serverInfo": {
+                    "name": "fragr-agent-adapter",
+                    "version": "0.1.0"
+                }
+            })),
+            error: None,
+        }),
 
-        "tools/list" => HandleOutcome {
-            response: McpResponse {
-                jsonrpc: "2.0".to_string(),
-                id,
-                result: Some(tools_list_result()),
-                error: None,
-            },
-            pending_action: None,
-            pending_speak: None,
-        },
+        "tools/list" => empty_outcome(McpResponse {
+            jsonrpc: "2.0".to_string(),
+            id,
+            result: Some(tools_list_result()),
+            error: None,
+        }),
 
         "tools/call" => {
             let tool_name = request
@@ -428,6 +628,8 @@ pub fn handle_mcp_request(request: McpRequest, state: &mut ToolState) -> HandleO
 
             let mut pending_action = None;
             let mut pending_speak = None;
+            let mut pending_join = None;
+            let mut pending_leave = false;
             let result = match tool_name {
                 "observe" => build_observe_result(state),
 
@@ -490,6 +692,71 @@ pub fn handle_mcp_request(request: McpRequest, state: &mut ToolState) -> HandleO
                     }
                 }
 
+                "join" => {
+                    let arguments = request
+                        .params
+                        .as_ref()
+                        .and_then(|p| p.get("arguments"))
+                        .cloned()
+                        .unwrap_or(Value::Null);
+
+                    match validate_join_arguments(&arguments, &state.default_name) {
+                        Ok(join_name) => {
+                            if state.connected {
+                                let who = state
+                                    .session_name
+                                    .clone()
+                                    .unwrap_or_else(|| join_name.clone());
+                                tool_ok_text(&format!("Already joined as '{}'", who))
+                            } else {
+                                pending_join = Some(join_name.clone());
+                                tool_ok_text(&format!("Joining as '{}'; Hello pending", join_name))
+                            }
+                        }
+                        Err(msg) => tool_error_result(&msg),
+                    }
+                }
+
+                "leave" => {
+                    let arguments = request
+                        .params
+                        .as_ref()
+                        .and_then(|p| p.get("arguments"))
+                        .cloned()
+                        .unwrap_or(Value::Null);
+
+                    match validate_no_arg_tool("leave", &arguments) {
+                        Ok(()) => {
+                            if !state.connected {
+                                tool_error_result("leave rejected: not connected")
+                            } else {
+                                state.connected = false;
+                                state.player_id = None;
+                                state.session_name = None;
+                                state.last_snapshot = None;
+                                state.last_speak_tick = None;
+                                pending_leave = true;
+                                tool_ok_text("Left arena; disconnecting")
+                            }
+                        }
+                        Err(msg) => tool_error_result(&msg),
+                    }
+                }
+
+                "round_state" => {
+                    let arguments = request
+                        .params
+                        .as_ref()
+                        .and_then(|p| p.get("arguments"))
+                        .cloned()
+                        .unwrap_or(Value::Null);
+
+                    match validate_no_arg_tool("round_state", &arguments) {
+                        Ok(()) => build_round_state_result(state),
+                        Err(msg) => tool_error_result(&msg),
+                    }
+                }
+
                 "get_events" => {
                     let arguments = request
                         .params
@@ -523,22 +790,20 @@ pub fn handle_mcp_request(request: McpRequest, state: &mut ToolState) -> HandleO
                 },
                 pending_action,
                 pending_speak,
+                pending_join,
+                pending_leave,
             }
         }
 
-        _ => HandleOutcome {
-            response: McpResponse {
-                jsonrpc: "2.0".to_string(),
-                id,
-                result: None,
-                error: Some(McpError {
-                    code: -32601,
-                    message: format!("Method not found: {}", request.method),
-                }),
-            },
-            pending_action: None,
-            pending_speak: None,
-        },
+        _ => empty_outcome(McpResponse {
+            jsonrpc: "2.0".to_string(),
+            id,
+            result: None,
+            error: Some(McpError {
+                code: -32601,
+                message: format!("Method not found: {}", request.method),
+            }),
+        }),
     }
 }
 
@@ -567,7 +832,10 @@ pub fn ingest_server_text(state: &mut ToolState, text: &str) {
                 push_recent_event(state, event_value);
             }
         }
-        Ok(protocol::ServerMessage::Welcome { .. }) => {}
+        Ok(protocol::ServerMessage::Welcome { player_id, .. }) => {
+            state.player_id = player_id;
+            state.connected = true;
+        }
         Ok(protocol::ServerMessage::Error { .. }) => {
             // Unicast speak rejection; MCP speak path already mirrors cooldown as isError.
         }
@@ -616,6 +884,7 @@ mod mcp_tests {
             recent_events: vec![serde_json::json!({"event":"frag"})],
             player_id: Some(Uuid::nil()),
             last_speak_tick: None,
+            ..Default::default()
         };
         let out = handle_mcp_request(
             req("tools/call", Some(serde_json::json!({"name":"observe"}))),
@@ -999,5 +1268,259 @@ mod mcp_tests {
         let tools = result["tools"].as_array().unwrap();
         let names: Vec<_> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
         assert!(names.contains(&"speak"), "names={:?}", names);
+    }
+
+    #[test]
+    fn tools_list_includes_join_leave_round_state() {
+        let mut state = ToolState::default();
+        let list = handle_mcp_request(req("tools/list", None), &mut state);
+        let result = list.response.result.unwrap();
+        let tools = result["tools"].as_array().unwrap();
+        let names: Vec<_> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
+        assert!(names.contains(&"join"), "names={:?}", names);
+        assert!(names.contains(&"leave"), "names={:?}", names);
+        assert!(names.contains(&"round_state"), "names={:?}", names);
+    }
+
+    #[test]
+    fn join_idempotent_when_connected() {
+        let mut state = ToolState {
+            connected: true,
+            player_id: Some(Uuid::nil()),
+            session_name: Some("ArenaFox".into()),
+            default_name: "ArenaFox".into(),
+            ..Default::default()
+        };
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({"name":"join","arguments":{}})),
+            ),
+            &mut state,
+        );
+        assert!(out.pending_join.is_none());
+        assert!(!out.pending_leave);
+        let result = out.response.result.unwrap();
+        assert!(result.get("isError").is_none() || result["isError"] == false);
+        assert!(result["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("Already joined"));
+    }
+
+    #[test]
+    fn join_pending_when_not_connected() {
+        let mut state = ToolState {
+            default_name: "MCP Agent".into(),
+            ..Default::default()
+        };
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({
+                    "name": "join",
+                    "arguments": {"name": "  ScrapFox  "}
+                })),
+            ),
+            &mut state,
+        );
+        assert_eq!(out.pending_join.as_deref(), Some("ScrapFox"));
+        let result = out.response.result.unwrap();
+        assert!(result.get("isError").is_none() || result["isError"] == false);
+        assert!(result["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("Joining as 'ScrapFox'"));
+    }
+
+    #[test]
+    fn join_reuses_default_name() {
+        let mut state = ToolState {
+            default_name: "FromFlag".into(),
+            ..Default::default()
+        };
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({"name":"join","arguments":{}})),
+            ),
+            &mut state,
+        );
+        assert_eq!(out.pending_join.as_deref(), Some("FromFlag"));
+    }
+
+    #[test]
+    fn join_schema_unknown_field_errors() {
+        let mut state = ToolState::default();
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({
+                    "name": "join",
+                    "arguments": {"name": "A", "laser": true}
+                })),
+            ),
+            &mut state,
+        );
+        assert!(out.pending_join.is_none());
+        let result = out.response.result.unwrap();
+        assert_eq!(result["isError"], true);
+        assert!(result["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("schema error"));
+    }
+
+    #[test]
+    fn leave_when_connected_sets_pending_leave() {
+        let mut state = ToolState {
+            connected: true,
+            player_id: Some(Uuid::nil()),
+            session_name: Some("ArenaFox".into()),
+            last_snapshot: Some(serde_json::json!({"tick": 1})),
+            ..Default::default()
+        };
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({"name":"leave","arguments":{}})),
+            ),
+            &mut state,
+        );
+        assert!(out.pending_leave);
+        assert!(!state.connected);
+        assert!(state.player_id.is_none());
+        assert!(state.last_snapshot.is_none());
+        let result = out.response.result.unwrap();
+        assert!(result.get("isError").is_none() || result["isError"] == false);
+    }
+
+    #[test]
+    fn leave_when_not_connected_is_error() {
+        let mut state = ToolState::default();
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({"name":"leave","arguments":{}})),
+            ),
+            &mut state,
+        );
+        assert!(!out.pending_leave);
+        let result = out.response.result.unwrap();
+        assert_eq!(result["isError"], true);
+        assert!(result["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("not connected"));
+    }
+
+    #[test]
+    fn leave_schema_unknown_field_errors() {
+        let mut state = ToolState {
+            connected: true,
+            player_id: Some(Uuid::nil()),
+            ..Default::default()
+        };
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({
+                    "name": "leave",
+                    "arguments": {"force": true}
+                })),
+            ),
+            &mut state,
+        );
+        assert!(!out.pending_leave);
+        assert!(state.connected);
+        let result = out.response.result.unwrap();
+        assert_eq!(result["isError"], true);
+        assert!(result["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("schema error"));
+    }
+
+    #[test]
+    fn round_state_from_snapshot_and_events() {
+        let mut state = ToolState {
+            connected: true,
+            player_id: Some(Uuid::nil()),
+            last_snapshot: Some(serde_json::json!({
+                "tick": 42,
+                "round_state": "Active",
+                "round_time_left": 90,
+                "frag_limit": 10,
+                "mode_name": "Contested Frequency",
+                "playlist": "Arena Duel",
+                "host_line": "HOST: LIVE.",
+                "pressure": "compliance"
+            })),
+            recent_events: vec![
+                serde_json::json!({
+                    "event": "round_start",
+                    "round_number": 3,
+                    "frag_limit": 10,
+                    "mode_name": "Contested Frequency",
+                    "host_line": "HOST: START."
+                }),
+                serde_json::json!({
+                    "event": "frag",
+                    "killer": "A",
+                    "victim": "B"
+                }),
+            ],
+            ..Default::default()
+        };
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({"name":"round_state","arguments":{}})),
+            ),
+            &mut state,
+        );
+        let result = out.response.result.unwrap();
+        assert_eq!(result["round_state"], "Active");
+        assert_eq!(result["round_number"], 3);
+        assert_eq!(result["round_time_left"], 90);
+        assert_eq!(result["frag_limit"], 10);
+        assert_eq!(result["mode_name"], "Contested Frequency");
+        assert_eq!(result["host_line"], "HOST: LIVE.");
+        assert_eq!(result["pressure"], "compliance");
+        assert_eq!(result["connected"], true);
+        assert_eq!(result["last_round_start"]["round_number"], 3);
+    }
+
+    #[test]
+    fn round_state_schema_unknown_field_errors() {
+        let mut state = ToolState::default();
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({
+                    "name": "round_state",
+                    "arguments": {"extra": 1}
+                })),
+            ),
+            &mut state,
+        );
+        let result = out.response.result.unwrap();
+        assert_eq!(result["isError"], true);
+        assert!(result["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("schema error"));
+    }
+
+    #[test]
+    fn ingest_welcome_sets_connected() {
+        let mut state = ToolState::default();
+        assert!(!state.connected);
+        ingest_server_text(
+            &mut state,
+            r#"{"type":"welcome","player_id":"00000000-0000-0000-0000-000000000000","role":"agent","mode_name":"Contested Frequency","playlist":"Arena Duel"}"#,
+        );
+        assert!(state.connected);
+        assert!(state.player_id.is_some());
     }
 }
