@@ -15,15 +15,15 @@ Logo (`docs/fragr-logo.png`, gold bone-white + dark purple outline) is canonical
 
 ## Screenshots
 
-Arena layout, spectator HUD, fighters, and weapon feedback. These embeds are **mood plates**, not live tip captures yet. See `docs/screenshots/README.md`. Tip capture automation: `tools/capture_tip_screenshots.sh`.
+Live tip captures of Contested Frequency spectator HUD (Xvfb + Godot 4.7.2-stable + opengl3). See `docs/screenshots/README.md`. Reproducible path: `tools/capture_tip_screenshots.sh` with a loopback `fragr-server --bots 4`.
 
-![Arena Overview](docs/screenshots/01_arena_overview_16x9.png)
+![Arena Overview (tip)](docs/screenshots/01_arena_overview_16x9.png)
 
-![Spectator HUD](docs/screenshots/02_spectator_hud_16x9.png)
+![Spectator HUD (tip)](docs/screenshots/02_spectator_hud_16x9.png)
 
-![Fighters: Cyanex and Kragge](docs/screenshots/03_fighters_cyanex_kragge_1x1.png)
+![Compliance pressure (tip)](docs/screenshots/07_tip_compliance_pressure_16x9.png)
 
-![Weapon Muzzle Feedback](docs/screenshots/04_muzzle_juice_16x9.png)
+Mood / concept plates (not tip proof) live under `docs/screenshots/mood/`.
 
 ## Quick Start (60 seconds to fun)
 
