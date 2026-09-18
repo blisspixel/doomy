@@ -1,10 +1,10 @@
-# AGENTS.md - Doomy
+# AGENTS.md - fragr
 
 Guidance for coding agents working in this repository. Humans: start with `README.md` and `docs/`.
 
 ## What this is
 
-**Doomy** (working name) is a modern Doom-like built as a monorepo:
+**fragr** (working name) is an agentic-first FPS arena. Do not brand as Doom. Monorepo:
 
 - `client/` - Godot **4.7.2-stable**, GDScript only. Thin presenter (render, audio, spectator UI, input). Not sim authority.
 - `server/` - Rust authoritative game server (tokio). Owns tick, combat, spawns, scoring, server-side rule bots.
@@ -108,7 +108,7 @@ Do not start implementation until durable plan docs exist for the change.
 
 ## Out of scope unless Nick asks
 
-Public hosting, paid assets, browser client, prediction/rollback polish, multiple maps, CI ownership (coordinate with Gitty when CI is wanted), renaming off “Doomy,” Bevy rewrite.
+Paid cloud apply without approval, paid assets, browser client, Bevy rewrite. CI ownership stays with Gitty when asked. Product rename may change "fragr" later; do not brand as Doom.
 
 ## Nested guidance
 
