@@ -62,10 +62,13 @@ Commands must match the repo as it exists. If a directory is missing, scaffold i
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
+cargo llvm-cov --workspace --locked --summary-only --fail-under-lines 80 --ignore-filename-regex '(agent-adapter|server/src/(main|net)\.rs)'
 cargo build --workspace
 ```
 
-Do not “fix” Clippy by broad `#[allow]`, silencing warnings workspace-wide, or deleting checks. Narrow, justified allows only.
+Hard minimum 80% line coverage. CI enforces this on every PR. Glue-only binaries (main.rs, net.rs WebSocket handlers) narrowly excluded. Add real behavioral unit tests for protocol serialization and sim logic.
+
+Do not "fix" Clippy by broad `#[allow]`, silencing warnings workspace-wide, or deleting checks. Narrow, justified allows only.
 
 **Godot (`client/` when present):**
 
