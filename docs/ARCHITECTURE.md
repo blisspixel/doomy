@@ -5,7 +5,7 @@
 **Spend:** $0 assumed for this draft and for Slice 1. Hard cap $50 total if/when Chief/Nick approve spend. 
 **Status:** Draft for Buildy scaffolding - no repo created, no cloud, no spend.
 
-> **Buildy cut (2026-09-17):** Rust remains Slice 1 authority (not Godot HLMP listen-server). Adopt fun DoD from research: spectator-default, same-match join/leave, target >=4 rule bots, killfeed + follow/free cam, MCP off the combat tick (control plane only), $0 then Tailscale later. WS JSON for this slice; UDP/renet is the next net spike. Full research: held by Buildy; QUALITY HOLD/THROW applied.
+> **Buildy cut (2026-09-17):** Rust remains Slice 1 authority (not Godot HLMP listen-server). Adopt fun DoD from research: spectator-default, same-match join/leave, target >=4 rule bots, killfeed + follow/free cam, MCP off the combat tick (control plane only), local $0 then public self-host under $50 with spend ACK (Tailscale private/dev smoke only). WS JSON for this slice; UDP/renet is the next net spike. Full research: held by Buildy; QUALITY HOLD/THROW applied.
 
 
 ---
@@ -14,7 +14,7 @@
 
 ### Goals
 - **Playable feel** in Godot 4.x: Rock & Roll Racing carnival scrap × late-night conspiracy seasoning × first-online LAN rush (feeling only, not IP). Small arena, FPS camera, shoot/move, deathmatch-lite. Agents and humans same scrap. Do not brand as Doom.
-- **Solo AND multiplayer, both first-class**: authoritative **Rust** game server; clients are thin presenters. Instant fun solo (you + bots on one machine), and self-host for peers (LAN or Tailscale). Not a LAN-only demo.
+- **Solo AND multiplayer, both first-class**: authoritative **Rust** game server; clients are thin presenters. Instant fun solo (you + bots on one machine), and self-host for peers (public TCP+UDP 6767 or LAN). Tailscale is private/dev smoke only. Not a LAN-only demo.
 - **Agent-first play**: clawbots / MCP-compatible agents drive players via an **agent-play adapter**; humans default to **spectating** (Fortnite let’s-play vibe).
 - **Optional human join**: same client can become a player (keyboard/mouse) without a second codebase. Join and leave mid-match.
 - **Community-server DNA** (Minecraft-ish): one persistent-ish session people can watch/join; home-hostable.
@@ -226,7 +226,7 @@ Sized for one focused builder (Buildy). Calendar is illustrative.
 
 ## 7. Open risks - Researcher should still answer
 
-1. **DIY scale hosting:** What’s the cheapest path from home-host (Tailscale/WireGuard + dynamic DNS) → single cheap VPS when $ spend is approved? Bandwidth/tick cost model for N spectators + M agents.
+1. **DIY scale hosting:** What is the cheapest path from home-host (public port-forward / dynamic DNS) to a single cheap VPS when $ spend is approved? Tailscale remains private/dev smoke only. Bandwidth/tick cost model for N spectators + M agents.
 2. **Best agent-play path 2026 (confirm):** MCP stdio vs MCP HTTP/SSE vs native “agent game bus”; clawbot / OpenClaw integration quirks; whether structured-obs FPS agents are good enough vs needing screenshots (cost!).
 3. **Godot ↔ low-latency FPS:** When to leave WebSocket for UDP/`renet` or a GDExtension; any existing Godot-renet bridges worth adopting.
 4. **Tick rate vs LLM latency:** Agents that think 500ms-2s need **action buffering / sticky intents**; Researcher should recommend observe cadence vs sim Hz.

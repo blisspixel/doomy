@@ -10,7 +10,7 @@ Guidance for coding agents working in this repository. Humans: start with `READM
 - `server/` - Rust authoritative game server (tokio). Owns tick, combat, spawns, scoring, server-side rule bots.
 - `agent-adapter/` - slow control plane for clawbots / MCP-style tooling (`observe` / `act` / join / goals). Not the combat tick.
 - `docs/` - architecture, protocol, slice checklists, plans, vision.
-- `infra/` - native GCP IaC for cheap scale (plan-only until spend approval). Self-host / run-your-own-server is first-class; LAN/Tailscale optional.
+- `infra/` - native GCP IaC for cheap scale (plan-only until spend approval). Self-host / run-your-own-server (public TCP+UDP 6767) is first-class; LAN optional; Tailscale private/dev smoke only.
 
 **Product spine:** meet your vibe. Chill, play, laugh (live laugh frag). Default human mode is **spectator**; join or leave anytime. Fun and funny on the outside; serious engineering underneath. Community-server drama, not a pitch deck.
 
@@ -31,7 +31,7 @@ Distinguish: vision / planned / implemented / tested / shipped / proven. Do not 
 
 ## Hard constraints (project law)
 
-- **Spend:** hard cap **$50** total for cloud/API/hosting/assets. Slice 1 and normal iteration are **$0** (loopback / LAN). Any money needs Nick or Chief approval **before** purchase. Prefer home-host, then Tailscale Personal ($0), then Oracle Always Free if needed. Paid VPS is an approval gate.
+- **Spend:** hard cap **$50** total for cloud/API/hosting/assets. Local Solo Scrap and LAN iteration are **$0**. Public self-host (home port-forward, cheap VPS, or GCP) sits under the $50 cap and needs Nick or Chief approval **before** purchase. Prefer local $0, then Minecraft-shaped public self-host under $50 with spend ACK (GCP IaC plan-only until then). Tailscale Personal is optional private/dev smoke only, not the preferred multiplayer path. Paid VPS is an approval gate.
 - **Authority:** Rust server is source of truth for positions, damage, HP, frags. Godot never decides combat outcomes.
 - **MCP / LLM off the hot path:** agents and humans share the same discrete action channel into the server. Scripted/utility AI runs at tick rate on the server (or via adapter-injected intents). MCP/JSON-RPC is for slow ops (join, summaries, goals), never aim/fire at 20-60 Hz. No paid model APIs without approval.
 - **Transport (Slice 1):** WebSocket JSON (default bind `0.0.0.0:6767`; clients use loopback or `FRAGR_SERVER`). UDP/`renet` is a later spike, not a silent mid-slice rewrite unless Nick asks.

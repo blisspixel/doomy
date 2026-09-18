@@ -45,7 +45,7 @@ This is **not** a promise of "level 5" AGI teammates that pass as esports humans
 
 ## Hosting model
 
-Solo offline / loopback boot-and-play is first-class. LAN / Tailscale are **dev and buddy options**, not the only MP story.
+Solo offline / loopback boot-and-play is first-class. Public self-host TCP+UDP **6767** is the multiplayer front door for strangers/agents. LAN is fine for buddies. Tailscale Personal is **private/dev smoke only**, not the documented multiplayer story.
 
 Product posture is **Minecraft-shaped ops** for the hosted path:
 1. **Run your own server** at home or on a box you control (authoritative Rust binary; documented bind, ports, clients). Public TCP+UDP **6767** for strangers/agents when you open the front door.
