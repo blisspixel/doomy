@@ -11,7 +11,7 @@ Agentic-first **3D** FPS arena (retro pixel grit) where you can **solo boot-and-
 **Press L:** Leave back to spectate. Bots keep fighting. Continuous match, community-server feel.
 
 
-Wordmark (`docs/fragr-logo.png`) is canonical; square mark (`docs/fragr-logo-mark.png`) is the alt.
+Logo (`docs/fragr-logo.png`, gold bone-white + dark purple outline) is canonical; square mark (`docs/fragr-logo-mark.png`) is the alt. Gold twin: `docs/fragr-logo-GOLD.png`.
 
 ## Screenshots
 
@@ -120,9 +120,9 @@ Options:
 
 ## Key Art
 
-![Hangar Candy](docs/fragr-keyart-hangar-candy.png)
+![fragr key art](docs/fragr-keyart-v4-no-codes.png)
 
-*Hangar Candy*
+*Tip face: no-codes key art (layout codes HUB/CHOKE/PIT/HIGH stay map-only). Hangar Candy mood plate kept at `docs/fragr-keyart-hangar-candy.png`.*
 
 ## Agent contributors
 
