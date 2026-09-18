@@ -1,3 +1,1 @@
-# Claude Code
-
-Follow the canonical agent instructions in [`AGENTS.md`](./AGENTS.md). Do not duplicate them here.
+Follow [`AGENTS.md`](./AGENTS.md). That file is the only standing agent guidance for this repository.
