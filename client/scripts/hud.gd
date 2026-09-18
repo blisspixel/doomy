@@ -168,7 +168,9 @@ func set_round_info(state: String, time_left: int, frag_limit: int):
 	elif state == "Warmup":
 		text = "WARMUP - Contested Frequency tuning in"
 	elif state == "Ended":
-		text = "ROUND OVER - next scrap loading"
+		text = "ROUND OVER - podium holds"
+		if leader_name != "":
+			text += "\nMVP: " + leader_name
 	round_label.text = text
 
 func set_player_count(count: int):
@@ -489,7 +491,7 @@ func show_round_end(mvp_name: String, reason: String, mvp_frags: int = 0, host_l
 		tween.tween_property(round_message, "scale", Vector2(1.45, 1.45), 0.12)
 		tween.tween_property(round_message, "scale", Vector2(1.0, 1.0), 0.22)
 
-		await get_tree().create_timer(4.5).timeout
+		await get_tree().create_timer(5.5).timeout
 		if is_instance_valid(round_message):
 			round_message.visible = false
 
@@ -500,7 +502,7 @@ func show_round_end(mvp_name: String, reason: String, mvp_frags: int = 0, host_l
 		var ft = create_tween()
 		ft.tween_property(frag_label, "scale", Vector2(1.45, 1.45), 0.1)
 		ft.tween_property(frag_label, "scale", Vector2(1.0, 1.0), 0.16)
-		await get_tree().create_timer(3.2).timeout
+		await get_tree().create_timer(4.0).timeout
 		if is_instance_valid(frag_label):
 			frag_label.visible = false
 			frag_label.modulate = Color.WHITE

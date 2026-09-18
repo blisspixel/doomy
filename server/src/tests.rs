@@ -262,6 +262,8 @@ fn test_protocol_snapshot_serialization() {
         playlist: default_playlist(),
         pressure: None,
         host_line: default_host_line(),
+        mvp: None,
+        mvp_frags: None,
         pickups: vec![],
         map_id: default_map_id(),
         map_name: default_map_name(),
@@ -284,6 +286,8 @@ fn test_protocol_snapshot_empty_players() {
         playlist: default_playlist(),
         pressure: None,
         host_line: default_host_line(),
+        mvp: None,
+        mvp_frags: None,
         pickups: vec![],
         map_id: default_map_id(),
         map_name: default_map_name(),
@@ -2162,6 +2166,8 @@ async fn test_net_ws_action_forwarded_for_agent() {
             playlist: default_playlist(),
             pressure: None,
             host_line: default_host_line(),
+            mvp: None,
+            mvp_frags: None,
             pickups: vec![],
             map_id: default_map_id(),
             map_name: default_map_name(),
@@ -3688,16 +3694,70 @@ fn test_round_end_emits_mvp_host_line_and_sticky_snapshot() {
     let snap = state.snapshot();
     assert!(snap.host_line.contains("ROUND MVP"));
     assert!(snap.host_line.contains("Rusher"));
+    assert_eq!(snap.mvp.as_deref(), Some("Rusher"));
+    assert_eq!(snap.mvp_frags, Some(2));
     assert_eq!(
         state.ended_host_line.as_deref(),
         Some(snap.host_line.as_str())
     );
+    assert_eq!(state.ended_mvp.as_deref(), Some("Rusher"));
+    assert_eq!(state.ended_mvp_frags, Some(2));
 
-    // Next round clears sticky MVP Host line.
+    // Next round clears sticky MVP Host line and structured mvp fields.
     state.start_round();
     assert!(state.ended_host_line.is_none());
+    assert!(state.ended_mvp.is_none());
+    assert!(state.ended_mvp_frags.is_none());
     let warm = state.snapshot();
     assert_eq!(warm.host_line, default_host_line());
+    assert!(warm.mvp.is_none());
+    assert!(warm.mvp_frags.is_none());
+}
+
+#[test]
+fn test_default_ended_linger_is_eight_seconds() {
+    let cfg = MatchConfig::default();
+    assert_eq!(
+        cfg.end_delay_ticks,
+        20 * 8,
+        "Ended linger should be 8s at 20 Hz so podium/Host bumper can be read"
+    );
+}
+
+#[test]
+fn test_snapshot_omits_mvp_while_active() {
+    let mut state = GameState::new();
+    state.config.compliance_ping_ticks = None;
+    state.config.boss_spawn_ticks = None;
+    state.start_round();
+    let snap = state.snapshot();
+    assert_eq!(snap.round_state.as_deref(), Some("Active"));
+    assert!(snap.mvp.is_none());
+    assert!(snap.mvp_frags.is_none());
+    let json = serde_json::to_value(&snap).unwrap();
+    assert!(json.get("mvp").is_none());
+    assert!(json.get("mvp_frags").is_none());
+}
+
+#[test]
+fn test_snapshot_mvp_wire_round_trip_while_ended() {
+    let mut state = GameState::new();
+    state.config.compliance_ping_ticks = None;
+    state.config.boss_spawn_ticks = None;
+    let id = uuid::Uuid::new_v4();
+    state.add_player(id, "Ghost".to_string(), Role::Agent);
+    state.start_round();
+    *state.scores.get_mut(&id).unwrap() = 3;
+    state.end_round("Frag limit reached".to_string());
+    let snap = state.snapshot();
+    let json = serde_json::to_value(&snap).unwrap();
+    assert_eq!(json["round_state"], "Ended");
+    assert_eq!(json["mvp"], "Ghost");
+    assert_eq!(json["mvp_frags"], 3);
+    assert!(json["host_line"].as_str().unwrap().contains("Ghost"));
+    let back: Snapshot = serde_json::from_value(json).unwrap();
+    assert_eq!(back.mvp.as_deref(), Some("Ghost"));
+    assert_eq!(back.mvp_frags, Some(3));
 }
 
 #[test]
@@ -3716,7 +3776,10 @@ fn test_round_end_empty_mvp_host_line() {
         .expect("RoundEnd");
     assert!(host.0.is_none());
     assert!(host.1.contains("NO MVP"));
-    assert!(state.snapshot().host_line.contains("NO MVP"));
+    let snap = state.snapshot();
+    assert!(snap.host_line.contains("NO MVP"));
+    assert!(snap.mvp.is_none());
+    assert!(snap.mvp_frags.is_none());
 }
 
 #[test]

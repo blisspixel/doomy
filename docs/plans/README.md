@@ -8,16 +8,18 @@ Do not treat chat as the plan of record.
 
 ## Tip priorities (after v0.5.0)
 
-Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Sticky host_line on Snapshot shipped (#63, Casino-cleared on MCP). Godot Host flash mid-join shipped (#64). MCP session tools shipped (#65). Pixel-3D look bar sealed on tip (`5d16f32`, #66). Far-cam fighter scale shipped (#67). Solo boot-and-scrap shipped (#68). Continuance SP boss shipped (#69). Weapon pickups shipped (#70). Health pads shipped (#71). Arena choke geometry shipped (#72). Reconnect + Godot null shipped (#73). Human join FP juice shipped (#74). Killstreak Host juice shipped (#75). Weapon roles excellence shipped (#76). Tip stills recapture shipped (#77). Coverage climb main shipped (#78). Round-end MVP drama shipped (#79). Ship order from tip:
+Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Sticky host_line on Snapshot shipped (#63, Casino-cleared on MCP). Godot Host flash mid-join shipped (#64). MCP session tools shipped (#65). Pixel-3D look bar sealed on tip (`5d16f32`, #66). Far-cam fighter scale shipped (#67). Solo boot-and-scrap shipped (#68). Continuance SP boss shipped (#69). Weapon pickups shipped (#70). Health pads shipped (#71). Arena choke geometry shipped (#72). Reconnect + Godot null shipped (#73). Human join FP juice shipped (#74). Killstreak Host juice shipped (#75). Weapon roles excellence shipped (#76). Tip stills recapture shipped (#77). Coverage climb main shipped (#78). Round-end MVP drama shipped (#79). Second scrap map / Compliance Yard shipped (#80). Ship order from tip:
 
-1. **Second scrap map** (NOW) - Contested Frequency map 2 (Compliance Yard compact choke) selectable or rotating. See [`second-scrap-map.md`](./second-scrap-map.md).
-2. (Shipped) **Round-end MVP drama** - Round-end MVP / podium Host bumper. See [`round-end-mvp-drama.md`](./round-end-mvp-drama.md).
-3. (Shipped) **Coverage climb main** - Climb unfiltered llvm-cov by testing server/adapter `main.rs` shells (CLI, startup, WS handshake). See [`coverage-climb-main.md`](./coverage-climb-main.md).
-4. (Shipped) **Tip stills recapture** - Refresh live Godot tip embeds so choke + FP + killstreak + weapon-roles face match tip. See [`tip-stills-recapture.md`](./tip-stills-recapture.md).
-5. (Shipped) **Weapon roles excellence** - Flechette / Rail / Scatter read in the hand. See [`weapon-roles-excellence.md`](./weapon-roles-excellence.md).
+1. **Ended linger + MVP rehydrate** (NOW) - Longer Ended phase + mid-join structured mvp on Snapshot / round_state. See [`ended-linger-mvp-rehydrate.md`](./ended-linger-mvp-rehydrate.md).
+2. (Shipped) **Second scrap map** - Contested Frequency map 2 (Compliance Yard). See [`second-scrap-map.md`](./second-scrap-map.md).
+3. (Shipped) **Round-end MVP drama** - Round-end MVP / podium Host bumper. See [`round-end-mvp-drama.md`](./round-end-mvp-drama.md).
+4. (Shipped) **Coverage climb main** - Climb unfiltered llvm-cov by testing server/adapter `main.rs` shells (CLI, startup, WS handshake). See [`coverage-climb-main.md`](./coverage-climb-main.md).
+5. (Shipped) **Tip stills recapture** - Refresh live Godot tip embeds so choke + FP + killstreak + weapon-roles face match tip. See [`tip-stills-recapture.md`](./tip-stills-recapture.md).
+6. (Shipped) **Weapon roles excellence** - Flechette / Rail / Scatter read in the hand. See [`weapon-roles-excellence.md`](./weapon-roles-excellence.md).
 
 Shipped recently:
 
+- **Second scrap map** (#80) - Compliance Yard Contested Frequency map 2. See [`second-scrap-map.md`](./second-scrap-map.md).
 - **Round-end MVP drama** (#79) - Round-end MVP / podium Host bumper. See [`round-end-mvp-drama.md`](./round-end-mvp-drama.md).
 - **Coverage climb main** (#78) - Unfiltered coverage climb via server/adapter main shells. See [`coverage-climb-main.md`](./coverage-climb-main.md).
 - **Tip stills recapture** (#77) - Live tip stills after weapon roles. See [`tip-stills-recapture.md`](./tip-stills-recapture.md).
@@ -47,7 +49,8 @@ Port is **6767**. Public TCP+UDP 6767 for strangers/agents. Tailscale is private
 
 | Plan | Status | One-liner |
 |---|---|---|
-| [`second-scrap-map.md`](./second-scrap-map.md) | **in flight** | Second Contested Frequency scrap map (Compliance Yard). |
+| [`ended-linger-mvp-rehydrate.md`](./ended-linger-mvp-rehydrate.md) | **in flight** | Ended linger + mid-join structured mvp rehydrate. |
+| [`second-scrap-map.md`](./second-scrap-map.md) | **shipped** (#80) | Second Contested Frequency scrap map (Compliance Yard). |
 | [`round-end-mvp-drama.md`](./round-end-mvp-drama.md) | **shipped** (#79) | Round-end MVP / podium Host drama for scrap-league sell. |
 | [`coverage-climb-main.md`](./coverage-climb-main.md) | **shipped** (#78) | Climb unfiltered coverage by testing server/adapter main.rs shells. |
 | [`tip-stills-recapture.md`](./tip-stills-recapture.md) | **shipped** (#77) | Recapture tip stills after weapon roles; keep `10_tip_human_join_fp` in table. |
