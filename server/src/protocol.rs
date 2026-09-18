@@ -44,6 +44,11 @@ pub fn boss_down_host_line() -> String {
     "HOST: DRONE DOWN. CONTINUANCE DENIES THE INCIDENT. SCRAP ON.".to_string()
 }
 
+/// Host line when a live drone is wiped at round end (no frag credit).
+pub fn boss_round_wipe_host_line() -> String {
+    "HOST: FREQUENCY CLOSES. DRONE RECALLED. CONTINUANCE DENIES THE BEAT.".to_string()
+}
+
 /// Host line for a within-round killstreak tier (Contested Frequency voice).
 pub fn killstreak_host_line(streak: u32, player: &str) -> Option<(String, String)> {
     match streak {
@@ -747,6 +752,22 @@ mod protocol_tests {
         match back {
             GameEvent::BossDown { killer, .. } => assert_eq!(killer.as_deref(), Some("Rusher")),
             other => panic!("expected BossDown, got {:?}", other),
+        }
+
+        let wipe = GameEvent::BossDown {
+            name: BOSS_NAME.into(),
+            boss_id: id,
+            killer: None,
+            message: boss_round_wipe_host_line(),
+        };
+        let v = serde_json::to_value(&wipe).unwrap();
+        assert_eq!(v["event"], "boss_down");
+        assert!(v.get("killer").is_none(), "wipe must omit killer: {}", v);
+        assert_eq!(v["message"], boss_round_wipe_host_line());
+        let back: GameEvent = serde_json::from_value(v).unwrap();
+        match back {
+            GameEvent::BossDown { killer: None, .. } => {}
+            other => panic!("expected BossDown wipe, got {:?}", other),
         }
     }
 

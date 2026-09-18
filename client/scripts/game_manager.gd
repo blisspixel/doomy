@@ -154,11 +154,17 @@ func _apply_map_from_snapshot(snapshot: Dictionary) -> void:
 		return
 	current_map_id = map_id
 	var packed = compliance_yard_scene if map_id == 2 else arena_duel_scene
+	if packed == null:
+		push_warning("game_manager: map packed scene null for map_id " + str(map_id))
+		return
 	var old_layout = arena.get_node_or_null("Layout")
 	if old_layout:
 		arena.remove_child(old_layout)
 		old_layout.queue_free()
 	var layout = packed.instantiate()
+	if layout == null:
+		push_warning("game_manager: map layout instantiate returned null for map_id " + str(map_id))
+		return
 	layout.name = "Layout"
 	arena.add_child(layout)
 	arena.move_child(layout, 0)
@@ -332,7 +338,9 @@ func _on_event_received(data):
 		hud.show_boss_spawn(str(data.get("message", "")), str(data.get("name", "COMPLIANCE-DRONE")))
 	elif event_type == "boss_down":
 		hud.set_pressure("")
-		hud.show_boss_down(str(data.get("message", "")), str(data.get("killer", "")))
+		var killer_raw = data.get("killer", null)
+		var killer_name = "" if killer_raw == null else str(killer_raw)
+		hud.show_boss_down(str(data.get("message", "")), killer_name)
 	elif event_type == "hit":
 		# Victim blood flash only. Shooter hit markers come from Snapshot shot_results.
 		var target_id = str(data.get("target_id", ""))

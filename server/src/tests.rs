@@ -1,9 +1,9 @@
 #[cfg(test)]
 use crate::protocol::{
-    boss_down_host_line, boss_host_line, compliance_host_line, default_host_line, default_map_id,
-    default_map_name, default_mode_name, default_playlist, mvp_host_line, round_open_host_line,
-    warmup_host_line, Action, ClientMessage, GameEvent, PlayerScore, PlayerState, Role,
-    ServerMessage, Snapshot, WeaponType, BOSS_NAME,
+    boss_down_host_line, boss_host_line, boss_round_wipe_host_line, compliance_host_line,
+    default_host_line, default_map_id, default_map_name, default_mode_name, default_playlist,
+    mvp_host_line, round_open_host_line, warmup_host_line, Action, ClientMessage, GameEvent,
+    PlayerScore, PlayerState, Role, ServerMessage, Snapshot, WeaponType, BOSS_NAME,
 };
 #[cfg(test)]
 use crate::sim::{
@@ -2794,6 +2794,74 @@ fn test_compliance_drone_spawns_once_with_pressure_and_host() {
     let before = state.players.len();
     assert!(state.spawn_compliance_drone().is_none());
     assert_eq!(state.players.len(), before);
+}
+
+#[test]
+fn test_boss_wiped_on_round_end_emits_boss_down_no_killer() {
+    let mut state = GameState::new();
+    let a = Uuid::new_v4();
+    state.add_player(a, "Rusher".into(), Role::Agent);
+    state.config = MatchConfig {
+        frag_limit: Some(99),
+        time_limit_ticks: Some(5),
+        warmup_ticks: 1,
+        end_delay_ticks: 20,
+        compliance_ping_ticks: None,
+        compliance_duration_ticks: 10,
+        boss_spawn_ticks: Some(1),
+    };
+    state.tick(0.05); // Warmup -> Active
+    let _ = state.take_events();
+    state.tick(0.05); // spawn boss
+    let _ = state.take_events();
+    assert!(
+        state.boss_id.is_some(),
+        "boss should be alive before round end"
+    );
+    let boss_id = state.boss_id.unwrap();
+
+    // Drain Active time limit into Ended.
+    for _ in 0..10 {
+        state.tick(0.05);
+        if state.round_state == RoundState::Ended {
+            break;
+        }
+    }
+    assert_eq!(state.round_state, RoundState::Ended);
+    let events = state.take_events();
+    let wipe = events.iter().find(|e| {
+        matches!(
+            e,
+            GameEvent::BossDown {
+                killer: None,
+                message,
+                ..
+            } if message == &boss_round_wipe_host_line()
+        )
+    });
+    assert!(
+        wipe.is_some(),
+        "expected BossDown wipe (killer null) on round end, got {:?}",
+        events
+    );
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, GameEvent::RoundEnd { .. })),
+        "expected RoundEnd after wipe, got {:?}",
+        events
+    );
+    assert!(state.boss_id.is_none());
+    let snap = state.snapshot();
+    assert!(
+        snap.pressure.is_none(),
+        "Ended must not keep compliance_drone pressure"
+    );
+    assert!(
+        !snap.players.iter().any(|p| p.name == BOSS_NAME),
+        "drone must be absent from Ended snapshot"
+    );
+    let _ = boss_id;
 }
 
 #[test]

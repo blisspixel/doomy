@@ -18,6 +18,7 @@ Status words: **planned**, **in flight**, **shipped** (merged to `main`, PR numb
 | Plan | Status | One-liner |
 |---|---|---|
 | [`radio-stations.md`](./radio-stations.md) | **in flight** | Contested Frequency radio: eight stations, generated library, client player with ducking. |
+| [`bug-hunt-polish-pass.md`](./bug-hunt-polish-pass.md) | **shipped** (#90) | Tip feel polish: boss down round-end wipe, layout null guard, spectator cam validity, net send hardening. |
 | [`l5-vs-nods-why-fight.md`](./l5-vs-nods-why-fight.md) | **shipped** (#87) | Solo Broadcast and L5 versus NODS: the why-fight spine folded into LORE and VISION. |
 | [`arty-gold-face-pack.md`](./arty-gold-face-pack.md) | **shipped** (#86) | Gold face pack: Cyanex and Kragge gold idle billboards plus broadcast HUD chrome. |
 | [`rule-bot-taunts.md`](./rule-bot-taunts.md) | **shipped** (#85) | Named rule bots speak Contested Frequency scrap-radio taunts. |

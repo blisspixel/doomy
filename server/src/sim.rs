@@ -1,9 +1,10 @@
 use crate::protocol::{
-    boss_down_host_line, boss_host_line, compliance_host_line, default_host_line,
-    default_mode_name, default_playlist, empty_mvp_host_line, killstreak_host_line, mvp_host_line,
-    roster_host_line, round_open_host_line, rule_bot_taunt_line, warmup_host_line, Action,
-    BotTauntKind, GameEvent, PickupState, PlayerScore, PlayerState, Role, ShotResult, Snapshot,
-    WeaponType, BOSS_NAME, MODE_NAME, PLAYLIST_NAME,
+    boss_down_host_line, boss_host_line, boss_round_wipe_host_line, compliance_host_line,
+    default_host_line, default_mode_name, default_playlist, empty_mvp_host_line,
+    killstreak_host_line, mvp_host_line, roster_host_line, round_open_host_line,
+    rule_bot_taunt_line, warmup_host_line, Action, BotTauntKind, GameEvent, PickupState,
+    PlayerScore, PlayerState, Role, ShotResult, Snapshot, WeaponType, BOSS_NAME, MODE_NAME,
+    PLAYLIST_NAME,
 };
 use std::collections::HashMap;
 use std::f32::consts::PI;
@@ -646,6 +647,10 @@ impl GameState {
     }
 
     pub fn end_round(&mut self, reason: String) {
+        // Dismiss a live drone before podium so Ended mid-join is not soft-prisoned
+        // with compliance_drone pressure and MCP gets boss_down (killer null).
+        self.wipe_boss_for_round_end();
+
         let (winner, winner_score) = self
             .scores
             .iter()
@@ -1408,6 +1413,35 @@ impl GameState {
         });
         tracing::info!("Compliance Drone spawned ({})", id);
         Some(id)
+    }
+
+    /// Round-end dismiss: emit boss_down (no killer) then scrub the drone.
+    fn wipe_boss_for_round_end(&mut self) {
+        let Some(id) = self.boss_id else {
+            return;
+        };
+        let alive = self
+            .players
+            .iter()
+            .any(|p| p.id == id && p.hp > 0 && p.respawn_timer.is_none());
+        if !alive {
+            self.clear_boss();
+            return;
+        }
+        let name = self
+            .players
+            .iter()
+            .find(|p| p.id == id)
+            .map(|p| p.name.clone())
+            .unwrap_or_else(|| BOSS_NAME.to_string());
+        self.events.push(GameEvent::BossDown {
+            name,
+            boss_id: id,
+            killer: None,
+            message: boss_round_wipe_host_line(),
+        });
+        self.clear_boss();
+        tracing::info!("Boss wiped on round end ({})", id);
     }
 
     fn clear_boss(&mut self) {
