@@ -8,7 +8,7 @@
 use clap::{Args, Parser, Subcommand};
 use fragr_brain::bot::{run_bot, BotConfig};
 use fragr_brain::budget::{Budget, Caps, Pricing};
-use fragr_brain::decision::tactical_questions;
+use fragr_brain::decision::{tactical_questions, Gate};
 use fragr_brain::dotenv::resolve_key;
 use fragr_brain::provider::{
     decide, decision_request, key_request, parse_key_status, HttpTransport, Provider, Transport,
@@ -38,7 +38,7 @@ struct Common {
     /// Decision source: local (free, default), typesafe, or openrouter.
     #[arg(long, default_value = "local", global = true)]
     provider: String,
-    /// Model id; defaults to jev-latest (typesafe) or typesafe/jev-1.13 (openrouter).
+    /// Model id; defaults to jev-1.13.0 (typesafe) or typesafe/jev-1.13 (openrouter).
     #[arg(long, global = true)]
     model: Option<String>,
     /// Dollars this run may spend. Zero (the default) means no paid call at all.
@@ -51,7 +51,7 @@ struct Common {
     #[arg(long, global = true)]
     max_calls: Option<u64>,
     /// Ledger of every paid call; totals carry across runs.
-    #[arg(long, default_value = ".agents/spend/brain.json", global = true)]
+    #[arg(long, default_value = ".agents/spend/brain.jsonl", global = true)]
     ledger: PathBuf,
     /// Keep the ledger in memory only.
     #[arg(long, global = true)]
@@ -85,7 +85,10 @@ enum Command {
         /// Decisions per second (0.1 to 5).
         #[arg(long, default_value_t = 3.0)]
         decision_hz: f64,
-        /// Below this confidence the local rules decide the stance.
+        /// Accept an answer whose top option leads the runner-up by at least this.
+        #[arg(long, default_value_t = 0.2)]
+        margin_floor: f64,
+        /// Also accept an answer whose reported confidence reaches this.
         #[arg(long, default_value_t = 0.65)]
         confidence_floor: f64,
         /// Leave after this many seconds.
@@ -115,26 +118,23 @@ fn parse_provider(text: &str) -> Result<Provider, Error> {
     })
 }
 
-fn budget_from(common: &Common) -> Result<Budget, Error> {
-    if common.max_spend_usd < 0.0 || common.max_total_usd.is_some_and(|c| c < 0.0) {
-        return Err(Error::InvalidArgument(
-            "caps cannot be negative".to_string(),
-        ));
-    }
-    if common.price_input_per_million < 0.0 || common.price_output_per_million < 0.0 {
-        return Err(Error::InvalidArgument(
-            "prices cannot be negative".to_string(),
-        ));
-    }
+fn budget_from(common: &Common, provider: Provider) -> Result<Budget, Error> {
     let caps = Caps {
         run_usd: common.max_spend_usd,
         total_usd: common.max_total_usd,
         run_calls: common.max_calls,
     };
+    caps.validate()?;
     let pricing = Pricing {
         input_per_million: common.price_input_per_million,
         output_per_million: common.price_output_per_million,
     };
+    pricing.validate()?;
+    if provider.is_paid() && pricing.input_per_million <= 0.0 && caps.run_calls.is_none() {
+        return Err(Error::InvalidArgument(
+            "a zero input price would disable the dollar cap; pass --max-calls as well".to_string(),
+        ));
+    }
     if common.no_ledger {
         Ok(Budget::new(caps, pricing))
     } else {
@@ -183,12 +183,24 @@ fn run(cli: Cli, transport: Arc<dyn Transport>, out: &mut dyn std::io::Write) ->
             server,
             name,
             decision_hz,
+            margin_floor,
             confidence_floor,
             max_seconds,
         } => {
-            let budget = budget_from(&cli.common)?;
+            let mut budget = budget_from(&cli.common, provider)?;
             if provider.is_paid() {
                 budget.check(0.0)?;
+            }
+            for (name, value) in [
+                ("--decision-hz", decision_hz),
+                ("--margin-floor", margin_floor),
+                ("--confidence-floor", confidence_floor),
+            ] {
+                if !value.is_finite() || value < 0.0 {
+                    return Err(Error::InvalidArgument(format!(
+                        "{name} must be a finite non-negative number, got {value}"
+                    )));
+                }
             }
             let api_key = key_for(&cli.common, provider)?;
             if provider.is_paid() && api_key.is_none() {
@@ -201,7 +213,10 @@ fn run(cli: Cli, transport: Arc<dyn Transport>, out: &mut dyn std::io::Write) ->
                 model,
                 api_key,
                 decision_hz,
-                confidence_floor,
+                gate: Gate {
+                    confidence_floor,
+                    margin_floor,
+                },
                 max_seconds,
             };
             let budget = Arc::new(Mutex::new(budget));
@@ -224,12 +239,17 @@ fn run(cli: Cli, transport: Arc<dyn Transport>, out: &mut dyn std::io::Write) ->
                     "ask needs a paid provider (typesafe or openrouter)".to_string(),
                 ));
             }
-            let budget = budget_from(&cli.common)?;
+            let budget = budget_from(&cli.common, provider)?;
             let api_key = if dry_run {
                 key_for(&cli.common, provider)?.unwrap_or_else(|| "dry-run".to_string())
             } else {
                 require_key(&cli.common, provider)?
             };
+            // A JSON object is sent as given; anything else goes as a plain string.
+            let state = serde_json::from_str::<serde_json::Value>(&state)
+                .ok()
+                .filter(serde_json::Value::is_object)
+                .unwrap_or(serde_json::Value::String(state));
             let request =
                 decision_request(provider, &model, &api_key, &state, &tactical_questions())?;
             let estimate = fragr_brain::provider::estimate_cost(&request, &budget.pricing);
@@ -265,7 +285,7 @@ fn run(cli: Cli, transport: Arc<dyn Transport>, out: &mut dyn std::io::Write) ->
             Ok(())
         }
         Command::Spend => {
-            let budget = budget_from(&cli.common)?;
+            let budget = budget_from(&cli.common, provider)?;
             let ledger = budget.ledger();
             let shown = serde_json::json!({
                 "ledger": budget.ledger_path().map(|p| p.display().to_string()),
@@ -414,9 +434,14 @@ mod tests {
             "X",
             "--max-seconds",
             "5",
+            "--margin-floor",
+            "0.3",
         ]);
         assert!(
             matches!(cli.command, Command::Play { ref server, ref name, max_seconds: Some(5), .. } if server == "ws://h:1" && name.as_deref() == Some("X"))
+        );
+        assert!(
+            matches!(cli.command, Command::Play { margin_floor, .. } if (margin_floor - 0.3).abs() < 1e-9)
         );
         assert_eq!(cli.common.provider, "local");
         assert_eq!(cli.common.max_spend_usd, 0.0);
@@ -444,17 +469,35 @@ mod tests {
     #[test]
     fn budget_from_validates_and_loads_ledger() {
         let mut cli = parse(&["--no-ledger", "spend"]);
-        let budget = budget_from(&cli.common).unwrap();
+        let budget = budget_from(&cli.common, Provider::Local).unwrap();
         assert_eq!(budget.ledger_path(), None);
         cli.common.max_spend_usd = -1.0;
-        assert!(budget_from(&cli.common).is_err());
+        assert!(budget_from(&cli.common, Provider::Local).is_err());
+        cli.common.max_spend_usd = f64::NAN;
+        assert!(budget_from(&cli.common, Provider::Local).is_err());
+        cli.common.max_spend_usd = 5.01;
+        assert!(
+            budget_from(&cli.common, Provider::Local).is_err(),
+            "the per-run ceiling is enforced"
+        );
         cli.common.max_spend_usd = 1.0;
         cli.common.price_input_per_million = -1.0;
-        assert!(budget_from(&cli.common).is_err());
+        assert!(budget_from(&cli.common, Provider::Local).is_err());
+        cli.common.price_input_per_million = 0.0;
+        assert!(
+            budget_from(&cli.common, Provider::Local).is_ok(),
+            "free provider, free price"
+        );
+        assert!(
+            budget_from(&cli.common, Provider::Typesafe).is_err(),
+            "a zero price needs a call cap on a paid provider"
+        );
+        cli.common.max_calls = Some(10);
+        assert!(budget_from(&cli.common, Provider::Typesafe).is_ok());
         let ledger = temp("ledger.json");
         let _ = std::fs::remove_file(&ledger);
         let cli = parse(&["--ledger", ledger.to_str().unwrap(), "spend"]);
-        let budget = budget_from(&cli.common).unwrap();
+        let budget = budget_from(&cli.common, Provider::Local).unwrap();
         assert_eq!(budget.ledger_path(), Some(ledger.as_path()));
         let mut out = Vec::new();
         run(cli, scripted(200, answers()), &mut out).unwrap();
@@ -466,12 +509,17 @@ mod tests {
     fn play_refuses_paid_without_cap_or_key() {
         let env_file = temp("empty.env");
         std::fs::write(&env_file, "# nothing\n").unwrap();
+        // A blank key file keeps the test away from the developer's real environment.
+        let blank_key = temp("blank.key");
+        std::fs::write(&blank_key, "\n").unwrap();
         let cli = parse(&[
             "--provider",
             "typesafe",
             "--no-ledger",
             "--env-file",
             env_file.to_str().unwrap(),
+            "--api-key-file",
+            blank_key.to_str().unwrap(),
             "play",
             "--max-seconds",
             "1",
@@ -487,6 +535,8 @@ mod tests {
             "1",
             "--env-file",
             env_file.to_str().unwrap(),
+            "--api-key-file",
+            blank_key.to_str().unwrap(),
             "play",
             "--max-seconds",
             "1",
@@ -494,21 +544,36 @@ mod tests {
         let err = run(cli, scripted(200, answers()), &mut out).unwrap_err();
         assert!(matches!(err, Error::MissingApiKey(_)), "{err}");
         let _ = std::fs::remove_file(env_file);
+        let _ = std::fs::remove_file(blank_key);
     }
 
     #[test]
     fn play_local_fails_cleanly_when_no_server() {
+        let free = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = free.local_addr().unwrap().port();
+        drop(free);
+        let server = format!("ws://127.0.0.1:{port}");
         let cli = parse(&[
             "--no-ledger",
             "play",
             "--server",
-            "ws://127.0.0.1:9",
+            &server,
             "--max-seconds",
             "1",
         ]);
         let mut out = Vec::new();
         let err = run(cli, scripted(200, answers()), &mut out).unwrap_err();
         assert!(matches!(err, Error::Transport(_)), "{err}");
+        let cli = parse(&[
+            "--no-ledger",
+            "play",
+            "--server",
+            &server,
+            "--decision-hz",
+            "nan",
+        ]);
+        let err = run(cli, scripted(200, answers()), &mut Vec::new()).unwrap_err();
+        assert!(matches!(err, Error::InvalidArgument(_)), "{err}");
     }
 
     #[test]
@@ -533,6 +598,28 @@ mod tests {
         assert!(text.contains("Bearer ***"));
         assert!(!text.contains("sk_secret"));
         assert!(text.contains("estimated_usd"));
+        assert!(
+            text.contains("\"state\": \"SELF hp=10\""),
+            "plain text stays a string: {text}"
+        );
+        let cli = parse(&[
+            "--provider",
+            "typesafe",
+            "--no-ledger",
+            "--env-file",
+            env_file.to_str().unwrap(),
+            "ask",
+            "--state",
+            "{\"self\":{\"health\":\"low\"}}",
+            "--dry-run",
+        ]);
+        let mut out = Vec::new();
+        run(cli, transport.clone(), &mut out).unwrap();
+        let text = String::from_utf8(out).unwrap();
+        assert!(
+            text.contains("\"health\": \"low\""),
+            "JSON objects go through as objects: {text}"
+        );
         assert_eq!(transport.calls.load(Ordering::SeqCst), 0);
         let cli = parse(&["--no-ledger", "ask", "--state", "x"]);
         assert!(

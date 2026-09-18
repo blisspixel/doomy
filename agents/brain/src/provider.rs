@@ -15,8 +15,9 @@ use std::time::Duration;
 pub const TYPESAFE_ENDPOINT: &str = "https://api.typesafe.ai/v1/systemone";
 pub const OPENROUTER_ENDPOINT: &str = "https://openrouter.ai/api/alpha/decisions";
 pub const OPENROUTER_KEY_ENDPOINT: &str = "https://openrouter.ai/api/v1/key";
-/// TypeSafe's alias for the newest Jev.
-pub const TYPESAFE_MODEL: &str = "jev-latest";
+/// The Jev version the gate was tuned against. TypeSafe advises pinning the
+/// version id rather than the `jev-latest` alias once thresholds are tuned.
+pub const TYPESAFE_MODEL: &str = "jev-1.13.0";
 /// OpenRouter's unambiguous id (the `~typesafe/jev-latest` alias is not in its catalog).
 pub const OPENROUTER_MODEL: &str = "typesafe/jev-1.13";
 /// App attribution OpenRouter shows on its rankings; this repository, nothing else.
@@ -26,8 +27,9 @@ pub const TYPESAFE_KEY_NAMES: &[&str] = &["TYPESAFE_API_KEY", "TYPESAFE"];
 pub const OPENROUTER_KEY_NAMES: &[&str] = &["OPENROUTER_API_KEY", "OPENROUTER"];
 /// Fixed per-call token overhead for headers and framing in the estimate.
 const ESTIMATE_OVERHEAD_TOKENS: u64 = 16;
-/// Output tokens assumed per question when estimating (Jev bills none today).
-const ESTIMATE_OUTPUT_PER_QUESTION: u64 = 8;
+/// Output tokens assumed per question when estimating. Measured 2026-09-18:
+/// 104 output tokens for three questions (Jev bills none today).
+const ESTIMATE_OUTPUT_PER_QUESTION: u64 = 40;
 
 /// Where decisions come from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -138,7 +140,7 @@ pub fn decision_request(
     provider: Provider,
     model: &str,
     api_key: &str,
-    state: &str,
+    state: &Value,
     questions: &BTreeMap<String, Question>,
 ) -> Result<HttpRequest, Error> {
     let Some(url) = provider.endpoint() else {
@@ -243,7 +245,24 @@ impl Transport for HttpTransport {
     }
 }
 
+/// Untrusted text made safe for a log line: control characters stripped,
+/// at most 200 characters, a marker when cut.
+fn shorten(text: &str) -> String {
+    let cleaned: String = text.chars().filter(|c| !c.is_control()).collect();
+    let trimmed = cleaned.trim();
+    let mut short: String = trimmed.chars().take(200).collect();
+    if short.chars().count() < trimmed.chars().count() {
+        short.push_str("...");
+    }
+    if short.is_empty() {
+        "empty body".to_string()
+    } else {
+        short
+    }
+}
+
 /// The most useful message in an error body, whatever shape the provider used.
+/// Every path is bounded and stripped, since the body is the provider's to write.
 pub fn api_error_message(body: &[u8]) -> String {
     let text = String::from_utf8_lossy(body);
     if let Ok(value) = serde_json::from_str::<Value>(&text) {
@@ -266,24 +285,15 @@ pub fn api_error_message(body: &[u8]) -> String {
             }
             if found {
                 if let Some(s) = node.as_str() {
-                    return s.to_string();
+                    return shorten(s);
                 }
                 if !node.is_null() && !node.is_object() {
-                    return node.to_string();
+                    return shorten(&node.to_string());
                 }
             }
         }
     }
-    let trimmed = text.trim();
-    let mut short: String = trimmed.chars().take(200).collect();
-    if short.len() < trimmed.len() {
-        short.push_str("...");
-    }
-    if short.is_empty() {
-        "empty body".to_string()
-    } else {
-        short
-    }
+    shorten(&text)
 }
 
 /// Turn a raw response into a parsed decision or an API error.
@@ -369,7 +379,7 @@ pub fn decide(
     request: &HttpRequest,
 ) -> Result<Decision, Error> {
     let (estimate, pricing) = {
-        let guard = lock(budget);
+        let mut guard = lock(budget);
         let estimate = estimate_cost(request, &guard.pricing);
         guard.check(estimate)?;
         (estimate, guard.pricing)
@@ -390,7 +400,9 @@ pub fn decide(
     };
     if let Ok(response) = &outcome {
         charge.ok = true;
-        charge.actual_usd = response.cost_usd(&pricing);
+        charge.actual_usd = response
+            .cost_usd(&pricing)
+            .filter(|cost| cost.is_finite() && *cost >= 0.0);
         charge.input_tokens = response.usage.as_ref().map(|u| u.input_tokens);
         charge.output_tokens = response.usage.as_ref().map(|u| u.output_tokens);
         charge.request_id = response.id.clone();
@@ -482,7 +494,7 @@ mod tests {
         assert_eq!(Provider::Local.endpoint(), None);
         assert_eq!(Provider::Typesafe.endpoint(), Some(TYPESAFE_ENDPOINT));
         assert_eq!(Provider::OpenRouter.endpoint(), Some(OPENROUTER_ENDPOINT));
-        assert_eq!(Provider::Typesafe.default_model(), "jev-latest");
+        assert_eq!(Provider::Typesafe.default_model(), "jev-1.13.0");
         assert_eq!(Provider::OpenRouter.default_model(), "typesafe/jev-1.13");
         assert_eq!(Provider::Local.default_model(), "rules");
         assert!(Provider::Local.key_names().is_empty());
@@ -500,7 +512,7 @@ mod tests {
             Provider::Typesafe,
             "jev-latest",
             " sk_t ",
-            "STATE",
+            &json!("STATE"),
             &questions,
         )
         .unwrap();
@@ -520,7 +532,7 @@ mod tests {
             Provider::OpenRouter,
             "typesafe/jev-1.13",
             "sk_o",
-            "STATE",
+            &json!("STATE"),
             &questions,
         )
         .unwrap();
@@ -541,15 +553,27 @@ mod tests {
         );
 
         assert!(matches!(
-            decision_request(Provider::Local, "rules", "k", "s", &questions),
+            decision_request(Provider::Local, "rules", "k", &json!("s"), &questions),
             Err(Error::InvalidArgument(_))
         ));
         assert!(matches!(
-            decision_request(Provider::Typesafe, "jev-latest", "  ", "s", &questions),
+            decision_request(
+                Provider::Typesafe,
+                "jev-latest",
+                "  ",
+                &json!("s"),
+                &questions
+            ),
             Err(Error::MissingApiKey(_))
         ));
         assert!(matches!(
-            decision_request(Provider::Typesafe, "jev-latest", "k", "s", &BTreeMap::new()),
+            decision_request(
+                Provider::Typesafe,
+                "jev-latest",
+                "k",
+                &json!("s"),
+                &BTreeMap::new()
+            ),
             Err(Error::InvalidArgument(_))
         ));
 
@@ -632,6 +656,14 @@ mod tests {
         let shown = api_error_message(long.as_bytes());
         assert_eq!(shown.len(), 203);
         assert!(shown.ends_with("..."));
+        let json_long = format!(
+            "{{\"error\":{{\"message\":\"{}\\u0007\"}}}}",
+            "y".repeat(400)
+        );
+        let shown = api_error_message(json_long.as_bytes());
+        assert_eq!(shown.len(), 203, "JSON paths are bounded too");
+        assert!(!shown.contains('\u{7}'));
+        assert_eq!(api_error_message(b"\x1b[31mred\x1b[0m"), "[31mred[0m");
     }
 
     #[test]
@@ -661,8 +693,14 @@ mod tests {
     #[test]
     fn estimate_counts_body_and_questions() {
         let questions = tactical_questions();
-        let request =
-            decision_request(Provider::Typesafe, "jev-latest", "k", "STATE", &questions).unwrap();
+        let request = decision_request(
+            Provider::Typesafe,
+            "jev-latest",
+            "k",
+            &json!("STATE"),
+            &questions,
+        )
+        .unwrap();
         let estimate = estimate_cost(&request, &Pricing::default());
         assert!(estimate > 0.0 && estimate < 0.0001, "{estimate}");
         let pricey = Pricing {
@@ -670,7 +708,7 @@ mod tests {
             output_per_million: 1_000_000.0,
         };
         let body_len = request.body.as_ref().unwrap().to_string().len() as u64;
-        let expected = (body_len.div_ceil(4) + 16 + 3 * 8) as f64;
+        let expected = (body_len.div_ceil(2) + 16 + 3 * 40) as f64;
         assert!((estimate_cost(&request, &pricey) - expected).abs() < 1e-6);
         let empty = HttpRequest {
             method: Method::Get,
@@ -684,8 +722,14 @@ mod tests {
     #[test]
     fn decide_checks_then_records() {
         let questions = tactical_questions();
-        let request =
-            decision_request(Provider::Typesafe, "jev-latest", "k", "STATE", &questions).unwrap();
+        let request = decision_request(
+            Provider::Typesafe,
+            "jev-latest",
+            "k",
+            &json!("STATE"),
+            &questions,
+        )
+        .unwrap();
         let transport = FakeTransport::ok(push_answers());
         let caps = Caps {
             run_usd: 0.01,
