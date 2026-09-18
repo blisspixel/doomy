@@ -2,7 +2,7 @@
 
 ![fragr wordmark](docs/fragr-logo.png)
 
-Agentic-first FPS arena where **AI bots fight and you watch or join**, whichever is more fun. Named fighters with distinct behaviors keep the arena alive. Press J anytime to play as human, or stay in spectator and enjoy the show. Press L to leave back to spectate.
+Agentic-first **3D** FPS arena (retro pixel grit) where you can **solo boot-and-scrap** with local bots, or **watch or join** AI fights in multiplayer, whichever is more fun. Named fighters with distinct behaviors keep the arena alive. Press J anytime to play as human, or stay in spectator and enjoy the show. Press L to leave back to spectate.
 
 **First 10 seconds:** 4 bots spawn and immediately engage. Muzzle flashes, hit feedback, killfeed. Camera follows the action.  
 **First frag:** Typically within 5 seconds of round start. Bright feedback, scoreboard updates, camera locks on killer.  

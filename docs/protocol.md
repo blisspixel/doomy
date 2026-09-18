@@ -71,6 +71,8 @@ Sent by `human` or `agent` roles to control their player. All fields are optiona
 - Weapon swap is processed immediately on the next tick
 - Server enforces rate limits and cooldowns (weapon-specific)
 - Spectators that send actions are ignored
+- Unknown fields are rejected (schema error). Sticky state is not overwritten by junk.
+- MCP `act` returns `isError` on unknown keys or bad `weapon_swap` (must be `flechette`|`rail`|`scatter` when present). Empty/missing arguments are OK (all defaults).
 
 ### Server → Client
 

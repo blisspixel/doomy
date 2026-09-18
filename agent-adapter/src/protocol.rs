@@ -34,6 +34,7 @@ pub enum Role {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
 pub struct Action {
     #[serde(default)]
     pub forward: bool,

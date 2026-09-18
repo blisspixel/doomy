@@ -317,58 +317,28 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
                             .cloned()
                             .unwrap_or(Value::Null);
 
-                        let weapon_swap = arguments
-                            .get("weapon_swap")
-                            .and_then(|v| v.as_str())
-                            .and_then(|s| match s {
-                                "flechette" => Some(protocol::WeaponType::Flechette),
-                                "rail" => Some(protocol::WeaponType::Rail),
-                                "scatter" => Some(protocol::WeaponType::Scatter),
-                                _ => None,
-                            });
+                        match validate_act_arguments(&arguments) {
+                            Ok(action) => {
+                                let action_msg = ClientMessage::Action(action);
+                                ws_sink
+                                    .send(Message::Text(serde_json::to_string(&action_msg)?))
+                                    .await?;
 
-                        let action = ClientMessage::Action(protocol::Action {
-                            forward: arguments
-                                .get("forward")
-                                .and_then(|v| v.as_bool())
-                                .unwrap_or(false),
-                            back: arguments
-                                .get("back")
-                                .and_then(|v| v.as_bool())
-                                .unwrap_or(false),
-                            left: arguments
-                                .get("left")
-                                .and_then(|v| v.as_bool())
-                                .unwrap_or(false),
-                            right: arguments
-                                .get("right")
-                                .and_then(|v| v.as_bool())
-                                .unwrap_or(false),
-                            turn_left: arguments
-                                .get("turn_left")
-                                .and_then(|v| v.as_bool())
-                                .unwrap_or(false),
-                            turn_right: arguments
-                                .get("turn_right")
-                                .and_then(|v| v.as_bool())
-                                .unwrap_or(false),
-                            fire: arguments
-                                .get("fire")
-                                .and_then(|v| v.as_bool())
-                                .unwrap_or(false),
-                            weapon_swap,
-                        });
-
-                        ws_sink
-                            .send(Message::Text(serde_json::to_string(&action)?))
-                            .await?;
-
-                        serde_json::json!({
-                            "content": [{
-                                "type": "text",
-                                "text": "Action sent successfully"
-                            }]
-                        })
+                                serde_json::json!({
+                                    "content": [{
+                                        "type": "text",
+                                        "text": "Action sent successfully"
+                                    }]
+                                })
+                            }
+                            Err(msg) => serde_json::json!({
+                                "content": [{
+                                    "type": "text",
+                                    "text": msg
+                                }],
+                                "isError": true
+                            }),
+                        }
                     }
 
                     "get_events" => {
@@ -497,6 +467,85 @@ async fn run_scripted_bot(
 
     tracing::info!("Bot disconnected");
     Ok(())
+}
+
+const ACT_ALLOWED_KEYS: &[&str] = &[
+    "forward",
+    "back",
+    "left",
+    "right",
+    "turn_left",
+    "turn_right",
+    "fire",
+    "weapon_swap",
+];
+
+/// Validate MCP `act` arguments. Empty/missing args are OK (all defaults).
+/// Unknown keys and bad weapon_swap values are schema errors (do not coerce).
+fn validate_act_arguments(arguments: &Value) -> Result<protocol::Action, String> {
+    if arguments.is_null() {
+        return Ok(protocol::Action::default());
+    }
+
+    let obj = match arguments.as_object() {
+        Some(o) => o,
+        None => return Err("schema error: act arguments must be an object".to_string()),
+    };
+
+    let mut unknowns: Vec<&str> = obj
+        .keys()
+        .filter(|k| !ACT_ALLOWED_KEYS.contains(&k.as_str()))
+        .map(|k| k.as_str())
+        .collect();
+    unknowns.sort();
+    if !unknowns.is_empty() {
+        let listed = unknowns
+            .iter()
+            .map(|k| format!("'{}'", k))
+            .collect::<Vec<_>>()
+            .join(", ");
+        if unknowns.len() == 1 {
+            return Err(format!("schema error: unknown act field {}", listed));
+        }
+        return Err(format!("schema error: unknown act fields {}", listed));
+    }
+
+    let weapon_swap = if let Some(v) = obj.get("weapon_swap") {
+        if v.is_null() {
+            None
+        } else {
+            let s = v.as_str().ok_or_else(|| {
+                "schema error: weapon_swap must be a string (flechette|rail|scatter)".to_string()
+            })?;
+            match s {
+                "flechette" => Some(protocol::WeaponType::Flechette),
+                "rail" => Some(protocol::WeaponType::Rail),
+                "scatter" => Some(protocol::WeaponType::Scatter),
+                other => {
+                    return Err(format!(
+                        "schema error: weapon_swap must be flechette|rail|scatter, got '{}'",
+                        other
+                    ))
+                }
+            }
+        }
+    } else {
+        None
+    };
+
+    let bool_field =
+        |key: &str| -> bool { obj.get(key).and_then(|v| v.as_bool()).unwrap_or(false) };
+
+    Ok(protocol::Action {
+        forward: bool_field("forward"),
+        back: bool_field("back"),
+        left: bool_field("left"),
+        right: bool_field("right"),
+        turn_left: bool_field("turn_left"),
+        turn_right: bool_field("turn_right"),
+        fire: bool_field("fire"),
+        weapon_swap,
+    })
 }
 
 fn compute_bot_action(bot_id: uuid::Uuid, snapshot: &protocol::Snapshot) -> protocol::Action {
@@ -1092,5 +1141,65 @@ mod tests {
         assert_eq!(buffer[1]["event"], "player_left");
         assert_eq!(buffer[1]["player"], "TestAgent");
         assert_eq!(buffer[1]["score"], 3);
+    }
+
+    #[test]
+    fn test_action_unknown_field_fails_deserialize() {
+        let json = r#"{"type":"action","forward":true,"laser":true}"#;
+        let parsed: Result<ClientMessage, _> = serde_json::from_str(json);
+        assert!(
+            parsed.is_err(),
+            "unknown Action field must fail deserialize: {:?}",
+            parsed
+        );
+    }
+
+    #[test]
+    fn test_action_valid_deserializes() {
+        let json = r#"{"type":"action","forward":true,"fire":true,"weapon_swap":"rail"}"#;
+        let parsed: Result<ClientMessage, _> = serde_json::from_str(json);
+        assert!(parsed.is_ok(), "{:?}", parsed);
+        match parsed.unwrap() {
+            ClientMessage::Action(a) => {
+                assert!(a.forward);
+                assert!(a.fire);
+                assert_eq!(a.weapon_swap, Some(protocol::WeaponType::Rail));
+            }
+            other => panic!("expected Action, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_validate_act_arguments_unknown_key() {
+        let args = serde_json::json!({"laser": true, "forward": true});
+        let err = validate_act_arguments(&args).unwrap_err();
+        assert!(err.contains("schema error"));
+        assert!(err.contains("laser"), "err={}", err);
+        assert!(!err.contains("forward") || err.contains("unknown"));
+    }
+
+    #[test]
+    fn test_validate_act_arguments_bad_weapon_swap() {
+        let args = serde_json::json!({"weapon_swap": "potato"});
+        let err = validate_act_arguments(&args).unwrap_err();
+        assert!(err.contains("schema error"));
+        assert!(err.contains("weapon_swap"), "err={}", err);
+        assert!(err.contains("potato"), "err={}", err);
+    }
+
+    #[test]
+    fn test_validate_act_arguments_valid_fire_forward() {
+        let args = serde_json::json!({"fire": true, "forward": true});
+        let action = validate_act_arguments(&args).expect("valid act");
+        assert!(action.fire);
+        assert!(action.forward);
+        assert!(!action.back);
+        assert!(action.weapon_swap.is_none());
+    }
+
+    #[test]
+    fn test_validate_act_arguments_empty_ok() {
+        assert!(validate_act_arguments(&Value::Null).is_ok());
+        assert!(validate_act_arguments(&serde_json::json!({})).is_ok());
     }
 }
