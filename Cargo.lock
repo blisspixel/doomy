@@ -409,6 +409,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "fragr-playtest"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "fragr-server",
+ "futures-util",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-tungstenite",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "fragr-server"
 version = "0.1.0"
 dependencies = [

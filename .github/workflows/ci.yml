@@ -40,6 +40,9 @@ jobs:
       - name: Run tests
         run: cargo test --workspace
 
+      - name: Agent playtest smoke
+        run: cargo run -p fragr-playtest -- --agents 4 --rounds 1 --frag-limit 3 --time-limit-seconds 45 --assert --report .agents/playtest/ci.json
+
       - name: Check code coverage
         run: cargo llvm-cov --workspace --locked --fail-under-lines 80
 
