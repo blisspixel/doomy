@@ -8,13 +8,15 @@ Do not treat chat as the plan of record.
 
 ## Tip priorities (after v0.5.0)
 
-Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Sticky host_line on Snapshot shipped (#63, Casino-cleared on MCP). Godot Host flash mid-join shipped (#64). Ship order from tip:
+Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Sticky host_line on Snapshot shipped (#63, Casino-cleared on MCP). Godot Host flash mid-join shipped (#64). MCP session tools shipped (#65). Pixel-3D look bar sealed on tip (`5d16f32`, #66). Ship order from tip:
 
-1. **Pixel-3D look bar** (NOW) - Unreal+CS arena play feel; 3D Godot world/camera; retro pixel surfaces/sprites/HUD; scrap-league Contested Frequency face; no Doom/id IP. See [`pixel-3d-look-bar.md`](./pixel-3d-look-bar.md).
-2. (Shipped) **MCP session tools** - First-class `join` / `leave` / `round_state`. See [`mcp-session-tools.md`](./mcp-session-tools.md).
+1. **Far-cam fighter scale** (NOW) - Distance-aware billboard scale so Cyanex/Kragge stay chunky for far spectators; close follow unchanged. See [`far-cam-fighter-scale.md`](./far-cam-fighter-scale.md).
+2. (Shipped) **Pixel-3D look bar** - Scrap-league Contested Frequency tip face. See [`pixel-3d-look-bar.md`](./pixel-3d-look-bar.md).
+3. (Shipped) **MCP session tools** - First-class `join` / `leave` / `round_state`. See [`mcp-session-tools.md`](./mcp-session-tools.md).
 
 Shipped recently:
 
+- **Pixel-3D look bar** (#66) - Scrap materials, billboard fighters, muted zone palette on tip face. See [`pixel-3d-look-bar.md`](./pixel-3d-look-bar.md).
 - **Godot Host flash mid-join** (#64) - First mid-join Active Snapshot flashes Host chrome once. See [`godot-host-flash-mid-join.md`](./godot-host-flash-mid-join.md).
 - **Sticky host_line mid-join** (#63) - Snapshot always carries current Host line for mid-join / mid-round observe. See [`sticky-host-line-mid-join.md`](./sticky-host-line-mid-join.md).
 - **Off-tick speak / taunt** - control-plane speak + HUD/MCP events; speak rate-limit returns MCP isError. See [`offtick-speak-taunt.md`](./offtick-speak-taunt.md).
@@ -31,7 +33,8 @@ Port is **6767**. Public TCP+UDP 6767 for strangers/agents. Tailscale is private
 
 | Plan | Status | One-liner |
 |---|---|---|
-| [`pixel-3d-look-bar.md`](./pixel-3d-look-bar.md) | **in flight** (this tip) | Pixel-3D scrap-league look bar: materials, billboards, lighting, tip stills. |
+| [`far-cam-fighter-scale.md`](./far-cam-fighter-scale.md) | **in flight** (this tip) | Distance-aware fighter billboard scale for far spectators. |
+| [`pixel-3d-look-bar.md`](./pixel-3d-look-bar.md) | **shipped** (#66) | Pixel-3D scrap-league look bar: materials, billboards, lighting, tip stills. |
 | [`mcp-session-tools.md`](./mcp-session-tools.md) | **shipped** (#65) | First-class MCP join / leave / round_state tools + tip gallery stills. |
 | [`godot-host-flash-mid-join.md`](./godot-host-flash-mid-join.md) | **shipped** (#64) | Godot Host bumper flash on first mid-round Snapshot. |
 | [`sticky-host-line-mid-join.md`](./sticky-host-line-mid-join.md) | **shipped** (#63) | Sticky Snapshot host_line for mid-join Host chrome. |
