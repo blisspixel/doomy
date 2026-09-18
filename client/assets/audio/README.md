@@ -14,11 +14,11 @@ Full license: https://creativecommons.org/publicdomain/zero/1.0/
 
 ## Files
 
-- `fire.wav` - Weapon fire sound (square wave + noise + high sine, 0.08s)
-- `hit.wav` - Hit confirmation sound (noise impact + sine ping, 0.06s)
-- `frag.wav` - Frag/elimination sound (low thump + crunch + sparkle, 0.20s)
-- `round_start.wav` - Round start cue (two ascending beeps, 0.18s)
-- `round_end.wav` - Round end sound (descending tone sequence, 0.36s)
+- `fire.wav` - Weapon fire sound (kick + snap + crack, snappy arcade punch, 0.06s)
+- `hit.wav` - Hit confirmation sound (thwack + ding + thump, satisfying feedback, 0.08s)
+- `frag.wav` - Frag/elimination sound (massive bass + explosion + rising sweep + sparkle cascade, sells the moment, 0.30s)
+- `round_start.wav` - Round start cue (charge-up + impact beep + punch, arcade excitement, 0.20s)
+- `round_end.wav` - Round end sound (victorious chord + bass thump, dramatic fanfare, 0.35s)
 
 ## Generation
 
@@ -35,5 +35,6 @@ No external dependencies required beyond Python 3 standard library (wave, struct
 
 - Sample rate: 22050 Hz (mono)
 - Format: 16-bit PCM WAV
-- Total size: ~40 KB
-- Synthesis: Pure procedural (sine/square waves, white noise, ADSR envelopes)
+- Total size: ~45 KB
+- Synthesis: Pure procedural (sine/square waves, white noise, frequency sweeps, chord synthesis, ADSR envelopes)
+- Design: Snappy arcade feel, not subtle corporate beeps
