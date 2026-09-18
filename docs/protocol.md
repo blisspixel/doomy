@@ -445,21 +445,23 @@ Health example:
 - Walls prevent movement outside bounds
 
 ### Combat
-- **Weapon types**: Three distinct roles
-  - **Flechette** (default): Balanced all-purpose
+- **Weapon types**: Three distinct roles (range-capped hitscan)
+  - **Flechette** (default): Mid workhorse
     - Damage: 25 HP
     - Cooldown: 10 ticks (500ms)
-    - Spread: 0.1 radians (tight, ~5.7 degrees)
-  - **Rail**: High-skill precision weapon
+    - Spread: 0.10 radians (tight, ~5.7 degrees)
+    - Range: 42 units
+  - **Rail**: Long precision
     - Damage: 75 HP
     - Cooldown: 40 ticks (2.0s)
-    - Spread: 0.05 radians (very tight, ~2.9 degrees)
-  - **Scatter**: Close-range spam weapon
+    - Spread: 0.04 radians (very tight, ~2.3 degrees)
+    - Range: 100 units
+  - **Scatter**: Close shred
     - Damage: 15 HP
     - Cooldown: 5 ticks (250ms)
-    - Spread: 0.3 radians (wide, ~17.2 degrees)
-- **Hitscan**: Instant hit detection, no projectile travel
-- **Range**: 100 units
+    - Spread: 0.38 radians (wide, ~21.8 degrees)
+    - Range: 14 units
+- **Hitscan**: Instant hit detection, no projectile travel; capped by weapon range
 - **Respawn delay**: 60 ticks (3 seconds)
 
 ### Movement

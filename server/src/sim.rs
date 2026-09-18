@@ -883,10 +883,11 @@ impl GameState {
     fn check_hitscan(&self, shooter_idx: usize) -> Option<usize> {
         let shooter = &self.players[shooter_idx];
         let spread = shooter.weapon.spread_radians();
+        let weapon_range = shooter.weapon.range_units().min(HITSCAN_RANGE);
         let ray_dx = shooter.yaw.cos();
         let ray_dz = shooter.yaw.sin();
 
-        let mut closest_dist = HITSCAN_RANGE;
+        let mut closest_dist = weapon_range;
         let mut closest_idx = None;
 
         for (i, target) in self.players.iter().enumerate() {
@@ -1337,9 +1338,11 @@ impl BotController {
 
         let mut action = Action::default();
 
-        // Quake chase: Flechette bots divert toward a live Rail/Scatter pad.
+        // Seek a role pad when Flechette and a better weapon is nearby.
+        // Prefer Scatter when the fight is close; Rail when it is long.
         if bot.weapon == WeaponType::Flechette && self.behavior != BotBehavior::Compliance {
-            let mut best: Option<(f32, f32, f32)> = None; // dist, x, z
+            let want_scatter = nearest_dist < 12.0;
+            let mut best: Option<(f32, f32, f32, WeaponType)> = None;
             for pad in &state.pickups {
                 let Some(pad_weapon) = pad.kind.weapon() else {
                     continue;
@@ -1351,19 +1354,27 @@ impl BotController {
                 let pdz = pad.z - bot.z;
                 let pdist = (pdx * pdx + pdz * pdz).sqrt();
                 if pdist < 28.0 {
+                    // Soft preference: matching role is closer in score space.
+                    let role_bonus = match (want_scatter, pad_weapon) {
+                        (true, WeaponType::Scatter) => 0.0,
+                        (false, WeaponType::Rail) => 0.0,
+                        _ => 6.0,
+                    };
+                    let score = pdist + role_bonus;
                     let take = match best {
-                        Some((d, _, _)) => pdist < d,
+                        Some((s, _, _, _)) => score < s,
                         None => true,
                     };
                     if take {
-                        best = Some((pdist, pad.x, pad.z));
+                        best = Some((score, pad.x, pad.z, pad_weapon));
                     }
                 }
             }
-            if let Some((pdist, px, pz)) = best {
+            if let Some((_, px, pz, _)) = best {
+                let pdx = px - bot.x;
+                let pdz = pz - bot.z;
+                let pdist = (pdx * pdx + pdz * pdz).sqrt();
                 if nearest_dist > 10.0 || pdist < nearest_dist * 0.7 {
-                    let pdx = px - bot.x;
-                    let pdz = pz - bot.z;
                     let pad_angle = pdz.atan2(pdx);
                     let mut pad_diff = pad_angle - bot.yaw;
                     while pad_diff > PI {
@@ -1388,9 +1399,18 @@ impl BotController {
             }
         }
 
+        // Hold the role lane for the weapon in hand.
+        let (prefer_min, prefer_max) = bot.weapon.preferred_range();
+        let fire_range = bot.weapon.range_units() * 0.95;
+        let aim_slack = match bot.weapon {
+            WeaponType::Rail => 0.22,
+            WeaponType::Scatter => 0.55,
+            WeaponType::Flechette => 0.40,
+        };
+
         match self.behavior {
             BotBehavior::Aggressive => {
-                // Always chase, fire when close
+                // Rush toward preferred band; Scatter push-in, Rail less so.
                 if angle_diff.abs() > 0.2 {
                     if angle_diff > 0.0 {
                         action.turn_right = true;
@@ -1398,14 +1418,20 @@ impl BotController {
                         action.turn_left = true;
                     }
                 }
-                action.forward = true;
-                if angle_diff.abs() < 0.6 && nearest_dist < 35.0 {
+                if nearest_dist > prefer_min {
+                    action.forward = true;
+                } else if nearest_dist < prefer_min * 0.6 && bot.weapon != WeaponType::Scatter {
+                    action.back = true;
+                } else {
+                    action.forward = true;
+                }
+                if angle_diff.abs() < aim_slack && nearest_dist < fire_range {
                     action.fire = true;
                 }
             }
 
             BotBehavior::Defensive => {
-                // Keep distance, strafe, precise shooting
+                // Hold preferred band, strafe, precise shots (Rail-friendly).
                 if angle_diff.abs() > 0.15 {
                     if angle_diff > 0.0 {
                         action.turn_right = true;
@@ -1414,26 +1440,22 @@ impl BotController {
                     }
                 }
 
-                if nearest_dist < 8.0 {
+                if nearest_dist < prefer_min {
                     action.back = true;
-                } else if nearest_dist > 15.0 {
+                } else if nearest_dist > prefer_max {
                     action.forward = true;
+                } else if (state.tick % 40) < 20 {
+                    action.left = true;
                 } else {
-                    // Strafe at optimal range
-                    if (state.tick % 40) < 20 {
-                        action.left = true;
-                    } else {
-                        action.right = true;
-                    }
+                    action.right = true;
                 }
 
-                if angle_diff.abs() < 0.3 && nearest_dist < 25.0 {
+                if angle_diff.abs() < aim_slack.min(0.3) && nearest_dist < fire_range {
                     action.fire = true;
                 }
             }
 
             BotBehavior::Flanker => {
-                // Circle around target, fire from sides
                 if angle_diff.abs() > 0.25 {
                     if angle_diff > 0.0 {
                         action.turn_right = true;
@@ -1442,11 +1464,10 @@ impl BotController {
                     }
                 }
 
-                if nearest_dist > 10.0 {
+                if nearest_dist > prefer_max {
                     action.forward = true;
                 } else {
-                    // Circle strafe
-                    action.forward = true;
+                    action.forward = nearest_dist > prefer_min;
                     if (state.tick % 60) < 30 {
                         action.left = true;
                         action.turn_left = true;
@@ -1456,13 +1477,12 @@ impl BotController {
                     }
                 }
 
-                if angle_diff.abs() < 0.5 && nearest_dist < 30.0 {
+                if angle_diff.abs() < aim_slack && nearest_dist < fire_range {
                     action.fire = true;
                 }
             }
 
             BotBehavior::Balanced => {
-                // Standard chase and shoot
                 if angle_diff.abs() > 0.3 {
                     if angle_diff > 0.0 {
                         action.turn_right = true;
@@ -1471,17 +1491,19 @@ impl BotController {
                     }
                 }
 
-                if nearest_dist > 5.0 {
+                if nearest_dist > prefer_min {
                     action.forward = true;
+                } else if nearest_dist < prefer_min * 0.7 {
+                    action.back = true;
                 }
 
-                if angle_diff.abs() < 0.5 && nearest_dist < 30.0 {
+                if angle_diff.abs() < aim_slack && nearest_dist < fire_range {
                     action.fire = true;
                 }
             }
 
             BotBehavior::Compliance => {
-                // Mid-range Rail enforcer: hold orbit near center, precise shots.
+                // Mid-range Rail enforcer: hold orbit, precise shots.
                 if angle_diff.abs() > 0.12 {
                     if angle_diff > 0.0 {
                         action.turn_right = true;
@@ -1489,16 +1511,16 @@ impl BotController {
                         action.turn_left = true;
                     }
                 }
-                if nearest_dist < 10.0 {
+                if nearest_dist < prefer_min {
                     action.back = true;
-                } else if nearest_dist > 22.0 {
+                } else if nearest_dist > prefer_max {
                     action.forward = true;
                 } else if (state.tick % 50) < 25 {
                     action.left = true;
                 } else {
                     action.right = true;
                 }
-                if angle_diff.abs() < 0.25 && nearest_dist < 40.0 {
+                if angle_diff.abs() < 0.25 && nearest_dist < fire_range {
                     action.fire = true;
                 }
             }
