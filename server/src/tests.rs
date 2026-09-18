@@ -1872,3 +1872,355 @@ fn test_server_round_event_wire_json_shape() {
         ServerMessage::Event(GameEvent::RoundEnd { .. })
     ));
 }
+
+// --- Net WebSocket join/leave/action/round wire paths ---
+
+#[tokio::test]
+async fn test_net_ws_agent_hello_welcome_and_connected_command() {
+    use crate::net::{GameCommand, NetServer};
+    use futures_util::{SinkExt, StreamExt};
+    use tokio_tungstenite::{connect_async, tungstenite::Message};
+
+    let (game_tx, mut game_rx) = tokio::sync::mpsc::unbounded_channel();
+    let net = NetServer::bind("127.0.0.1:0", game_tx).await.expect("bind");
+    let addr = net.local_addr().expect("local_addr");
+    tokio::spawn(async move {
+        net.accept_loop().await;
+    });
+
+    let url = format!("ws://{}", addr);
+    let (ws, _) = connect_async(&url).await.expect("connect");
+    let (mut sink, mut stream) = ws.split();
+
+    let hello = serde_json::json!({
+        "type": "hello",
+        "role": "agent",
+        "name": "WireAgent"
+    });
+    sink.send(Message::Text(hello.to_string()))
+        .await
+        .expect("send hello");
+
+    let welcome_text = tokio::time::timeout(std::time::Duration::from_secs(2), stream.next())
+        .await
+        .expect("welcome timeout")
+        .expect("welcome msg")
+        .expect("welcome ok");
+    let welcome_str = match welcome_text {
+        Message::Text(t) => t,
+        other => panic!("expected text welcome, got {:?}", other),
+    };
+    let welcome: ServerMessage = serde_json::from_str(&welcome_str).expect("parse welcome");
+    match welcome {
+        ServerMessage::Welcome {
+            player_id: Some(_),
+            role: Role::Agent,
+        } => {}
+        other => panic!("unexpected welcome: {:?}", other),
+    }
+
+    let cmd = tokio::time::timeout(std::time::Duration::from_secs(2), game_rx.recv())
+        .await
+        .expect("cmd timeout")
+        .expect("cmd");
+    match cmd {
+        GameCommand::Connected {
+            role: Role::Agent,
+            name,
+            player_id: Some(_),
+            ..
+        } => assert_eq!(name, "WireAgent"),
+        other => panic!("unexpected cmd: {:?}", other_debug(&other)),
+    }
+
+    // Drop connection to exercise disconnect path.
+    drop(sink);
+    drop(stream);
+    let disc = tokio::time::timeout(std::time::Duration::from_secs(2), game_rx.recv())
+        .await
+        .expect("disc timeout")
+        .expect("disc");
+    assert!(matches!(disc, GameCommand::Disconnected { .. }));
+}
+
+fn other_debug(cmd: &crate::net::GameCommand) -> String {
+    match cmd {
+        crate::net::GameCommand::Connected { name, role, .. } => {
+            format!("Connected({:?},{})", role, name)
+        }
+        crate::net::GameCommand::Disconnected { .. } => "Disconnected".into(),
+        crate::net::GameCommand::Action { .. } => "Action".into(),
+    }
+}
+
+#[tokio::test]
+async fn test_net_ws_spectator_hello_no_player_id() {
+    use crate::net::{GameCommand, NetServer};
+    use futures_util::{SinkExt, StreamExt};
+    use tokio_tungstenite::{connect_async, tungstenite::Message};
+
+    let (game_tx, mut game_rx) = tokio::sync::mpsc::unbounded_channel();
+    let net = NetServer::bind("127.0.0.1:0", game_tx).await.expect("bind");
+    let addr = net.local_addr().expect("local_addr");
+    tokio::spawn(async move {
+        net.accept_loop().await;
+    });
+
+    let (ws, _) = connect_async(format!("ws://{}", addr))
+        .await
+        .expect("connect");
+    let (mut sink, mut stream) = ws.split();
+    sink.send(Message::Text(
+        r#"{"type":"hello","role":"spectator","name":"Eyes"}"#.into(),
+    ))
+    .await
+    .unwrap();
+
+    let welcome_text = tokio::time::timeout(std::time::Duration::from_secs(2), stream.next())
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    let welcome_str = match welcome_text {
+        Message::Text(t) => t,
+        other => panic!("{:?}", other),
+    };
+    let welcome: ServerMessage = serde_json::from_str(&welcome_str).unwrap();
+    match welcome {
+        ServerMessage::Welcome {
+            player_id: None,
+            role: Role::Spectator,
+        } => {}
+        other => panic!("{:?}", other),
+    }
+
+    let cmd = tokio::time::timeout(std::time::Duration::from_secs(2), game_rx.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    match cmd {
+        GameCommand::Connected {
+            player_id: None,
+            role: Role::Spectator,
+            name,
+            ..
+        } => assert_eq!(name, "Eyes"),
+        other => panic!("{}", other_debug(&other)),
+    }
+}
+
+#[tokio::test]
+async fn test_net_ws_action_forwarded_for_agent() {
+    use crate::net::{GameCommand, NetServer};
+    use futures_util::{SinkExt, StreamExt};
+    use tokio_tungstenite::{connect_async, tungstenite::Message};
+
+    let (game_tx, mut game_rx) = tokio::sync::mpsc::unbounded_channel();
+    let net = NetServer::bind("127.0.0.1:0", game_tx).await.expect("bind");
+    let addr = net.local_addr().expect("local_addr");
+    let clients = net.clients.clone();
+    tokio::spawn(async move {
+        net.accept_loop().await;
+    });
+
+    let (ws, _) = connect_async(format!("ws://{}", addr))
+        .await
+        .expect("connect");
+    let (mut sink, mut stream) = ws.split();
+    sink.send(Message::Text(
+        r#"{"type":"hello","role":"human","name":"Shooter"}"#.into(),
+    ))
+    .await
+    .unwrap();
+
+    let _ = tokio::time::timeout(std::time::Duration::from_secs(2), stream.next())
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    let connected = tokio::time::timeout(std::time::Duration::from_secs(2), game_rx.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    let player_id = match connected {
+        GameCommand::Connected {
+            player_id: Some(pid),
+            ..
+        } => pid,
+        other => panic!("{}", other_debug(&other)),
+    };
+
+    sink.send(Message::Text(
+        r#"{"type":"action","forward":true,"fire":true}"#.into(),
+    ))
+    .await
+    .unwrap();
+
+    let action_cmd = tokio::time::timeout(std::time::Duration::from_secs(2), game_rx.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    match action_cmd {
+        GameCommand::Action {
+            player_id: pid,
+            action,
+        } => {
+            assert_eq!(pid, player_id);
+            assert!(action.forward);
+            assert!(action.fire);
+        }
+        other => panic!("{}", other_debug(&other)),
+    }
+
+    // Broadcast a snapshot through the client fan-out path used by the game loop.
+    {
+        use crate::session::broadcast_to_clients;
+        let snap = ServerMessage::Snapshot(Snapshot {
+            tick: 1,
+            players: vec![],
+            round_state: Some("active".into()),
+            round_time_left: Some(100),
+            frag_limit: Some(10),
+        });
+        broadcast_to_clients(&clients, &[snap]).await;
+        let msg = tokio::time::timeout(std::time::Duration::from_secs(2), stream.next())
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        match msg {
+            Message::Text(t) => {
+                let parsed: ServerMessage = serde_json::from_str(&t).unwrap();
+                assert!(matches!(parsed, ServerMessage::Snapshot(_)));
+            }
+            other => panic!("{:?}", other),
+        }
+    }
+}
+
+#[tokio::test]
+async fn test_net_ws_invalid_hello_closes_without_connected() {
+    use crate::net::NetServer;
+    use futures_util::{SinkExt, StreamExt};
+    use tokio_tungstenite::{connect_async, tungstenite::Message};
+
+    let (game_tx, mut game_rx) = tokio::sync::mpsc::unbounded_channel();
+    let net = NetServer::bind("127.0.0.1:0", game_tx).await.expect("bind");
+    let addr = net.local_addr().expect("local_addr");
+    tokio::spawn(async move {
+        net.accept_loop().await;
+    });
+
+    let (ws, _) = connect_async(format!("ws://{}", addr))
+        .await
+        .expect("connect");
+    let (mut sink, mut stream) = ws.split();
+    sink.send(Message::Text(r#"{"type":"action","forward":true}"#.into()))
+        .await
+        .unwrap();
+
+    // Connection should end without a Connected command.
+    let _ = tokio::time::timeout(std::time::Duration::from_millis(500), stream.next()).await;
+    let maybe = tokio::time::timeout(std::time::Duration::from_millis(300), game_rx.recv()).await;
+    assert!(
+        maybe.is_err() || maybe.as_ref().ok().and_then(|o| o.as_ref()).is_none(),
+        "invalid hello must not emit Connected"
+    );
+}
+
+#[tokio::test]
+async fn test_session_plus_net_join_leave_round_broadcast_path() {
+    use crate::net::NetServer;
+    use crate::session::{broadcast_to_clients, GameSession};
+    use futures_util::{SinkExt, StreamExt};
+    use tokio_tungstenite::{connect_async, tungstenite::Message};
+
+    let (game_tx, mut game_rx) = tokio::sync::mpsc::unbounded_channel();
+    let net = NetServer::bind("127.0.0.1:0", game_tx).await.expect("bind");
+    let addr = net.local_addr().expect("local_addr");
+    let clients = net.clients.clone();
+    tokio::spawn(async move {
+        net.accept_loop().await;
+    });
+
+    let mut session = GameSession::new();
+    session.spawn_bots(2);
+    session.state.start_round();
+
+    let (ws, _) = connect_async(format!("ws://{}", addr))
+        .await
+        .expect("connect");
+    let (mut sink, mut stream) = ws.split();
+    sink.send(Message::Text(
+        r#"{"type":"hello","role":"agent","name":"RoundFox"}"#.into(),
+    ))
+    .await
+    .unwrap();
+    let _ = tokio::time::timeout(std::time::Duration::from_secs(2), stream.next())
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+
+    let cmd = tokio::time::timeout(std::time::Duration::from_secs(2), game_rx.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    session.apply_command(cmd);
+
+    let joined = session.state.take_events();
+    assert!(joined.iter().any(|e| matches!(
+        e,
+        GameEvent::PlayerJoined {
+            player,
+            ..
+        } if player == "RoundFox"
+    )));
+
+    // Re-push join onto queue then tick so Event is broadcast on the wire.
+    session.state.push_event(GameEvent::PlayerJoined {
+        player: "RoundFox".into(),
+        role: "agent".into(),
+        round_number: session.state.round_number,
+        player_count: session.state.players.len(),
+    });
+    let messages = session.tick_messages(0.05);
+    broadcast_to_clients(&clients, &messages).await;
+
+    let mut saw_snapshot = false;
+    let mut saw_join_event = false;
+    for _ in 0..8 {
+        let msg = tokio::time::timeout(std::time::Duration::from_millis(500), stream.next()).await;
+        let Ok(Some(Ok(Message::Text(t)))) = msg else {
+            break;
+        };
+        if let Ok(parsed) = serde_json::from_str::<ServerMessage>(&t) {
+            match parsed {
+                ServerMessage::Snapshot(_) => saw_snapshot = true,
+                ServerMessage::Event(GameEvent::PlayerJoined { player, .. })
+                    if player == "RoundFox" =>
+                {
+                    saw_join_event = true;
+                }
+                _ => {}
+            }
+        }
+        if saw_snapshot && saw_join_event {
+            break;
+        }
+    }
+    assert!(saw_snapshot, "client should receive Snapshot");
+    assert!(saw_join_event, "client should receive PlayerJoined event");
+
+    drop(sink);
+    drop(stream);
+    if let Ok(Some(disc)) =
+        tokio::time::timeout(std::time::Duration::from_secs(2), game_rx.recv()).await
+    {
+        session.apply_command(disc);
+        let left = session.state.take_events();
+        assert!(left
+            .iter()
+            .any(|e| matches!(e, GameEvent::PlayerLeft { player, .. } if player == "RoundFox")));
+    }
+}

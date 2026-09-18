@@ -1,14 +1,16 @@
 # fragr docs/screenshots
 
-## Current Status: MOOD ART ONLY
+## Current status: mood plates (not tip captures yet)
 
-**All screenshots in this directory are MOOD ART, not live client captures.** These are concept images showing the intended visual direction and feature set. They do not represent the current playable state of the game.
+Files in this directory are still **mood / concept plates**, not live Godot tip captures. They show intended visual direction. Do not treat them as proof of the current playable HUD or arena.
 
-## Standing Rule
+Live tip captures are the goal (see [`../plans/tip-screenshots.md`](../plans/tip-screenshots.md) and `tools/capture_tip_screenshots.sh`). Until those land, README must say these are mood plates, not "live gameplay."
 
-README screenshots MUST match the current playable UI. When the Godot client has weapons, sprites, HUD elements, or arena features that differ from these mood plates, regenerate captures to show what actually runs. Stale mood stubs that misrepresent the build are forbidden.
+## Standing rule
 
-## Current Mood Plates
+README screenshots MUST match the current playable UI once live captures exist. Stale mood stubs that misrepresent the build as tip gameplay are forbidden. Carve-outs that hide missing tip shots behind vague wording are also forbidden.
+
+## Current mood plates
 
 | File | Aspect | Purpose |
 |------|--------|---------|
@@ -19,20 +21,16 @@ README screenshots MUST match the current playable UI. When the Godot client has
 | `05_weapon_icons_1x1.png` | 1:1 | Weapon icon concepts |
 | `06_map_callouts_16x9.png` | 16:9 | Map callout concepts |
 
-Boomer-arena energy. **No Doom IP.** 
+Boomer-arena energy. **No Doom IP.**
 
-## Live Capture Instructions (when ready)
-
-When the Godot client is playable and ready for honest screenshots:
+## How tip captures replace these
 
 1. Launch server: `cargo run -p fragr-server -- --bots 4`
-2. Open `client/` in Godot 4.7.2-stable editor
-3. Run scene (F5) in spectator mode
-4. Wait for bots to engage (30s)
-5. Capture screenshots showing actual gameplay
-6. Replace mood art files with live captures (same filenames)
-7. Update this README to remove "MOOD ART ONLY" warning
-8. Update main README note from "Mood art" to "Live gameplay"
+2. Run `tools/capture_tip_screenshots.sh` (Xvfb + Godot 4.7.2-stable + opengl3) or capture manually in the editor
+3. Wait for bots to engage, HUD/killfeed populated, no pink shader frames
+4. Replace mood plate files with live captures (same filenames) when stills are honest
+5. Update this README to drop the mood-only status and say "live tip captures"
+6. Update main README from "Mood art" to "Live gameplay"
 
 Live captures must show what currently runs. No aspirational features. No concept art labeled as gameplay.
 
