@@ -112,6 +112,20 @@ func _on_connected():
 func _on_disconnected():
 	hud.set_status("Disconnected")
 	hud.reset_host_chrome()
+	_clear_world()
+
+func _clear_world() -> void:
+	# Drop presentation nodes so rejoin does not keep stale pawns/pads.
+	for id in players.keys():
+		if is_instance_valid(players[id]):
+			players[id].queue_free()
+	players.clear()
+	for pid in pickups.keys():
+		if is_instance_valid(pickups[pid]):
+			pickups[pid].queue_free()
+	pickups.clear()
+	if camera:
+		camera.set_available_targets([])
 
 func _on_snapshot_received(data):
 	var tick = data.get("tick", 0)
@@ -149,7 +163,12 @@ func _on_snapshot_received(data):
 		current_ids[id] = true
 		
 		if not players.has(id):
+			if player_scene == null or not is_instance_valid(arena):
+				continue
 			var pawn = player_scene.instantiate()
+			if pawn == null:
+				push_warning("game_manager: player instantiate returned null for " + str(id))
+				continue
 			arena.add_child(pawn)
 			pawn.position = Vector3(player_data.x, player_data.y, player_data.z)
 			pawn.rotation.y = player_data.yaw
@@ -263,7 +282,12 @@ func _sync_pickups(pickup_list):
 		var pos = Vector3(float(pad.get("x", 0.0)), float(pad.get("y", 0.4)), float(pad.get("z", 0.0)))
 		var is_up = bool(pad.get("available", true))
 		if not pickups.has(pid):
+			if pickup_scene == null or not is_instance_valid(arena):
+				continue
 			var node = pickup_scene.instantiate()
+			if node == null:
+				push_warning("game_manager: pickup instantiate returned null for " + pid)
+				continue
 			arena.add_child(node)
 			node.setup(pid, weapon, pos, kind, amount)
 			pickups[pid] = node
