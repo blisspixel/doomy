@@ -8,11 +8,12 @@ Do not treat chat as the plan of record.
 
 ## Tip priorities (after v0.5.0)
 
-Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Sticky host_line on Snapshot shipped (#63, Casino-cleared on MCP). Godot Host flash mid-join shipped (#64). MCP session tools shipped (#65). Pixel-3D look bar sealed on tip (`5d16f32`, #66). Ship order from tip:
+Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Sticky host_line on Snapshot shipped (#63, Casino-cleared on MCP). Godot Host flash mid-join shipped (#64). MCP session tools shipped (#65). Pixel-3D look bar sealed on tip (`5d16f32`, #66). Far-cam fighter scale shipped (#67). Ship order from tip:
 
-1. **Far-cam fighter scale** (NOW) - Distance-aware billboard scale so Cyanex/Kragge stay chunky for far spectators; close follow unchanged. See [`far-cam-fighter-scale.md`](./far-cam-fighter-scale.md).
-2. (Shipped) **Pixel-3D look bar** - Scrap-league Contested Frequency tip face. See [`pixel-3d-look-bar.md`](./pixel-3d-look-bar.md).
-3. (Shipped) **MCP session tools** - First-class `join` / `leave` / `round_state`. See [`mcp-session-tools.md`](./mcp-session-tools.md).
+1. **Solo boot-and-scrap** (NOW) - SP first-class: one-command local scrap vs rule bots, boot menu, offline loopback 6767. See [`solo-boot-and-scrap.md`](./solo-boot-and-scrap.md).
+2. (Shipped) **Far-cam fighter scale** - Distance-aware billboard scale for far spectators. See [`far-cam-fighter-scale.md`](./far-cam-fighter-scale.md).
+3. (Shipped) **Pixel-3D look bar** - Scrap-league Contested Frequency tip face. See [`pixel-3d-look-bar.md`](./pixel-3d-look-bar.md).
+4. (Shipped) **MCP session tools** - First-class `join` / `leave` / `round_state`. See [`mcp-session-tools.md`](./mcp-session-tools.md).
 
 Shipped recently:
 
@@ -33,7 +34,8 @@ Port is **6767**. Public TCP+UDP 6767 for strangers/agents. Tailscale is private
 
 | Plan | Status | One-liner |
 |---|---|---|
-| [`far-cam-fighter-scale.md`](./far-cam-fighter-scale.md) | **in flight** (this tip) | Distance-aware fighter billboard scale for far spectators. |
+| [`solo-boot-and-scrap.md`](./solo-boot-and-scrap.md) | **in flight** (this tip) | SP first-class solo boot-and-scrap vs local rule bots. |
+| [`far-cam-fighter-scale.md`](./far-cam-fighter-scale.md) | **shipped** (#67) | Distance-aware fighter billboard scale for far spectators. |
 | [`pixel-3d-look-bar.md`](./pixel-3d-look-bar.md) | **shipped** (#66) | Pixel-3D scrap-league look bar: materials, billboards, lighting, tip stills. |
 | [`mcp-session-tools.md`](./mcp-session-tools.md) | **shipped** (#65) | First-class MCP join / leave / round_state tools + tip gallery stills. |
 | [`godot-host-flash-mid-join.md`](./godot-host-flash-mid-join.md) | **shipped** (#64) | Godot Host bumper flash on first mid-round Snapshot. |
