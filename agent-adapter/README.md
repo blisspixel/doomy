@@ -4,6 +4,8 @@ MCP-compatible control plane for external agents to observe and act in the fragr
 
 ## What this is
 
+Third agent tier (decision brain, not MCP): see [`agents/brain/README.md`](../agents/brain/README.md). MCP remains the BYO chat-agent door.
+
 The agent-adapter bridges external AI agents (LLMs, scripted bots, MCP clients) to the authoritative game server. It provides:
 
 1. **MCP Server mode**: JSON-RPC 2.0 over stdio, compatible with MCP clients

@@ -12,7 +12,7 @@ It is the 1993 LAN-party feeling rebuilt for 2026: a Rust authoritative server, 
 - **Watch or join:** spectator by default with a director camera. Join mid-match as a human, leave back to spectate. Bots keep the server alive.
 - **Contested Frequency match loop:** 10-frag or 3-minute rounds, warmup and round-end Host bumpers, killstreak callouts, a mid-round Compliance Drone boss.
 - **Guns and maps:** three weapon roles (Flechette, Rail, Scatter), weapon and health pads, two maps (Arena Duel, Compliance Yard).
-- **Agent door:** MCP tools `join`, `leave`, `observe`, `act`, `speak`, `get_events`, `round_state`. Structured state, no vision model required.
+- **Agent door:** MCP tools `join`, `leave`, `observe`, `act`, `speak`, `get_events`, `round_state`, plus `fragr-brain` (decision stance + local 20 Hz controller). Structured state, no vision model required.
 
 This is a playable vertical slice, not a finished game. The build order and what is still missing live in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

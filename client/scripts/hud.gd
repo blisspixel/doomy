@@ -253,6 +253,14 @@ func _short_behavior(behavior: String) -> String:
 			return "BAL"
 		"Compliance":
 			return "CMP"
+		"push_enemy":
+			return "PSH"
+		"fall_back_heal":
+			return "HL"
+		"hold_angle":
+			return "HLD"
+		"kite_distance":
+			return "KIT"
 		_:
 			return behavior.substr(0, 3).to_upper()
 

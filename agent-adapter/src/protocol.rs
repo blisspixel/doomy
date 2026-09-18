@@ -43,9 +43,14 @@ pub enum WeaponType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ClientMessage {
-    Hello { role: Role, name: String },
+    Hello {
+        role: Role,
+        name: String,
+    },
     Action(Action),
     Speak(Speak),
+    /// Agent-only display label echoed into Snapshot PlayerState.behavior.
+    SetDisplayBehavior(SetDisplayBehavior),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -92,6 +97,13 @@ pub struct LookAt {
 #[serde(deny_unknown_fields)]
 pub struct Speak {
     pub text: String,
+}
+
+/// Observe-only stance / tactics chip for Agent clients (control plane).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct SetDisplayBehavior {
+    pub behavior: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

@@ -247,6 +247,13 @@ impl GameSession {
                     }
                 }
             }
+
+            GameCommand::SetDisplayBehavior {
+                player_id,
+                behavior,
+            } => {
+                let _ = self.state.set_display_behavior(player_id, &behavior);
+            }
         }
     }
 
@@ -749,6 +756,62 @@ mod session_tests {
             "overlong speak must Error unicast, got {:?}",
             u
         );
+    }
+
+    #[test]
+    fn agent_set_display_behavior_echoes_in_snapshot() {
+        let mut session = GameSession::new();
+        let client = Uuid::new_v4();
+        let player = Uuid::new_v4();
+        session.apply_command(GameCommand::Connected {
+            id: client,
+            role: Role::Agent,
+            name: "Brain-1".into(),
+            player_id: Some(player),
+        });
+        session.apply_command(GameCommand::SetDisplayBehavior {
+            player_id: player,
+            behavior: "push_enemy".into(),
+        });
+        let snap = session.state.snapshot();
+        let me = snap
+            .players
+            .iter()
+            .find(|p| p.id == player)
+            .expect("agent in snapshot");
+        assert_eq!(me.behavior.as_deref(), Some("push_enemy"));
+
+        session.apply_command(GameCommand::SetDisplayBehavior {
+            player_id: player,
+            behavior: "hold_angle".into(),
+        });
+        let snap = session.state.snapshot();
+        let me = snap.players.iter().find(|p| p.id == player).unwrap();
+        assert_eq!(me.behavior.as_deref(), Some("hold_angle"));
+    }
+
+    #[test]
+    fn human_and_rule_bot_cannot_set_display_behavior() {
+        let mut session = GameSession::new();
+        let human_client = Uuid::new_v4();
+        let human = Uuid::new_v4();
+        session.apply_command(GameCommand::Connected {
+            id: human_client,
+            role: Role::Human,
+            name: "Player".into(),
+            player_id: Some(human),
+        });
+        assert!(!session.state.set_display_behavior(human, "push_enemy"));
+        let snap = session.state.snapshot();
+        let me = snap.players.iter().find(|p| p.id == human).unwrap();
+        assert!(me.behavior.is_none());
+
+        session.spawn_bots(1);
+        let bot_id = session.state.bots[0].player_id;
+        assert!(!session.state.set_display_behavior(bot_id, "push_enemy"));
+        let snap = session.state.snapshot();
+        let bot = snap.players.iter().find(|p| p.id == bot_id).unwrap();
+        assert_eq!(bot.behavior.as_deref(), Some("Aggressive"));
     }
 
     #[test]

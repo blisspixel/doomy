@@ -582,6 +582,8 @@ pub struct Player {
     pub is_boss: bool,
     /// Within-round killstreak (resets on death and round boundaries).
     pub killstreak: u32,
+    /// Agent-set observe chip (never used for combat). Rule bots use BotController.
+    pub display_behavior: Option<String>,
 }
 
 impl GameState {
@@ -742,6 +744,7 @@ impl GameState {
             last_speak_tick: None,
             is_boss: false,
             killstreak: 0,
+            display_behavior: None,
         });
 
         self.scores.entry(id).or_insert(0);
@@ -761,6 +764,37 @@ impl GameState {
         if let Some(player) = self.players.iter_mut().find(|p| p.id == id) {
             player.pending_action = action;
         }
+    }
+
+    /// Max Unicode scalars for an Agent display-behavior chip.
+    pub const DISPLAY_BEHAVIOR_MAX_CHARS: usize = 32;
+
+    /// Set observe-only behavior label for an Agent. Ignores humans, spectators,
+    /// rule bots (players with a BotController), empty/overlong/control text.
+    /// Never influences combat.
+    pub fn set_display_behavior(&mut self, id: Uuid, raw: &str) -> bool {
+        if self.bots.iter().any(|b| b.player_id == id) {
+            return false;
+        }
+        let trimmed: String = raw
+            .trim()
+            .chars()
+            .take(Self::DISPLAY_BEHAVIOR_MAX_CHARS + 1)
+            .collect();
+        if trimmed.is_empty() || trimmed.chars().count() > Self::DISPLAY_BEHAVIOR_MAX_CHARS {
+            return false;
+        }
+        if trimmed.chars().any(|c| c.is_control()) {
+            return false;
+        }
+        let Some(player) = self.players.iter_mut().find(|p| p.id == id) else {
+            return false;
+        };
+        if player.role != Role::Agent {
+            return false;
+        }
+        player.display_behavior = Some(trimmed);
+        true
     }
 
     pub fn tick(&mut self, dt: f32) {
@@ -1238,7 +1272,8 @@ impl GameState {
                         .bots
                         .iter()
                         .find(|b| b.player_id == p.id)
-                        .map(|b| format!("{:?}", b.behavior));
+                        .map(|b| format!("{:?}", b.behavior))
+                        .or_else(|| p.display_behavior.clone());
 
                     PlayerState {
                         id: p.id,
@@ -1440,6 +1475,7 @@ impl GameState {
             last_speak_tick: None,
             is_boss: true,
             killstreak: 0,
+            display_behavior: None,
         });
         self.bots
             .push(BotController::new(id, BotBehavior::Compliance));
