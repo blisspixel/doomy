@@ -12,6 +12,10 @@ pub fn default_playlist() -> String {
     PLAYLIST_NAME.to_string()
 }
 
+pub fn default_pickup_kind() -> String {
+    "weapon".to_string()
+}
+
 pub fn default_host_line() -> String {
     "HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE. ARENA DUEL IS LIVE.".to_string()
 }
@@ -116,11 +120,16 @@ pub struct ShotResult {
     pub target_hp_after: Option<i32>,
 }
 
-/// Floor weapon pad state mirrored from server Snapshot.
+/// Floor pickup pad state mirrored from server Snapshot.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PickupState {
     pub id: String,
+    #[serde(default = "default_pickup_kind")]
+    pub kind: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub weapon: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub amount: Option<i32>,
     pub x: f32,
     pub y: f32,
     pub z: f32,
@@ -162,6 +171,8 @@ pub struct PlayerState {
     pub z: f32,
     pub yaw: f32,
     pub hp: i32,
+    #[serde(default)]
+    pub armor: i32,
     pub just_fired: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub behavior: Option<String>,
@@ -245,7 +256,12 @@ pub enum GameEvent {
     Pickup {
         player: String,
         player_id: Uuid,
+        #[serde(default = "default_pickup_kind")]
+        kind: String,
+        #[serde(default, skip_serializing_if = "String::is_empty")]
         weapon: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        amount: Option<i32>,
         pickup_id: String,
     },
     Speak {

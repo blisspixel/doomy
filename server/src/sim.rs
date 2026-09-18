@@ -20,10 +20,18 @@ pub const SPEAK_MAX_CHARS: usize = 80;
 pub const SPEAK_COOLDOWN_TICKS: u64 = 60;
 /// Continuance Compliance Drone hit points (tankier than scrap fighters).
 pub const BOSS_MAX_HP: i32 = 200;
-/// Touch radius for mid-map weapon pads.
+/// Touch radius for mid-map pickup pads.
 pub const PICKUP_CLAIM_RADIUS: f32 = 1.75;
-/// Ticks until a claimed pad respawns (~12s at 20 Hz).
+/// Ticks until a claimed weapon pad respawns (~12s at 20 Hz).
 pub const PICKUP_RESPAWN_TICKS: u32 = 20 * 12;
+/// Ticks until a claimed health/armor pad respawns (~15s at 20 Hz).
+pub const HEALTH_PICKUP_RESPAWN_TICKS: u32 = 20 * 15;
+/// Max scrap armor (simple absorb-before-HP).
+pub const PLAYER_MAX_ARMOR: i32 = 100;
+/// Health pad heal amount (capped at PLAYER_MAX_HP).
+pub const HEALTH_PAD_AMOUNT: i32 = 40;
+/// Armor scrap grant amount (capped at PLAYER_MAX_ARMOR).
+pub const ARMOR_PAD_AMOUNT: i32 = 25;
 
 /// Result of attempting an off-tick speak.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -69,11 +77,37 @@ impl Default for MatchConfig {
     }
 }
 
-/// Authoritative mid-map weapon pad (Quake chase energy).
+/// What a mid-map pad grants on claim.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PickupKind {
+    Weapon(WeaponType),
+    Health,
+    Armor,
+}
+
+impl PickupKind {
+    pub fn wire_name(self) -> &'static str {
+        match self {
+            PickupKind::Weapon(_) => "weapon",
+            PickupKind::Health => "health",
+            PickupKind::Armor => "armor",
+        }
+    }
+
+    pub fn weapon(self) -> Option<WeaponType> {
+        match self {
+            PickupKind::Weapon(w) => Some(w),
+            _ => None,
+        }
+    }
+}
+
+/// Authoritative mid-map pad (weapon / health / armor; Quake chase energy).
 #[derive(Debug, Clone)]
-pub struct WeaponPickup {
+pub struct ArenaPickup {
     pub id: String,
-    pub weapon: WeaponType,
+    pub kind: PickupKind,
+    pub amount: i32,
     pub x: f32,
     pub y: f32,
     pub z: f32,
@@ -81,11 +115,22 @@ pub struct WeaponPickup {
     pub respawn_timer: Option<u32>,
 }
 
-impl WeaponPickup {
+impl ArenaPickup {
     fn to_state(&self) -> PickupState {
+        let weapon = self
+            .kind
+            .weapon()
+            .map(|w| w.name().to_string())
+            .unwrap_or_default();
+        let amount = match self.kind {
+            PickupKind::Weapon(_) => None,
+            PickupKind::Health | PickupKind::Armor => Some(self.amount),
+        };
         PickupState {
             id: self.id.clone(),
-            weapon: self.weapon.name().to_string(),
+            kind: self.kind.wire_name().to_string(),
+            weapon,
+            amount,
             x: self.x,
             y: self.y,
             z: self.z,
@@ -97,34 +142,74 @@ impl WeaponPickup {
             },
         }
     }
+
+    fn respawn_ticks(&self) -> u32 {
+        match self.kind {
+            PickupKind::Weapon(_) => PICKUP_RESPAWN_TICKS,
+            PickupKind::Health | PickupKind::Armor => HEALTH_PICKUP_RESPAWN_TICKS,
+        }
+    }
 }
 
-fn default_arena_pickups() -> Vec<WeaponPickup> {
+fn default_arena_pickups() -> Vec<ArenaPickup> {
     vec![
-        WeaponPickup {
+        ArenaPickup {
             id: "pad_rail".to_string(),
-            weapon: WeaponType::Rail,
+            kind: PickupKind::Weapon(WeaponType::Rail),
+            amount: 0,
             x: 12.0,
             y: 0.4,
             z: 12.0,
             available: true,
             respawn_timer: None,
         },
-        WeaponPickup {
+        ArenaPickup {
             id: "pad_scatter".to_string(),
-            weapon: WeaponType::Scatter,
+            kind: PickupKind::Weapon(WeaponType::Scatter),
+            amount: 0,
             x: -12.0,
             y: 0.4,
             z: -12.0,
             available: true,
             respawn_timer: None,
         },
-        WeaponPickup {
+        ArenaPickup {
             id: "pad_flechette".to_string(),
-            weapon: WeaponType::Flechette,
+            kind: PickupKind::Weapon(WeaponType::Flechette),
+            amount: 0,
             x: -12.0,
             y: 0.4,
             z: 12.0,
+            available: true,
+            respawn_timer: None,
+        },
+        ArenaPickup {
+            id: "pad_health_n".to_string(),
+            kind: PickupKind::Health,
+            amount: HEALTH_PAD_AMOUNT,
+            x: 0.0,
+            y: 0.4,
+            z: 8.0,
+            available: true,
+            respawn_timer: None,
+        },
+        ArenaPickup {
+            id: "pad_health_s".to_string(),
+            kind: PickupKind::Health,
+            amount: HEALTH_PAD_AMOUNT,
+            x: 0.0,
+            y: 0.4,
+            z: -8.0,
+            available: true,
+            respawn_timer: None,
+        },
+        ArenaPickup {
+            id: "pad_armor".to_string(),
+            kind: PickupKind::Armor,
+            amount: ARMOR_PAD_AMOUNT,
+            x: 8.0,
+            y: 0.4,
+            z: 0.0,
             available: true,
             respawn_timer: None,
         },
@@ -151,8 +236,8 @@ pub struct GameState {
     pub boss_id: Option<Uuid>,
     /// Whether this Active round already spawned its drone.
     pub boss_spawned: bool,
-    /// Mid-map weapon pads (Solo Scrap + MP).
-    pub pickups: Vec<WeaponPickup>,
+    /// Mid-map pads: weapons, health, armor (Solo Scrap + MP).
+    pub pickups: Vec<ArenaPickup>,
 }
 
 pub struct Player {
@@ -163,6 +248,8 @@ pub struct Player {
     pub z: f32,
     pub yaw: f32,
     pub hp: i32,
+    /// Scrap armor; absorbs damage before HP (0 on spawn/respawn).
+    pub armor: i32,
     pub pending_action: Action,
     pub fire_cooldown: u32,
     pub respawn_timer: Option<u32>,
@@ -285,6 +372,7 @@ impl GameState {
             z: angle.sin() * spawn_radius,
             yaw: angle + PI,
             hp: PLAYER_MAX_HP,
+            armor: 0,
             pending_action: Action::default(),
             fire_cooldown: 0,
             respawn_timer: None,
@@ -523,7 +611,9 @@ impl GameState {
                 let victim = &mut self.players[victim_idx];
                 let target_id = victim.id;
                 let target_name = victim.name.clone();
-                victim.hp -= damage;
+                let absorbed = damage.min(victim.armor);
+                victim.armor -= absorbed;
+                victim.hp -= damage - absorbed;
                 let target_hp_after = victim.hp;
 
                 self.shot_results.push(ShotResult {
@@ -666,6 +756,7 @@ impl GameState {
             player.z = angle.sin() * spawn_radius;
             player.yaw = angle + PI;
             player.hp = PLAYER_MAX_HP;
+            player.armor = 0;
             player.respawn_timer = None;
             player.fire_cooldown = 0;
 
@@ -705,6 +796,7 @@ impl GameState {
                         z: p.z,
                         yaw: p.yaw,
                         hp: p.hp,
+                        armor: p.armor,
                         just_fired: p.just_fired,
                         behavior,
                         score: *self.scores.get(&p.id).unwrap_or(&0),
@@ -762,6 +854,14 @@ impl GameState {
                 if !pad.available {
                     continue;
                 }
+                let useful = match pad.kind {
+                    PickupKind::Weapon(_) => true,
+                    PickupKind::Health => player.hp < PLAYER_MAX_HP,
+                    PickupKind::Armor => player.armor < PLAYER_MAX_ARMOR,
+                };
+                if !useful {
+                    continue;
+                }
                 let dx = player.x - pad.x;
                 let dz = player.z - pad.z;
                 if dx * dx + dz * dz <= PICKUP_CLAIM_RADIUS * PICKUP_CLAIM_RADIUS {
@@ -776,23 +876,44 @@ impl GameState {
             if !pad.available {
                 continue; // raced / already taken this tick
             }
-            let weapon = pad.weapon;
+            let kind = pad.kind;
+            let amount = pad.amount;
             let pickup_id = pad.id.clone();
+            let respawn = pad.respawn_ticks();
             pad.available = false;
-            pad.respawn_timer = Some(PICKUP_RESPAWN_TICKS);
+            pad.respawn_timer = Some(respawn);
 
             let Some(player) = self.players.iter_mut().find(|p| p.id == player_id) else {
                 continue;
             };
-            player.weapon = weapon;
+            let (weapon_wire, amount_wire, label) = match kind {
+                PickupKind::Weapon(w) => {
+                    player.weapon = w;
+                    (w.name().to_string(), None, w.name().to_string())
+                }
+                PickupKind::Health => {
+                    let before = player.hp;
+                    player.hp = (player.hp + amount).min(PLAYER_MAX_HP);
+                    let gained = player.hp - before;
+                    (String::new(), Some(gained), format!("+{} HP", gained))
+                }
+                PickupKind::Armor => {
+                    let before = player.armor;
+                    player.armor = (player.armor + amount).min(PLAYER_MAX_ARMOR);
+                    let gained = player.armor - before;
+                    (String::new(), Some(gained), format!("+{} armor", gained))
+                }
+            };
             let name = player.name.clone();
             self.events.push(GameEvent::Pickup {
                 player: name.clone(),
                 player_id,
-                weapon: weapon.name().to_string(),
+                kind: kind.wire_name().to_string(),
+                weapon: weapon_wire,
+                amount: amount_wire,
                 pickup_id: pickup_id.clone(),
             });
-            tracing::info!("PICKUP: {} claimed {} ({})", name, weapon.name(), pickup_id);
+            tracing::info!("PICKUP: {} claimed {} ({})", name, label, pickup_id);
         }
     }
 
@@ -826,6 +947,7 @@ impl GameState {
             z: 0.0,
             yaw: 0.0,
             hp: BOSS_MAX_HP,
+            armor: 0,
             pending_action: Action::default(),
             fire_cooldown: 0,
             respawn_timer: None,
@@ -1029,7 +1151,10 @@ impl BotController {
         if bot.weapon == WeaponType::Flechette && self.behavior != BotBehavior::Compliance {
             let mut best: Option<(f32, f32, f32)> = None; // dist, x, z
             for pad in &state.pickups {
-                if !pad.available || pad.weapon == WeaponType::Flechette {
+                let Some(pad_weapon) = pad.kind.weapon() else {
+                    continue;
+                };
+                if !pad.available || pad_weapon == WeaponType::Flechette {
                     continue;
                 }
                 let pdx = pad.x - bot.x;

@@ -7,7 +7,7 @@ use crate::protocol::{
 #[cfg(test)]
 use crate::sim::{
     BotBehavior, BotController, GameState, MatchConfig, RoundState, BOSS_MAX_HP,
-    PICKUP_RESPAWN_TICKS,
+    HEALTH_PICKUP_RESPAWN_TICKS, PICKUP_RESPAWN_TICKS,
 };
 #[cfg(test)]
 use uuid::Uuid;
@@ -242,6 +242,7 @@ fn test_protocol_snapshot_serialization() {
             z: -5.0,
             yaw: 1.57,
             hp: 100,
+            armor: 0,
             just_fired: false,
             behavior: None,
             score: 5,
@@ -2884,12 +2885,25 @@ fn test_boss_down_wire_json_and_compliance_ai_acts() {
 fn test_sim_pickups_present_in_snapshot() {
     let state = GameState::new();
     let snap = state.snapshot();
-    assert_eq!(snap.pickups.len(), 3);
+    assert_eq!(snap.pickups.len(), 6);
     let ids: Vec<_> = snap.pickups.iter().map(|p| p.id.as_str()).collect();
     assert!(ids.contains(&"pad_rail"));
     assert!(ids.contains(&"pad_scatter"));
     assert!(ids.contains(&"pad_flechette"));
+    assert!(ids.contains(&"pad_health_n"));
+    assert!(ids.contains(&"pad_health_s"));
+    assert!(ids.contains(&"pad_armor"));
     assert!(snap.pickups.iter().all(|p| p.available));
+    let health = snap
+        .pickups
+        .iter()
+        .find(|p| p.id == "pad_health_n")
+        .unwrap();
+    assert_eq!(health.kind, "health");
+    assert_eq!(health.amount, Some(40));
+    let armor = snap.pickups.iter().find(|p| p.id == "pad_armor").unwrap();
+    assert_eq!(armor.kind, "armor");
+    assert_eq!(armor.amount, Some(25));
 }
 
 #[test]
@@ -2912,10 +2926,11 @@ fn test_sim_pickup_claim_changes_weapon_and_emits_event() {
         events.iter().any(|e| matches!(
             e,
             GameEvent::Pickup {
+                kind,
                 weapon,
                 pickup_id,
                 ..
-            } if weapon == "Rail" && pickup_id == "pad_rail"
+            } if kind == "weapon" && weapon == "Rail" && pickup_id == "pad_rail"
         )),
         "expected pickup event, got {:?}",
         events
@@ -2979,4 +2994,162 @@ fn test_sim_pickup_reset_on_round_start() {
     state.end_round("test".into());
     state.start_round();
     assert!(state.pickups.iter().all(|p| p.available));
+}
+
+#[test]
+fn test_sim_health_pad_heals_and_emits_kind() {
+    let mut state = GameState::new();
+    state.start_round();
+    let id = Uuid::new_v4();
+    state.add_player(id, "Rusher".into(), Role::Human);
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == id) {
+        p.x = 0.0;
+        p.z = 8.0;
+        p.hp = 40;
+    }
+    state.tick(0.05);
+    let player = state.players.iter().find(|p| p.id == id).unwrap();
+    assert_eq!(player.hp, 80);
+    let events = state.take_events();
+    assert!(
+        events.iter().any(|e| matches!(
+            e,
+            GameEvent::Pickup {
+                kind,
+                amount: Some(40),
+                pickup_id,
+                ..
+            } if kind == "health" && pickup_id == "pad_health_n"
+        )),
+        "expected health pickup event, got {:?}",
+        events
+    );
+    let pad = state
+        .pickups
+        .iter()
+        .find(|p| p.id == "pad_health_n")
+        .unwrap();
+    assert!(!pad.available);
+    assert_eq!(pad.respawn_timer, Some(HEALTH_PICKUP_RESPAWN_TICKS));
+}
+
+#[test]
+fn test_sim_health_pad_skipped_at_full_hp() {
+    let mut state = GameState::new();
+    state.start_round();
+    let id = Uuid::new_v4();
+    state.add_player(id, "Rusher".into(), Role::Human);
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == id) {
+        p.x = 0.0;
+        p.z = 8.0;
+        p.hp = 100;
+    }
+    state.tick(0.05);
+    let pad = state
+        .pickups
+        .iter()
+        .find(|p| p.id == "pad_health_n")
+        .unwrap();
+    assert!(pad.available, "full HP should not claim health pad");
+}
+
+#[test]
+fn test_sim_armor_pad_grants_armor_and_absorbs_damage() {
+    let mut state = GameState::new();
+    state.start_round();
+    let id = Uuid::new_v4();
+    state.add_player(id, "Rusher".into(), Role::Human);
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == id) {
+        p.x = 8.0;
+        p.z = 0.0;
+    }
+    state.tick(0.05);
+    let player = state.players.iter().find(|p| p.id == id).unwrap();
+    assert_eq!(player.armor, 25);
+    let events = state.take_events();
+    assert!(
+        events.iter().any(|e| matches!(
+            e,
+            GameEvent::Pickup {
+                kind,
+                amount: Some(25),
+                pickup_id,
+                ..
+            } if kind == "armor" && pickup_id == "pad_armor"
+        )),
+        "expected armor pickup event, got {:?}",
+        events
+    );
+
+    let shooter = Uuid::new_v4();
+    state.add_player(shooter, "Shooter".into(), Role::Agent);
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == id) {
+        p.x = 0.0;
+        p.z = 0.0;
+        p.yaw = 0.0;
+        p.armor = 10;
+        p.hp = 100;
+    }
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == shooter) {
+        p.x = -5.0;
+        p.z = 0.0;
+        p.yaw = 0.0;
+        p.weapon = WeaponType::Flechette;
+        p.pending_action.fire = true;
+    }
+    state.tick(0.05);
+    let victim = state.players.iter().find(|p| p.id == id).unwrap();
+    assert_eq!(victim.armor, 0);
+    assert_eq!(victim.hp, 85);
+}
+
+#[test]
+fn test_sim_health_pad_respawns_after_timer() {
+    let mut state = GameState::new();
+    state.start_round();
+    let id = Uuid::new_v4();
+    state.add_player(id, "Rusher".into(), Role::Human);
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == id) {
+        p.x = 0.0;
+        p.z = 8.0;
+        p.hp = 50;
+    }
+    state.tick(0.05);
+    assert!(
+        !state
+            .pickups
+            .iter()
+            .find(|p| p.id == "pad_health_n")
+            .unwrap()
+            .available
+    );
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == id) {
+        p.x = 20.0;
+        p.z = 20.0;
+    }
+    for _ in 0..HEALTH_PICKUP_RESPAWN_TICKS {
+        state.tick(0.05);
+    }
+    let pad = state
+        .pickups
+        .iter()
+        .find(|p| p.id == "pad_health_n")
+        .unwrap();
+    assert!(pad.available, "health pad should respawn");
+}
+
+#[test]
+fn test_sim_weapon_pads_still_claim_with_health_pads_present() {
+    let mut state = GameState::new();
+    state.start_round();
+    let id = Uuid::new_v4();
+    state.add_player(id, "Rusher".into(), Role::Human);
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == id) {
+        p.x = -12.0;
+        p.z = -12.0;
+        p.weapon = WeaponType::Flechette;
+    }
+    state.tick(0.05);
+    let player = state.players.iter().find(|p| p.id == id).unwrap();
+    assert_eq!(player.weapon, WeaponType::Scatter);
 }

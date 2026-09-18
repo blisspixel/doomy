@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `cursor/weapon-pickups`
 **Spend:** $0. Loopback. No GCP apply, no ElevenLabs, no look_at reopen.
-**Status:** In flight. Continuance drone shipped (#69); this is the NOW tip.
+**Status:** Shipped (#70). Health pads are the NOW tip.
 
 ## Goal
 
