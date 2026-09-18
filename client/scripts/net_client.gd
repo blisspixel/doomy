@@ -83,7 +83,17 @@ func send_action(action: Dictionary):
 		"turn_right": action.get("turn_right", false),
 		"fire": action.get("fire", false)
 	}
+	# Same Action path as keyboard; optional weapon_swap when cycling.
+	var swap = action.get("weapon_swap", null)
+	if swap != null and str(swap) != "":
+		msg["weapon_swap"] = str(swap)
 	send_json(msg)
+
+func send_speak(text: String) -> void:
+	var line = text.strip_edges()
+	if line == "":
+		return
+	send_json({"type": "speak", "text": line})
 
 func send_json(data: Dictionary):
 	var json = JSON.stringify(data)

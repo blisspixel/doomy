@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `cursor/public-or-local`
 **Spend:** $0 docs only. Terraform stays plan-only. No apply.
-**Status:** In flight (docs scrub PR).
+**Status:** **shipped** (#84). Tip face: public OR local join.
 
 ## Goal
 

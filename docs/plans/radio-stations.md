@@ -62,7 +62,7 @@ Music costs about 900 credits per minute. One hundred forty tracks averaging fou
 
 - `client/scripts/radio.gd` builds the station list from `client/assets/audio/radio/stations.json` and the manifest entries whose name starts with `radio/<station>/`. No directory scanning, so exports work.
 - Shuffle: no repeat within the last twelve plays (or the pool size minus one when smaller), a fresh random seed per session, play history kept per station for the session.
-- Keys: `radio_next_station` (R), `radio_next_track` (T), `radio_toggle` (M). Gamepad bindings land with the controller pass.
+- Keys: `radio_next_station` (R), `radio_next_track` (N), `radio_toggle` (M). Gamepad bindings land with the controller pass.
 - Volume states: spectating 0 dB relative; playing as human minus 6 dB; Host callouts duck a further 9 dB for three seconds with a short recovery; LOCK IN never ducks for combat. The Dead Air Bell mutes the radio for its duration (round-end wiring in a follow-up).
 - HUD: a small label bottom right shows the station name on switch and the track title on each new track, then fades. Never in the killfeed corner.
 - Missing assets are fine: with no tracks the radio stays silent and the HUD says the station is off the air.

@@ -24,7 +24,7 @@ func _ready() -> void:
 		_launch("solo", LOOPBACK)
 		return
 	if status_label:
-		status_label.text = "Offline Solo Scrap uses loopback 6767. Start the server first, or run tools/solo_scrap.sh."
+		status_label.text = "Offline Solo Scrap uses loopback 6767. Start the server first, or run tools/solo_scrap.sh. Keyboard and gamepad both work (stick deadzone 0.25)."
 
 func _setup_map_option() -> void:
 	if not map_option:
