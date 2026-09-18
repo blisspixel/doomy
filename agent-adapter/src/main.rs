@@ -572,12 +572,14 @@ mod tests {
         let frag_event = protocol::GameEvent::Frag {
             killer: "Bot1".to_string(),
             victim: "Bot2".to_string(),
+            killer_score: 5,
         };
 
         let frag_json = serde_json::to_value(&frag_event).unwrap();
         assert_eq!(frag_json["event"], "frag");
         assert_eq!(frag_json["killer"], "Bot1");
         assert_eq!(frag_json["victim"], "Bot2");
+        assert_eq!(frag_json["killer_score"], 5);
 
         let respawn_event = protocol::GameEvent::Respawn {
             player: "Bot2".to_string(),
@@ -591,6 +593,8 @@ mod tests {
             round_number: 1,
             frag_limit: Some(10),
             time_limit: Some(180),
+            players: vec!["Bot1".to_string(), "Bot2".to_string()],
+            previous_winner: None,
         };
 
         let round_start_json = serde_json::to_value(&round_start_event).unwrap();
@@ -598,46 +602,76 @@ mod tests {
         assert_eq!(round_start_json["round_number"], 1);
         assert_eq!(round_start_json["frag_limit"], 10);
         assert_eq!(round_start_json["time_limit"], 180);
+        assert_eq!(round_start_json["players"].as_array().unwrap().len(), 2);
 
         let round_end_event = protocol::GameEvent::RoundEnd {
             winner: Some("Bot1".to_string()),
             reason: "Frag limit reached".to_string(),
+            final_scores: vec![
+                protocol::PlayerScore {
+                    name: "Bot1".to_string(),
+                    score: 10,
+                },
+                protocol::PlayerScore {
+                    name: "Bot2".to_string(),
+                    score: 3,
+                },
+            ],
+            winner_score: Some(10),
         };
 
         let round_end_json = serde_json::to_value(&round_end_event).unwrap();
         assert_eq!(round_end_json["event"], "round_end");
         assert_eq!(round_end_json["winner"], "Bot1");
         assert_eq!(round_end_json["reason"], "Frag limit reached");
+        assert_eq!(round_end_json["winner_score"], 10);
+        assert_eq!(round_end_json["final_scores"].as_array().unwrap().len(), 2);
 
         let player_joined_event = protocol::GameEvent::PlayerJoined {
             player: "NewPlayer".to_string(),
             role: "agent".to_string(),
+            round_number: 2,
+            player_count: 5,
         };
 
         let player_joined_json = serde_json::to_value(&player_joined_event).unwrap();
         assert_eq!(player_joined_json["event"], "player_joined");
         assert_eq!(player_joined_json["player"], "NewPlayer");
         assert_eq!(player_joined_json["role"], "agent");
+        assert_eq!(player_joined_json["round_number"], 2);
+        assert_eq!(player_joined_json["player_count"], 5);
 
         let player_left_event = protocol::GameEvent::PlayerLeft {
             player: "OldPlayer".to_string(),
+            score: 7,
+            round_number: 2,
+            player_count: 4,
         };
 
         let player_left_json = serde_json::to_value(&player_left_event).unwrap();
         assert_eq!(player_left_json["event"], "player_left");
         assert_eq!(player_left_json["player"], "OldPlayer");
+        assert_eq!(player_left_json["score"], 7);
+        assert_eq!(player_left_json["round_number"], 2);
+        assert_eq!(player_left_json["player_count"], 4);
     }
 
     #[test]
     fn test_server_message_event_parsing() {
-        let frag_msg = r#"{"type":"event","event":"frag","killer":"Bot1","victim":"Bot2"}"#;
+        let frag_msg =
+            r#"{"type":"event","event":"frag","killer":"Bot1","victim":"Bot2","killer_score":3}"#;
         let parsed: Result<protocol::ServerMessage, _> = serde_json::from_str(frag_msg);
         assert!(parsed.is_ok());
 
         match parsed.unwrap() {
-            protocol::ServerMessage::Event(protocol::GameEvent::Frag { killer, victim }) => {
+            protocol::ServerMessage::Event(protocol::GameEvent::Frag {
+                killer,
+                victim,
+                killer_score,
+            }) => {
                 assert_eq!(killer, "Bot1");
                 assert_eq!(victim, "Bot2");
+                assert_eq!(killer_score, 3);
             }
             _ => panic!("Expected Event(Frag)"),
         }
@@ -653,7 +687,7 @@ mod tests {
             _ => panic!("Expected Event(Respawn)"),
         }
 
-        let round_start_msg = r#"{"type":"event","event":"round_start","round_number":2,"frag_limit":10,"time_limit":180}"#;
+        let round_start_msg = r#"{"type":"event","event":"round_start","round_number":2,"frag_limit":10,"time_limit":180,"players":["Bot1","Bot2"],"previous_winner":"Bot1"}"#;
         let parsed: Result<protocol::ServerMessage, _> = serde_json::from_str(round_start_msg);
         assert!(parsed.is_ok());
 
@@ -662,47 +696,73 @@ mod tests {
                 round_number,
                 frag_limit,
                 time_limit,
+                players,
+                previous_winner,
             }) => {
                 assert_eq!(round_number, 2);
                 assert_eq!(frag_limit, Some(10));
                 assert_eq!(time_limit, Some(180));
+                assert_eq!(players.len(), 2);
+                assert_eq!(previous_winner, Some("Bot1".to_string()));
             }
             _ => panic!("Expected Event(RoundStart)"),
         }
 
-        let round_end_msg =
-            r#"{"type":"event","event":"round_end","winner":"Bot1","reason":"Frag limit reached"}"#;
+        let round_end_msg = r#"{"type":"event","event":"round_end","winner":"Bot1","reason":"Frag limit reached","final_scores":[{"name":"Bot1","score":10},{"name":"Bot2","score":5}],"winner_score":10}"#;
         let parsed: Result<protocol::ServerMessage, _> = serde_json::from_str(round_end_msg);
         assert!(parsed.is_ok());
 
         match parsed.unwrap() {
-            protocol::ServerMessage::Event(protocol::GameEvent::RoundEnd { winner, reason }) => {
+            protocol::ServerMessage::Event(protocol::GameEvent::RoundEnd {
+                winner,
+                reason,
+                final_scores,
+                winner_score,
+            }) => {
                 assert_eq!(winner, Some("Bot1".to_string()));
                 assert_eq!(reason, "Frag limit reached");
+                assert_eq!(final_scores.len(), 2);
+                assert_eq!(final_scores[0].name, "Bot1");
+                assert_eq!(final_scores[0].score, 10);
+                assert_eq!(winner_score, Some(10));
             }
             _ => panic!("Expected Event(RoundEnd)"),
         }
 
-        let player_joined_msg =
-            r#"{"type":"event","event":"player_joined","player":"NewPlayer","role":"agent"}"#;
+        let player_joined_msg = r#"{"type":"event","event":"player_joined","player":"NewPlayer","role":"agent","round_number":1,"player_count":3}"#;
         let parsed: Result<protocol::ServerMessage, _> = serde_json::from_str(player_joined_msg);
         assert!(parsed.is_ok());
 
         match parsed.unwrap() {
-            protocol::ServerMessage::Event(protocol::GameEvent::PlayerJoined { player, role }) => {
+            protocol::ServerMessage::Event(protocol::GameEvent::PlayerJoined {
+                player,
+                role,
+                round_number,
+                player_count,
+            }) => {
                 assert_eq!(player, "NewPlayer");
                 assert_eq!(role, "agent");
+                assert_eq!(round_number, 1);
+                assert_eq!(player_count, 3);
             }
             _ => panic!("Expected Event(PlayerJoined)"),
         }
 
-        let player_left_msg = r#"{"type":"event","event":"player_left","player":"OldPlayer"}"#;
+        let player_left_msg = r#"{"type":"event","event":"player_left","player":"OldPlayer","score":5,"round_number":2,"player_count":4}"#;
         let parsed: Result<protocol::ServerMessage, _> = serde_json::from_str(player_left_msg);
         assert!(parsed.is_ok());
 
         match parsed.unwrap() {
-            protocol::ServerMessage::Event(protocol::GameEvent::PlayerLeft { player }) => {
+            protocol::ServerMessage::Event(protocol::GameEvent::PlayerLeft {
+                player,
+                score,
+                round_number,
+                player_count,
+            }) => {
                 assert_eq!(player, "OldPlayer");
+                assert_eq!(score, 5);
+                assert_eq!(round_number, 2);
+                assert_eq!(player_count, 4);
             }
             _ => panic!("Expected Event(PlayerLeft)"),
         }

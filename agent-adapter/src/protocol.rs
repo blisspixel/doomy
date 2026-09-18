@@ -82,11 +82,18 @@ pub struct PlayerState {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlayerScore {
+    pub name: String,
+    pub score: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "event", rename_all = "snake_case")]
 pub enum GameEvent {
     Frag {
         killer: String,
         victim: String,
+        killer_score: u32,
     },
     Respawn {
         player: String,
@@ -95,16 +102,25 @@ pub enum GameEvent {
         round_number: u32,
         frag_limit: Option<u32>,
         time_limit: Option<u32>,
+        players: Vec<String>,
+        previous_winner: Option<String>,
     },
     RoundEnd {
         winner: Option<String>,
         reason: String,
+        final_scores: Vec<PlayerScore>,
+        winner_score: Option<u32>,
     },
     PlayerJoined {
         player: String,
         role: String,
+        round_number: u32,
+        player_count: usize,
     },
     PlayerLeft {
         player: String,
+        score: u32,
+        round_number: u32,
+        player_count: usize,
     },
 }
