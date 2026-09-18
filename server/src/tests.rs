@@ -3893,7 +3893,7 @@ fn test_protocol_snapshot_map_defaults_round_trip() {
         "players": [],
         "mode_name": "Contested Frequency",
         "playlist": "Arena Duel",
-        "host_line": "HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE. ARENA DUEL IS LIVE."
+        "host_line": "HOST: CONTESTED FREQUENCY. PLAY VS COMPLIANCE. ARENA DUEL IS LIVE."
     });
     let snap: Snapshot = serde_json::from_value(json).unwrap();
     assert_eq!(snap.map_id, default_map_id());
