@@ -17,7 +17,7 @@ use uuid::Uuid;
 #[command(name = "doomy-server")]
 #[command(about = "Doomy authoritative game server")]
 struct Args {
-    #[arg(long, default_value = "127.0.0.1:7777")]
+    #[arg(long, default_value = "0.0.0.0:7777")]
     bind: String,
 
     #[arg(long, default_value = "4")]
