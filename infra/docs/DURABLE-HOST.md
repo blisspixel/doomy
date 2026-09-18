@@ -14,11 +14,12 @@ This is the durable, multi-hour-playable path for running a fragr server on GCP 
 
 ### Networking
 
-- **Ports:** TCP+UDP 7777 (game socket)
+- **Ports:** TCP+UDP 7777 (documented game socket; Slice 1 uses TCP/WS today, UDP later if renet)
 - **SSH:** IAP tunnel only (no public 0.0.0.0/0:22)
-- **Front door choice:**
-  - **Prefer:** Tailscale Personal ($0) as front door, close public 7777 firewall. Clients connect via Tailnet IP.
-  - **Alternative:** Public external IP with 0.0.0.0/0:7777. See cost ceiling honesty below.
+- **Front door (Nick lock):**
+  - **Primary (strangers + agents):** public external IP with tight firewall opening **only** the game port(s) to `0.0.0.0/0` (TCP+UDP 7777). Randos and agents join the same fight with **no VPN**. This is the Minecraft-shaped self-host story.
+  - **Private/dev only:** Tailscale Personal ($0) as an optional overlay for Nick smoke tests and operator convenience. **Not** the spectator/agent join path. Do **not** close public 7777 and ship Tailscale-only.
+  - Cost of the public path: see cost ceiling honesty below (external IP ESTIMATE).
 
 ### Systemd service
 
@@ -66,7 +67,7 @@ Create a dedicated `fragr` user, place binary in `/opt/fragr/`, install unit to 
 - **Ceiling (normal):** ESTIMATE << $20/mo with light egress
 - **Project hard cap:** $50 total (Nick approval required to raise)
 
-Tailscale Personal ($0) as front door avoids the external IP charge and the egress blowup from public internet traffic. Recommended for durable multi-hour playtests.
+Public stranger/agent join pays the external IP ESTIMATE (~$3.65/mo) and real egress. That is expected for the Minecraft-shaped story. Tailscale Personal ($0) remains useful for private smoke and operator SSH convenience, but it does not replace the public game-port front door.
 
 ## Budget safeguards
 
@@ -104,5 +105,5 @@ Do not deploy `e2-micro` outside these regions or you will be billed full price.
 
 1. Review this recipe vs the $50 hard cap.
 2. Get Nick/Chief approval before any `terraform apply`.
-3. If approved, stand up GCE with Tailscale Personal front door, close public 7777, validate systemd restart behavior.
+3. If approved, stand up GCE with public TCP+UDP 7777 (IAP SSH only), optional Tailscale for private/dev smoke, validate systemd restart behavior.
 4. Monitor actual costs in GCP Billing Console; adjust if ceiling approaches.
