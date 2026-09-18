@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `cursor/health-pads`
 **Spend:** $0. Loopback. No GCP apply, no ElevenLabs, no look_at reopen.
-**Status:** In flight. Weapon pickups shipped (#70); this is the NOW tip.
+**Status:** Shipped (#71). Next tip: arena choke geometry.
 
 ## Goal
 
@@ -89,7 +89,7 @@ $0. No secrets. No attribution, emoji, or em/en dashes in commits, PR text, or d
 - [x] Godot scrap medkits readable (blood/ember accents, not neon)
 - [x] MCP observe sees health pads; event distinguishes weapon vs health
 - [x] Tests + unfiltered fail-under 80
-- [ ] PR open on `cursor/health-pads`
+- [x] PR open on `cursor/health-pads` (merged #71)
 
 ## Pad positions
 

@@ -8,16 +8,17 @@ Do not treat chat as the plan of record.
 
 ## Tip priorities (after v0.5.0)
 
-Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Sticky host_line on Snapshot shipped (#63, Casino-cleared on MCP). Godot Host flash mid-join shipped (#64). MCP session tools shipped (#65). Pixel-3D look bar sealed on tip (`5d16f32`, #66). Far-cam fighter scale shipped (#67). Solo boot-and-scrap shipped (#68). Continuance SP boss shipped (#69). Weapon pickups shipped (#70). Ship order from tip:
+Named agents / SKILL.md shipped in **v0.5.0**. Honest coverage lock shipped (PR #57). Agent aim + hit-confirm shipped. Mode fantasy / Contested Frequency shipped. Tip screenshots shipped (#60). Off-tick speak / taunt shipped (incl. speak rate-limit isError). Sticky host_line on Snapshot shipped (#63, Casino-cleared on MCP). Godot Host flash mid-join shipped (#64). MCP session tools shipped (#65). Pixel-3D look bar sealed on tip (`5d16f32`, #66). Far-cam fighter scale shipped (#67). Solo boot-and-scrap shipped (#68). Continuance SP boss shipped (#69). Weapon pickups shipped (#70). Health pads shipped (#71). Ship order from tip:
 
-1. **Health pads** (NOW) - Mid-arena health (and optional light armor) pads alongside weapon pickups. See [`health-pads.md`](./health-pads.md).
-2. (Shipped) **Weapon pickups** - Mid-map scrap pads for Quake/Unreal chase energy. See [`weapon-pickups.md`](./weapon-pickups.md).
-3. (Shipped) **Continuance SP boss** - Mid-round Compliance Drone beat for Solo Scrap. See [`continuance-sp-boss.md`](./continuance-sp-boss.md).
-4. (Shipped) **Solo boot-and-scrap** - SP first-class: one-command local scrap vs rule bots, boot menu, offline loopback 6767. See [`solo-boot-and-scrap.md`](./solo-boot-and-scrap.md).
-5. (Shipped) **Far-cam fighter scale** - Distance-aware billboard scale for far spectators. See [`far-cam-fighter-scale.md`](./far-cam-fighter-scale.md).
+1. **Arena choke geometry** (NOW) - Scrap low walls, crate clusters, and pillar cover with authoritative collision. See [`arena-choke-geometry.md`](./arena-choke-geometry.md).
+2. (Shipped) **Health pads** - Mid-arena health and light armor pads for Quake chase sustain. See [`health-pads.md`](./health-pads.md).
+3. (Shipped) **Weapon pickups** - Mid-map scrap pads for Quake/Unreal chase energy. See [`weapon-pickups.md`](./weapon-pickups.md).
+4. (Shipped) **Continuance SP boss** - Mid-round Compliance Drone beat for Solo Scrap. See [`continuance-sp-boss.md`](./continuance-sp-boss.md).
+5. (Shipped) **Solo boot-and-scrap** - SP first-class: one-command local scrap vs rule bots, boot menu, offline loopback 6767. See [`solo-boot-and-scrap.md`](./solo-boot-and-scrap.md).
 
 Shipped recently:
 
+- **Health pads** (#71) - Mid-arena health and armor pads for Quake chase sustain. See [`health-pads.md`](./health-pads.md).
 - **Weapon pickups** (#70) - Mid-map weapon pads for Quake chase energy. See [`weapon-pickups.md`](./weapon-pickups.md).
 - **Continuance SP boss** (#69) - Mid-round Continuance Compliance Drone for Solo Scrap. See [`continuance-sp-boss.md`](./continuance-sp-boss.md).
 - **Solo boot-and-scrap** (#68) - SP first-class solo boot-and-scrap vs local rule bots. See [`solo-boot-and-scrap.md`](./solo-boot-and-scrap.md).
@@ -38,7 +39,8 @@ Port is **6767**. Public TCP+UDP 6767 for strangers/agents. Tailscale is private
 
 | Plan | Status | One-liner |
 |---|---|---|
-| [`health-pads.md`](./health-pads.md) | **in flight** (this tip) | Mid-arena health and light armor pads for Quake chase sustain. |
+| [`arena-choke-geometry.md`](./arena-choke-geometry.md) | **in flight** (PR #72) | Scrap arena choke geometry: low walls, crates, pillar cover + server collision. |
+| [`health-pads.md`](./health-pads.md) | **shipped** (#71) | Mid-arena health and light armor pads for Quake chase sustain. |
 | [`weapon-pickups.md`](./weapon-pickups.md) | **shipped** (#70) | Mid-map weapon pickups for Quake/Unreal chase energy. |
 | [`continuance-sp-boss.md`](./continuance-sp-boss.md) | **shipped** (#69) | Mid-round Continuance Compliance Drone boss beat for Solo Scrap. |
 | [`solo-boot-and-scrap.md`](./solo-boot-and-scrap.md) | **shipped** (#68) | SP first-class solo boot-and-scrap vs local rule bots. |

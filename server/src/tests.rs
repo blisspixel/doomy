@@ -3153,3 +3153,170 @@ fn test_sim_weapon_pads_still_claim_with_health_pads_present() {
     let player = state.players.iter().find(|p| p.id == id).unwrap();
     assert_eq!(player.weapon, WeaponType::Scatter);
 }
+
+#[test]
+fn test_sim_choke_blocks_move_into_pillar() {
+    let mut state = GameState::new();
+    state.start_round();
+    let id = Uuid::new_v4();
+    state.add_player(id, "Rusher".into(), Role::Human);
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == id) {
+        // South of pillar NE at (7, -7); walk north into it.
+        p.x = 7.0;
+        p.z = -9.5;
+        p.yaw = std::f32::consts::FRAC_PI_2; // face +z
+    }
+    for _ in 0..40 {
+        state.set_action(
+            id,
+            Action {
+                forward: true,
+                ..Default::default()
+            },
+        );
+        state.tick(0.05);
+    }
+    let player = state.players.iter().find(|p| p.id == id).unwrap();
+    // Expanded pillar face is at z = -8.25 - 0.5 = -8.75; must not penetrate.
+    assert!(
+        player.z <= -8.7,
+        "player should be stopped by pillar, z={}",
+        player.z
+    );
+    assert!(
+        (player.x - 7.0).abs() < 0.2,
+        "x should stay near 7, got {}",
+        player.x
+    );
+}
+
+#[test]
+fn test_sim_choke_hitscan_blocked_by_low_wall() {
+    let mut state = GameState::new();
+    state.start_round();
+    let shooter = Uuid::new_v4();
+    let target = Uuid::new_v4();
+    state.add_player(shooter, "Shooter".into(), Role::Agent);
+    state.add_player(target, "Victim".into(), Role::Agent);
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == shooter) {
+        // South of low wall north (z=-10); shoot toward +z through wall.
+        p.x = 0.0;
+        p.z = -15.0;
+        p.yaw = std::f32::consts::FRAC_PI_2;
+        p.weapon = WeaponType::Rail;
+    }
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == target) {
+        p.x = 0.0;
+        p.z = -5.0;
+        p.hp = 100;
+    }
+    let hp_before = state.players.iter().find(|p| p.id == target).unwrap().hp;
+    state.set_action(
+        shooter,
+        Action {
+            fire: true,
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+    let hp_after = state.players.iter().find(|p| p.id == target).unwrap().hp;
+    assert_eq!(hp_before, hp_after, "low wall must block hitscan");
+}
+
+#[test]
+fn test_sim_choke_hitscan_clear_lane_still_hits() {
+    let mut state = GameState::new();
+    state.start_round();
+    let shooter = Uuid::new_v4();
+    let target = Uuid::new_v4();
+    state.add_player(shooter, "Shooter".into(), Role::Agent);
+    state.add_player(target, "Victim".into(), Role::Agent);
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == shooter) {
+        // Open lane along +x through hub (no wall on x axis at z=0 between -5 and 5).
+        p.x = -5.0;
+        p.z = 0.0;
+        p.yaw = 0.0;
+        p.weapon = WeaponType::Flechette;
+    }
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == target) {
+        p.x = 5.0;
+        p.z = 0.0;
+        p.hp = 100;
+    }
+    let hp_before = state.players.iter().find(|p| p.id == target).unwrap().hp;
+    state.set_action(
+        shooter,
+        Action {
+            fire: true,
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+    let hp_after = state.players.iter().find(|p| p.id == target).unwrap().hp;
+    assert!(hp_after < hp_before, "clear hub lane should still hit");
+}
+
+#[test]
+fn test_sim_choke_health_pad_still_claimable_from_hub() {
+    let mut state = GameState::new();
+    state.start_round();
+    let id = Uuid::new_v4();
+    state.add_player(id, "Rusher".into(), Role::Human);
+    if let Some(p) = state.players.iter_mut().find(|p| p.id == id) {
+        p.x = 0.0;
+        p.z = 8.0;
+        p.hp = 40;
+    }
+    state.tick(0.05);
+    let player = state.players.iter().find(|p| p.id == id).unwrap();
+    assert_eq!(player.hp, 80, "health pad north must remain claimable");
+}
+
+#[test]
+fn test_sim_choke_spawn_points_clear_of_solids() {
+    let mut state = GameState::new();
+    for i in 0..8 {
+        let id = Uuid::new_v4();
+        state.add_player(id, format!("P{i}"), Role::Agent);
+    }
+    for p in &state.players {
+        // Same predicate as move: inflated AABB must not contain spawn.
+        // Probe by trying a zero move resolve: if blocked at spawn, circle_blocked is true.
+        // We assert players are not inside the raw expanded solids by checking distance
+        // to known pillar centers exceeds half+radius.
+        for (cx, cz) in [(7.0_f32, -7.0), (-7.0, -7.0), (7.0, 7.0), (-7.0, 7.0)] {
+            let dx = (p.x - cx).abs();
+            let dz = (p.z - cz).abs();
+            let inside = dx <= 1.25 + 0.5 && dz <= 1.25 + 0.5;
+            assert!(
+                !inside,
+                "spawn ({}, {}) inside pillar at ({}, {})",
+                p.x, p.z, cx, cz
+            );
+        }
+    }
+}
+
+#[test]
+fn test_sim_choke_compliance_drone_center_clear() {
+    let mut state = GameState::new();
+    state.config.boss_spawn_ticks = Some(1);
+    state.start_round();
+    // Advance into Active and to boss spawn tick.
+    while state.round_state != RoundState::Active {
+        state.tick(0.05);
+    }
+    for _ in 0..5 {
+        state.tick(0.05);
+        if state.boss_id.is_some() {
+            break;
+        }
+    }
+    assert!(state.boss_id.is_some(), "drone should spawn");
+    let boss = state
+        .players
+        .iter()
+        .find(|p| p.is_boss)
+        .expect("boss player");
+    assert!(boss.x.abs() < 0.1 && boss.z.abs() < 0.1, "drone at hub");
+}
