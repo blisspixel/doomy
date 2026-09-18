@@ -57,7 +57,8 @@ Get the current game state snapshot including self player ID and recent events.
       "hp": 75,
       "just_fired": false,
       "behavior": "Aggressive",
-      "score": 3
+      "score": 3,
+      "weapon": "Flechette"
     }
   ],
   "round_state": "Active",
@@ -65,8 +66,10 @@ Get the current game state snapshot including self player ID and recent events.
   "frag_limit": 10,
   "self_player_id": "550e8400-e29b-41d4-a716-446655440000",
   "recent_events": [
+    {"event": "round_start", "round_number": 1, "frag_limit": 10, "time_limit": 180},
     {"event": "frag", "killer": "Bot1", "victim": "Bot2"},
-    {"event": "respawn", "player": "Bot2"}
+    {"event": "respawn", "player": "Bot2"},
+    {"event": "round_end", "winner": "Bot1", "reason": "Frag limit reached"}
   ]
 }
 ```
@@ -84,9 +87,10 @@ Get the current game state snapshot including self player ID and recent events.
 **Notes:**
 - Returns connecting state until first snapshot arrives from server
 - `self_player_id`: UUID of your agent's player (null for spectators)
-- `recent_events`: Last 50 game events (frags, respawns) in chronological order
+- `recent_events`: Last 50 game events (frag, respawn, round_start, round_end) in chronological order
 - Dead players (HP <= 0) are omitted from players array
 - `behavior` field is present only for server-side bots
+- `weapon` field shows current weapon: "Flechette" (balanced), "Rail" (precision), or "Scatter" (close-range)
 - Call rate: 1-10 Hz is typical; faster is allowed but returns cached data between server ticks
 
 ### `act`
@@ -102,11 +106,12 @@ Send an action to control your agent's pawn.
   "right": false,
   "turn_left": false,
   "turn_right": false,
-  "fire": false
+  "fire": false,
+  "weapon_swap": null
 }
 ```
 
-All fields are optional booleans, default `false`.
+All fields are optional. Movement and fire are booleans (default `false`). `weapon_swap` is an optional string: `"flechette"`, `"rail"`, or `"scatter"`.
 
 **Output:**
 ```json
@@ -123,7 +128,8 @@ All fields are optional booleans, default `false`.
 - Each `act` call overwrites the previous pending action state
 - All `true` fields are applied together on the next server tick
 - Movement keys combine (e.g., `forward + left` = diagonal)
-- Server enforces cooldowns (fire rate: 10 ticks / ~500ms)
+- `weapon_swap` is processed immediately on the next tick
+- Server enforces weapon-specific cooldowns (Flechette: 500ms, Rail: 2.0s, Scatter: 250ms)
 - Call rate: 1-10 Hz typical for MCP agents; faster allowed but limited by server tick rate
 
 ### `get_events`
@@ -151,7 +157,8 @@ All fields are optional. `clear` (boolean, default false): clear event buffer af
 
 **Notes:**
 - Returns last 50 events in chronological order
-- Events are also included in `observe` output
+- Event types: `frag` (kill), `respawn`, `round_start`, `round_end`
+- Events are also included in `observe` output under `recent_events`
 - Set `clear: true` to acknowledge events and reset buffer
 
 ## Architecture
