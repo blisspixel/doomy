@@ -99,7 +99,7 @@ After reviewing current implementation:
 
 ### README rewrite
 - Move "What you see" section to top (after quick start)
-- Add "Why it is fun" callout: bot drama, spectate-then-join, persistent fight
+- Add "Why it is fun" callout: bot drama, watch or play, persistent fight
 - Keep technical details below the fold
 
 ## Verification
