@@ -1,6 +1,7 @@
 mod net;
 mod protocol;
 mod sim;
+mod tests;
 
 use clap::Parser;
 use net::{GameCommand, NetServer};
@@ -105,12 +106,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             Some(cmd) = game_rx.recv() => {
                 match cmd {
-                    GameCommand::Connected { id, role, name } => {
-                        if role != Role::Spectator {
-                            let player_id = Uuid::new_v4();
-                            state.add_player(player_id, name, role);
-                            client_to_player.insert(id, player_id);
-                            tracing::info!("Player {} joined as {:?}", player_id, role);
+                    GameCommand::Connected { id, role, name, player_id } => {
+                        if let Some(pid) = player_id {
+                            state.add_player(pid, name, role);
+                            client_to_player.insert(id, pid);
+                            tracing::info!("Player {} joined as {:?}", pid, role);
                         } else {
                             tracing::info!("Spectator {} joined", name);
                         }

@@ -25,6 +25,7 @@ pub enum GameCommand {
         id: Uuid,
         role: Role,
         name: String,
+        player_id: Option<Uuid>,
     },
     Disconnected {
         id: Uuid,
@@ -84,13 +85,14 @@ async fn handle_connection(
     let client_id = Uuid::new_v4();
 
     let role;
+    let player_id;
 
     if let Some(Ok(Message::Text(text))) = ws_stream.next().await {
         match serde_json::from_str::<ClientMessage>(&text) {
             Ok(ClientMessage::Hello { role: r, name }) => {
                 role = Some(r);
 
-                let player_id = if r != Role::Spectator {
+                player_id = if r != Role::Spectator {
                     Some(Uuid::new_v4())
                 } else {
                     None
@@ -109,19 +111,18 @@ async fn handle_connection(
                 });
                 drop(clients_lock);
 
-                let cmd_player_id = player_id;
-
                 game_tx.send(GameCommand::Connected {
                     id: client_id,
                     role: r,
                     name,
+                    player_id,
                 })?;
 
                 tracing::info!(
                     "Client {:?} connected as {:?} (player_id: {:?})",
                     client_id,
                     r,
-                    cmd_player_id
+                    player_id
                 );
             }
             _ => {
@@ -134,11 +135,6 @@ async fn handle_connection(
     }
 
     let role = role.unwrap();
-    let player_id = if role != Role::Spectator {
-        Some(Uuid::new_v4())
-    } else {
-        None
-    };
 
     let send_task = tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
