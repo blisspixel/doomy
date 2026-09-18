@@ -70,8 +70,6 @@ impl NetServer {
             }
         }
     }
-
-
 }
 
 async fn handle_connection(
