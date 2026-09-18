@@ -56,7 +56,10 @@ func set_round_info(state: String, time_left: int, frag_limit: int):
 	var text = "Round: " + state
 	if state == "Active":
 		if time_left > 0:
-			text += " | Time: " + str(time_left) + "s"
+			var time_display = str(time_left) + "s"
+			if time_left == 67:
+				time_display = "67s (!)"
+			text += " | Time: " + time_display
 		if frag_limit > 0:
 			text += " | Frag limit: " + str(frag_limit)
 	
@@ -91,7 +94,17 @@ func show_frag(killer: String, victim: String, killer_color: Color = Color.WHITE
 	update_scoreboard()
 	
 	if frag_label:
-		frag_label.text = killer + " FRAGGED " + victim + "!"
+		var message = killer + " FRAGGED " + victim + "!"
+		
+		if randf() < 0.067:
+			var quips = [
+				killer + " [67] " + victim,
+				killer + " > " + victim + " (skill issue)",
+				"so back (" + killer + " \u2192 " + victim + ")"
+			]
+			message = quips[randi() % quips.size()]
+		
+		frag_label.text = message
 		frag_label.modulate = killer_color.lightened(0.4)
 		frag_label.visible = true
 		
