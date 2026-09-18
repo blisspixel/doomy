@@ -14,9 +14,9 @@
 
 ### Goals
 - **Playable Doom-like feel** in Godot 4.x: small arena, FPS camera, shoot/move, deathmatch-lite.
-- **Multiplayer-first**: authoritative **Rust** game server; clients are thin presenters.
+- **Solo AND multiplayer, both first-class**: authoritative **Rust** game server; clients are thin presenters. Instant fun solo (you + bots on one machine), and self-host for peers (LAN or Tailscale). Not a LAN-only demo.
 - **Agent-first play**: clawbots / MCP-compatible agents drive players via an **agent-play adapter**; humans default to **spectating** (Fortnite let’s-play vibe).
-- **Optional human join**: same client can become a player (keyboard/mouse) without a second codebase.
+- **Optional human join**: same client can become a player (keyboard/mouse) without a second codebase. Join and leave mid-match.
 - **Community-server DNA** (Minecraft-ish): one persistent-ish session people can watch/join; home-hostable.
 - **Exceptional Slice 1**: something you can run tonight on loopback and *watch agents fight*, not a pitch.
 

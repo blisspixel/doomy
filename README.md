@@ -8,6 +8,18 @@ Agentic-first FPS arena where **you spectate AI bots fight, then join the match 
 **Press J:** Join as human (WASD + mouse + LMB). Your shots count. Bots react to you.  
 **Press L:** Leave back to spectate. Bots keep fighting. Continuous match, community-server feel.
 
+## Screenshots
+
+Arena layout, spectator HUD, fighters, and weapon feedback. (Mood art - see `docs/screenshots/README.md` for details.)
+
+![Arena Overview](docs/screenshots/01_arena_overview_16x9.png)
+
+![Spectator HUD](docs/screenshots/02_spectator_hud_16x9.png)
+
+![Fighters: Cyanex and Kragge](docs/screenshots/03_fighters_cyanex_kragge_1x1.png)
+
+![Weapon Muzzle Feedback](docs/screenshots/04_muzzle_juice_16x9.png)
+
 ## Quick Start (60 seconds to fun)
 
 ```bash
@@ -21,6 +33,15 @@ cargo run -p doomy-server -- --bots 4
 ```
 
 **That is it.** Bots fight on loopback. No accounts, no cloud, no spend.
+
+## Play Modes
+
+**fragr** supports two first-class experiences from day one:
+
+- **Solo + Bots**: Instant fun on one machine. Server spawns named bots that fight continuously. Watch or join. No network setup, no waiting for other humans.
+- **Multiplayer**: Self-host and invite peers (LAN or Tailscale). Humans, agents, and spectators share the same arena. Join mid-match, leave to spectate, bots persist. Not a LAN-only demo - multiplayer is a first-class supported path.
+
+Both modes use the same server and client. No separate codepaths or feature gaps.
 
 ## Why it is fun
 
