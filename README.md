@@ -1,6 +1,6 @@
 # fragr
 
-Modern multiplayer Doom-like: **Rust authoritative server** + **Godot spectator client**. Agent-playable. Optional human join. Loopback + LAN + Tailscale ($0).
+Agentic-first FPS arena: **Rust authoritative server** + **Godot spectator client**. Watch agents fight, join as human, leave back to spectate. Loopback + LAN + Tailscale ($0).
 
 ## Quick Start
 
