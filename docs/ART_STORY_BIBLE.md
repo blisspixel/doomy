@@ -76,3 +76,7 @@ Working name **fragr** (may change). Never brand as Doom / a Doom clone.
 Host voice Slice 1 still open (on-screen text vs audio later).
 
 — End bible v1 —
+
+## Logo
+
+Canonical mark is the wide wordmark (`docs/fragr-logo.png`). Square mark (`docs/fragr-logo-mark.png`) is the alt for tight spaces.
