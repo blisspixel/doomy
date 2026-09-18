@@ -90,7 +90,7 @@ func _follow_target():
 	
 	if is_instance_valid(target):
 		var target_pos = target.global_position
-		var offset = Vector3(0, 4, 7 + camera_zoom_offset)
+		var offset = Vector3(0, 5.5, 10.5 + camera_zoom_offset)
 		
 		if camera_shake_intensity > 0:
 			offset += Vector3(
@@ -150,7 +150,7 @@ func _follow_frag_target():
 	for target in available_targets:
 		if is_instance_valid(target) and target.player_id == frag_follow_target_id:
 			var target_pos = target.global_position
-			var offset = Vector3(0, 4, 7)
+			var offset = Vector3(0, 5.5, 10.5)
 			var cam_pos = target_pos + offset.rotated(Vector3.UP, target.rotation.y)
 			position = position.lerp(cam_pos, 0.15)
 			

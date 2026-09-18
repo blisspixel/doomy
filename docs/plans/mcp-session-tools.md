@@ -8,7 +8,7 @@ Expose first-class MCP tools for session lifecycle and round summary so agents d
 
 - look_at / hit-confirm changes (HOLD)
 - Speak rate-limit reopen (already fixed)
-- Pixel-3D look bar (NEXT tip priority; does not block this PR)
+- Pixel-3D look bar (shipped separately; was next tip priority after this)
 - Protocol Leave message (leave remains clean WebSocket disconnect)
 
 ## Tools

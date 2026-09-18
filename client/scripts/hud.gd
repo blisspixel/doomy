@@ -357,4 +357,5 @@ func set_followed_weapon(weapon_name: String, player_name: String = "", behavior
 	
 	weapon_label.text = display_text
 	weapon_icon.texture = weapon_textures[weapon_name]
+	weapon_icon.modulate = Color(1.15, 1.1, 1.05, 1)
 	weapon_icon.visible = true
