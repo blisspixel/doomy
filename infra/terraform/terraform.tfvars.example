@@ -1,0 +1,45 @@
+# fragr Terraform Configuration Example
+# Copy this file to terraform.tfvars and fill in your values.
+# DO NOT commit terraform.tfvars - it is gitignored.
+
+# GCP project ID (required)
+# Find yours: gcloud projects list
+project_id = "your-gcp-project-id"
+
+# Region for resources (must be Always Free eligible)
+# Options: us-west1, us-central1, us-east1
+region = "us-west1"
+
+# Zone within the region
+# Options: us-west1-a, us-west1-b, us-central1-a, us-east1-b, etc.
+zone = "us-west1-a"
+
+# VM instance name (optional, has default)
+instance_name = "fragr-game-server"
+
+# Boot disk size in GB (must be <= 30 for Always Free)
+boot_disk_size_gb = 20
+
+# Game server port (default 7777)
+game_port = 7777
+
+# Enable Cloud Run HTTP adapter (optional, min_instances=0)
+enable_cloud_run_adapter = false
+
+# Cloud Run adapter region (if enabled)
+cloud_run_region = "us-west1"
+
+# Network CIDR range (optional, has default)
+network_cidr = "10.0.0.0/24"
+
+# Allow SSH from specific IPs (optional, IAP is always enabled)
+# Example: ["203.0.113.0/24", "198.51.100.1/32"]
+# Leave empty to only allow IAP SSH
+ssh_source_ranges = []
+
+# Labels for resources (optional)
+labels = {
+  project     = "fragr"
+  environment = "prod"
+  managed_by  = "terraform"
+}
