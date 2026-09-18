@@ -36,7 +36,7 @@ script = ExtResource("5_hud")
 offset_left = 10.0
 offset_top = 10.0
 offset_right = 350.0
-offset_bottom = 250.0
+offset_bottom = 320.0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="HUD/Panel"]
 layout_mode = 1
@@ -64,7 +64,7 @@ text = "Fighters: 0"
 
 [node name="ModeLabel" type="Label" parent="HUD/Panel/VBoxContainer"]
 layout_mode = 2
-text = "SPECTATING"
+text = "CONTESTED FREQUENCY // ARENA DUEL\nSPECTATING (J: Join, F: Cycle Cam, ESC: Mouse)"
 theme_override_colors/font_color = Color(0.7, 0.9, 1, 1)
 
 [node name="RoundLabel" type="Label" parent="HUD/Panel/VBoxContainer"]
@@ -79,8 +79,9 @@ theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 
 [node name="Scoreboard" type="Label" parent="HUD/Panel/VBoxContainer"]
 layout_mode = 2
-text = "SCOREBOARD
-(no kills yet)"
+text = "SCRAP LEAGUE
+CONTESTED FREQUENCY
+(waiting for scrap)"
 theme_override_colors/font_color = Color(1, 0.9, 0.5, 1)
 
 [node name="FragLabel" type="Label" parent="HUD"]
@@ -97,8 +98,8 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.3, 0.1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 42
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 28
 text = "FRAG!"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -109,19 +110,20 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -400.0
-offset_top = -200.0
-offset_right = 400.0
-offset_bottom = -100.0
+offset_left = -600.0
+offset_top = -180.0
+offset_right = 600.0
+offset_bottom = -40.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.9, 0.2, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 10
-theme_override_font_sizes/font_size = 56
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 28
 text = "ROUND 1 - FIGHT!"
 horizontal_alignment = 1
 vertical_alignment = 1
+autowrap_mode = 3
 
 [node name="WeaponIcon" type="TextureRect" parent="HUD"]
 anchors_preset = 3
