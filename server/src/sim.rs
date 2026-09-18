@@ -33,6 +33,157 @@ pub const HEALTH_PAD_AMOUNT: i32 = 40;
 /// Armor scrap grant amount (capped at PLAYER_MAX_ARMOR).
 pub const ARMOR_PAD_AMOUNT: i32 = 25;
 
+/// Axis-aligned scrap solid in XZ (Godot props mirrored for authoritative cover).
+#[derive(Debug, Clone, Copy)]
+struct Aabb2 {
+    min_x: f32,
+    max_x: f32,
+    min_z: f32,
+    max_z: f32,
+}
+
+impl Aabb2 {
+    const fn from_center(cx: f32, cz: f32, half_x: f32, half_z: f32) -> Self {
+        Self {
+            min_x: cx - half_x,
+            max_x: cx + half_x,
+            min_z: cz - half_z,
+            max_z: cz + half_z,
+        }
+    }
+
+    const fn expand(self, r: f32) -> Self {
+        Self {
+            min_x: self.min_x - r,
+            max_x: self.max_x + r,
+            min_z: self.min_z - r,
+            max_z: self.max_z + r,
+        }
+    }
+
+    fn contains(self, x: f32, z: f32) -> bool {
+        x >= self.min_x && x <= self.max_x && z >= self.min_z && z <= self.max_z
+    }
+}
+
+/// Scrap chokes matching `client/scenes/arena.tscn` (pillars, low walls, crates).
+fn arena_obstacles() -> [Aabb2; 19] {
+    [
+        // Pillars at (±7, ±7), mesh 2.5x2.5
+        Aabb2::from_center(7.0, -7.0, 1.25, 1.25),
+        Aabb2::from_center(-7.0, -7.0, 1.25, 1.25),
+        Aabb2::from_center(7.0, 7.0, 1.25, 1.25),
+        Aabb2::from_center(-7.0, 7.0, 1.25, 1.25),
+        // Low walls N/S/E/W (half 4.0 along long axis, 0.4 thick)
+        Aabb2::from_center(0.0, -10.0, 4.0, 0.4),
+        Aabb2::from_center(0.0, 10.0, 4.0, 0.4),
+        Aabb2::from_center(10.0, 0.0, 0.4, 4.0),
+        Aabb2::from_center(-10.0, 0.0, 0.4, 4.0),
+        // Crates (mesh 2x2 xz): existing + flank clusters
+        Aabb2::from_center(4.0, 16.0, 1.0, 1.0),
+        Aabb2::from_center(-15.0, 3.0, 1.0, 1.0),
+        Aabb2::from_center(16.0, -4.0, 1.0, 1.0),
+        Aabb2::from_center(-3.5, -14.0, 1.0, 1.0),
+        Aabb2::from_center(3.5, -14.0, 1.0, 1.0),
+        Aabb2::from_center(-3.5, 14.0, 1.0, 1.0),
+        Aabb2::from_center(3.5, 14.0, 1.0, 1.0),
+        Aabb2::from_center(-14.0, -5.0, 1.0, 1.0),
+        Aabb2::from_center(-14.0, 5.0, 1.0, 1.0),
+        Aabb2::from_center(14.0, 5.0, 1.0, 1.0),
+        Aabb2::from_center(14.0, -5.0, 1.0, 1.0),
+    ]
+}
+
+fn circle_blocked(x: f32, z: f32) -> bool {
+    for obs in arena_obstacles() {
+        if obs.expand(PLAYER_RADIUS).contains(x, z) {
+            return true;
+        }
+    }
+    false
+}
+
+fn clamp_arena(x: f32, z: f32) -> (f32, f32) {
+    let half = ARENA_SIZE / 2.0 - PLAYER_RADIUS;
+    (x.clamp(-half, half), z.clamp(-half, half))
+}
+
+/// Quake-style slide: try full move, then axis slides, then stay.
+fn resolve_move(old_x: f32, old_z: f32, new_x: f32, new_z: f32) -> (f32, f32) {
+    let (nx, nz) = clamp_arena(new_x, new_z);
+    if !circle_blocked(nx, nz) {
+        return (nx, nz);
+    }
+    let (sx, _) = clamp_arena(new_x, old_z);
+    if !circle_blocked(sx, old_z) {
+        return (sx, old_z);
+    }
+    let (_, sz) = clamp_arena(old_x, new_z);
+    if !circle_blocked(old_x, sz) {
+        return (old_x, sz);
+    }
+    clamp_arena(old_x, old_z)
+}
+
+/// Slab ray vs AABB. Returns entry distance along unit (dx,dz) when hit ahead.
+fn ray_aabb_hit(ox: f32, oz: f32, dx: f32, dz: f32, obs: Aabb2) -> Option<f32> {
+    let (tmin_x, tmax_x) = if dx.abs() < 1e-8 {
+        if ox < obs.min_x || ox > obs.max_x {
+            return None;
+        }
+        (f32::NEG_INFINITY, f32::INFINITY)
+    } else {
+        let inv = 1.0 / dx;
+        let t1 = (obs.min_x - ox) * inv;
+        let t2 = (obs.max_x - ox) * inv;
+        (t1.min(t2), t1.max(t2))
+    };
+    let (tmin_z, tmax_z) = if dz.abs() < 1e-8 {
+        if oz < obs.min_z || oz > obs.max_z {
+            return None;
+        }
+        (f32::NEG_INFINITY, f32::INFINITY)
+    } else {
+        let inv = 1.0 / dz;
+        let t1 = (obs.min_z - oz) * inv;
+        let t2 = (obs.max_z - oz) * inv;
+        (t1.min(t2), t1.max(t2))
+    };
+    let t_enter = tmin_x.max(tmin_z);
+    let t_exit = tmax_x.min(tmax_z);
+    if t_exit < t_enter || t_exit < 0.0 {
+        None
+    } else {
+        Some(t_enter.max(0.0))
+    }
+}
+
+fn ray_blocked_by_cover(ox: f32, oz: f32, dx: f32, dz: f32, max_dist: f32) -> bool {
+    for obs in arena_obstacles() {
+        if let Some(t) = ray_aabb_hit(ox, oz, dx, dz, obs) {
+            if t < max_dist {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn spawn_on_ring(angle: f32) -> (f32, f32, f32) {
+    let spawn_radius = ARENA_SIZE * 0.3;
+    let mut a = angle;
+    for _ in 0..16 {
+        let x = a.cos() * spawn_radius;
+        let z = a.sin() * spawn_radius;
+        if !circle_blocked(x, z) {
+            return (x, z, a + PI);
+        }
+        a += PI / 8.0;
+    }
+    // Hub is clear of solids (drone spawn + fallback).
+    (0.0, 0.0, angle + PI)
+}
+
 /// Result of attempting an off-tick speak.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SpeakOutcome {
@@ -362,15 +513,15 @@ impl GameState {
 
     pub fn add_player(&mut self, id: Uuid, name: String, role: Role) {
         let angle = (self.players.len() as f32) * (2.0 * PI / 8.0);
-        let spawn_radius = ARENA_SIZE * 0.3;
+        let (sx, sz, yaw) = spawn_on_ring(angle);
 
         self.players.push(Player {
             id,
             name: name.clone(),
-            x: angle.cos() * spawn_radius,
+            x: sx,
             y: 1.5,
-            z: angle.sin() * spawn_radius,
-            yaw: angle + PI,
+            z: sz,
+            yaw,
             hp: PLAYER_MAX_HP,
             armor: 0,
             pending_action: Action::default(),
@@ -516,17 +667,13 @@ impl GameState {
                 dz /= len;
             }
 
-            player.x += dx * move_speed * dt;
-            player.z += dz * move_speed * dt;
-
-            player.x = player.x.clamp(
-                -ARENA_SIZE / 2.0 + PLAYER_RADIUS,
-                ARENA_SIZE / 2.0 - PLAYER_RADIUS,
-            );
-            player.z = player.z.clamp(
-                -ARENA_SIZE / 2.0 + PLAYER_RADIUS,
-                ARENA_SIZE / 2.0 - PLAYER_RADIUS,
-            );
+            let old_x = player.x;
+            let old_z = player.z;
+            let new_x = old_x + dx * move_speed * dt;
+            let new_z = old_z + dz * move_speed * dt;
+            let (rx, rz) = resolve_move(old_x, old_z, new_x, new_z);
+            player.x = rx;
+            player.z = rz;
 
             if action.turn_left {
                 player.yaw -= TURN_SPEED * dt;
@@ -737,6 +884,9 @@ impl GameState {
                 let perp_dist = (perp_x * perp_x + perp_z * perp_z).sqrt();
 
                 if perp_dist <= PLAYER_RADIUS * 2.0 {
+                    if ray_blocked_by_cover(shooter.x, shooter.z, ray_dx, ray_dz, dist) {
+                        continue;
+                    }
                     closest_dist = dist;
                     closest_idx = Some(i);
                 }
@@ -749,12 +899,12 @@ impl GameState {
     fn do_respawn(&mut self, player_id: Uuid) {
         if let Some(player) = self.players.iter_mut().find(|p| p.id == player_id) {
             let angle = rand::random::<f32>() * 2.0 * PI;
-            let spawn_radius = ARENA_SIZE * 0.3;
+            let (sx, sz, yaw) = spawn_on_ring(angle);
 
-            player.x = angle.cos() * spawn_radius;
+            player.x = sx;
             player.y = 1.5;
-            player.z = angle.sin() * spawn_radius;
-            player.yaw = angle + PI;
+            player.z = sz;
+            player.yaw = yaw;
             player.hp = PLAYER_MAX_HP;
             player.armor = 0;
             player.respawn_timer = None;
