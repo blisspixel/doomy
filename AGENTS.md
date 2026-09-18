@@ -79,7 +79,7 @@ Godot may exit `0` even when the log contains `SCRIPT ERROR` / `Parse Error`. Tr
 
 **Playable smoke (Slice 1 bar):**
 
-1. `cargo run -p doomy-server` (or `cd server && cargo run`) listens on `127.0.0.1:7777` with no cloud env. 
+1. `cargo run -p fragr-server` (or `cd server && cargo run`) listens on `127.0.0.1:7777` with no cloud env. 
 2. Bots fight; damage/frag within ~30s in server logs. 
 3. Godot spectator shows the match (presentation only). 
 4. Optional: human join + leave-to-spectate; adapter `observe`/`act` for at least one pawn.
