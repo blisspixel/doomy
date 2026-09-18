@@ -14,6 +14,15 @@ var target_position: Vector3 = Vector3.ZERO
 var target_yaw: float = 0.0
 const INTERP_SPEED: float = 10.0
 
+# Far-cam billboard scale: follow sits ~12m; tip overview ~36m.
+# Below REF, scale stays 1 so close follow is unchanged. Beyond REF, scale grows with
+# distance / REF (capped) so far spectators still read Cyanex/Kragge silhouettes.
+const FAR_CAM_REF_DIST: float = 12.0
+const FAR_CAM_MAX_SCALE: float = 3.5
+const HIT_SCALE_BOOST: float = 1.12
+
+var _far_cam_scale: float = 1.0
+
 @onready var label: Label3D = $Label3D
 @onready var highlight: MeshInstance3D = $Highlight
 @onready var body: Sprite3D = $Body
@@ -80,6 +89,8 @@ func _load_audio_streams():
 func _process(delta):
 	position = position.lerp(target_position, INTERP_SPEED * delta)
 	rotation.y = lerp_angle(rotation.y, target_yaw, INTERP_SPEED * delta)
+	
+	_update_far_cam_scale()
 	
 	if hit_flash_timer > 0:
 		hit_flash_timer -= delta
@@ -185,11 +196,10 @@ func _update_body_color(hit: bool):
 	
 	if hit:
 		body.modulate = Color(1.55, 0.35, 0.28)
-		body.scale = Vector3.ONE * 1.12
 	else:
 		# Near-white multiply so Cyanex/Kragge pixel art reads; brand on label.
 		body.modulate = Color(1.0, 1.0, 1.0).lerp(player_color, 0.18)
-		body.scale = Vector3.ONE
+	_apply_body_scale(hit)
 
 func show_muzzle_flash(weapon: String):
 	if fire_sound and fire_sound.stream:
@@ -233,7 +243,7 @@ func show_hit_feedback():
 	
 	await get_tree().create_timer(0.12).timeout
 	if is_instance_valid(body):
-		body.scale = Vector3.ONE
+		_apply_body_scale(hit_flash_timer > 0)
 
 func get_weapon_name() -> String:
 	return current_weapon
@@ -250,3 +260,27 @@ func set_highlighted(highlighted: bool):
 	is_highlighted = highlighted
 	if highlight:
 		highlight.visible = highlighted
+
+## Pure scale curve for far spectators. Safe to call from headless tests.
+static func compute_far_cam_scale(distance: float) -> float:
+	if distance <= FAR_CAM_REF_DIST:
+		return 1.0
+	return minf(distance / FAR_CAM_REF_DIST, FAR_CAM_MAX_SCALE)
+
+func _update_far_cam_scale() -> void:
+	var cam: Camera3D = get_viewport().get_camera_3d() if get_viewport() else null
+	var dist: float = FAR_CAM_REF_DIST
+	if cam != null:
+		dist = global_position.distance_to(cam.global_position)
+	_far_cam_scale = compute_far_cam_scale(dist)
+	_apply_body_scale(hit_flash_timer > 0)
+	if label:
+		label.scale = Vector3.ONE * _far_cam_scale
+
+func _apply_body_scale(hit: bool) -> void:
+	if not body:
+		return
+	var mult: float = _far_cam_scale
+	if hit:
+		mult *= HIT_SCALE_BOOST
+	body.scale = Vector3.ONE * mult
