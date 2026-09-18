@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `cursor/human-join-fp-juice`
 **Spend:** $0. No ElevenLabs, no GCP apply, no renet, no look_at/hit reopen.
-**Status:** Plan of record for Join-mode FP presentation juice.
+**Status:** **shipped** (#74 / `094f941`). Tip face: Join FP scrap juice.
 
 ## Goal
 
@@ -19,7 +19,7 @@ Keep Contested Frequency pixel grit (bone / gunmetal / ember). Unreal+CS readabi
 
 ## Tip priorities
 
-Reconnect + Godot null shipped (#73 / `25257de`). **Human join FP juice is the NOW tip.** look_at / hit HOLD. Port 6767. Coverage fail-under 80.
+Reconnect + Godot null shipped (#73). Human join FP juice shipped (#74). Next tip: killstreak Host juice. look_at / hit HOLD. Port 6767. Coverage fail-under 80.
 
 ## Non-goals
 

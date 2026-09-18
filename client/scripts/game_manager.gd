@@ -287,6 +287,17 @@ func _on_event_received(data):
 		var weapon = str(data.get("weapon", ""))
 		var amount = int(data.get("amount", 0))
 		hud.show_pickup_toast(who, weapon, kind, amount)
+	elif event_type == "killstreak":
+		var who = str(data.get("player", "?"))
+		var streak = int(data.get("streak", 0))
+		var tier = str(data.get("tier", ""))
+		var message = str(data.get("message", ""))
+		if hud and hud.has_method("show_killstreak"):
+			hud.show_killstreak(who, streak, tier, message)
+		if camera:
+			camera.camera_punch()
+		if frag_sound and frag_sound.stream:
+			frag_sound.play()
 	elif event_type == "speak":
 		var speaker = str(data.get("player", "?"))
 		var line = str(data.get("text", ""))
