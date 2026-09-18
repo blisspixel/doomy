@@ -186,15 +186,15 @@ async fn handle_connection(
                                 });
                             }
                         }
-                        Ok(ClientMessage::SetDisplayBehavior(msg)) => {
-                            // Agent-only display chip; role gated in session/sim.
-                            if role == Role::Agent {
-                                if let Some(pid) = player_id {
-                                    let _ = game_tx.send(GameCommand::SetDisplayBehavior {
-                                        player_id: pid,
-                                        behavior: msg.behavior,
-                                    });
-                                }
+                        Ok(ClientMessage::SetDisplayBehavior(msg))
+                            if role == Role::Agent =>
+                        {
+                            // Further gated in sim (rule bots / humans ignored).
+                            if let Some(pid) = player_id {
+                                let _ = game_tx.send(GameCommand::SetDisplayBehavior {
+                                    player_id: pid,
+                                    behavior: msg.behavior,
+                                });
                             }
                         }
                         _ => {}
