@@ -1,14 +1,27 @@
 # Testy Stranger Playtest Feedback Fixes
 
-**Target:** v0.3.0 (f6ecdea with weapons)  
+**Target:** v0.3.0 era feedback; tip through v0.4.0 + junk-act PR  
 **Spend:** $0  
 **Author:** Nick Seal <32712898+blisspixel@users.noreply.github.com>
 
-## Issues
+## Status (tip)
+
+| Soft prison | Status |
+|---|---|
+| Join/leave events for MCP (`get_events` / `recent_events`) | **Fixed** on `2f38625` (survive `tick()` for broadcast). Casino 3/3 join/leave path. |
+| Round start/end in adapter protocol | **Fixed** (shipped with MCP Prison / events work). |
+| Junk-act silent success (unknown keys / bad `weapon_swap` overwrite sticky state) | **This PR** - `deny_unknown_fields` on `Action`, MCP act allowlist, `isError` schema errors. |
+| Observe vs README round fields | Treat as verified/shipped unless Testy reopens. |
+| Window title "fragr Client" | **Fixed**. |
+
+Remaining soft prisons: call them honestly; do not paper over.
+
+## Issues (original)
 
 1. **MCP events buffer incomplete:** Agent-adapter drops join/leave and round events (round_start, round_end) even though server emits them
 2. **Observe vs README mismatch:** Live observe output thinner than agent-adapter README promises
 3. **Window title fixed:** Godot project now shows "fragr Client"
+4. **Junk-act silent success:** Unknown `act` fields ignored; sticky Action not protected (Testy soft prison). Cleared in junk-act/HUD PR.
 
 ## Root Causes
 

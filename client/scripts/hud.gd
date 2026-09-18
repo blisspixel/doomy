@@ -4,7 +4,7 @@ extends CanvasLayer
 @onready var tick_label = $Panel/VBoxContainer/TickLabel
 @onready var player_count_label = $Panel/VBoxContainer/PlayerCountLabel
 @onready var mode_label = $Panel/VBoxContainer/ModeLabel
-@ontml:parameter name="round_label = $Panel/VBoxContainer/RoundLabel
+@onready var round_label = $Panel/VBoxContainer/RoundLabel
 @onready var weapon_label = $Panel/VBoxContainer/WeaponLabel
 @onready var frag_label = $FragLabel
 @onready var round_message = $RoundMessage
@@ -119,7 +119,12 @@ func show_frag(killer: String, victim: String, killer_color: Color = Color.WHITE
 
 func show_round_start(round_number: int):
 	if round_message:
-		round_message.text = "ROUND " + str(round_number) + " - FIGHT!"
+		var host_lines = [
+			"HOST: ROUND " + str(round_number) + ". LIVE LAUGH FRAG.",
+			"HOST: FIGHTERS UP. PORT 6767 ENERGY.",
+			"ROUND " + str(round_number) + " - FIGHT!"
+		]
+		round_message.text = host_lines[randi() % host_lines.size()]
 		round_message.visible = true
 		
 		var tween = create_tween()
@@ -142,7 +147,7 @@ func show_round_end(winner: String, reason: String):
 	followed_player_name = ""
 	
 	if round_message:
-		var message = reason.to_upper()
+		var message = "HOST: " + reason.to_upper()
 		if winner != "":
 			message += "\n\nWINNER: " + winner + "!"
 		

@@ -68,6 +68,7 @@ pub enum Role {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
 pub struct Action {
     #[serde(default)]
     pub forward: bool,
@@ -157,4 +158,35 @@ pub enum GameEvent {
         round_number: u32,
         player_count: usize,
     },
+}
+
+#[cfg(test)]
+mod protocol_tests {
+    use super::*;
+
+    #[test]
+    fn unknown_action_field_fails_deserialize() {
+        let json = r#"{"type":"action","forward":true,"laser":true}"#;
+        let parsed: Result<ClientMessage, _> = serde_json::from_str(json);
+        assert!(
+            parsed.is_err(),
+            "unknown Action field must fail: {:?}",
+            parsed
+        );
+    }
+
+    #[test]
+    fn valid_action_deserializes() {
+        let json = r#"{"type":"action","forward":true,"fire":true}"#;
+        let parsed: Result<ClientMessage, _> = serde_json::from_str(json);
+        assert!(parsed.is_ok(), "{:?}", parsed);
+        match parsed.unwrap() {
+            ClientMessage::Action(a) => {
+                assert!(a.forward);
+                assert!(a.fire);
+                assert!(!a.back);
+            }
+            other => panic!("expected Action, got {:?}", other),
+        }
+    }
 }
