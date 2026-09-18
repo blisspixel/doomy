@@ -8,7 +8,7 @@
 
 1. **MCP events buffer incomplete:** Agent-adapter drops join/leave and round events (round_start, round_end) even though server emits them
 2. **Observe vs README mismatch:** Live observe output thinner than agent-adapter README promises
-3. **Window title outdated:** Godot project shows "Doomy Client" instead of "fragr"
+3. **Window title fixed:** Godot project now shows "fragr Client"
 
 ## Root Causes
 
@@ -28,8 +28,8 @@ Join/leave events: server does not currently emit these as explicit events. Serv
 - Need to verify actual server behavior and ensure fields are consistently populated
 
 ### Issue 3: Godot project name
-- client/project.godot line 13: `config/name="Doomy Client"`
-- Should be "fragr" or "fragr Client"
+
+Client application name has been updated to "fragr Client" in `client/project.godot`.
 
 ## Implementation Plan
 
@@ -89,7 +89,7 @@ If fields are missing in output, fix server snapshot generation. If present, ens
 
 **File:** `client/project.godot`
 
-Line 13: Change `config/name="Doomy Client"` to `config/name="fragr Client"`
+Line 13: Application name updated to `config/name="fragr Client"`
 
 ## Verification
 
@@ -119,7 +119,7 @@ Line 13: Change `config/name="Doomy Client"` to `config/name="fragr Client"`
 - Testy can see join/leave events in get_events/recent_events
 - Testy can see round_start/round_end events in get_events/recent_events
 - observe output matches agent-adapter README examples (round_state, round_time_left, frag_limit present)
-- Godot window title shows "fragr Client" not "Doomy Client"
+- Godot window title shows "fragr Client"
 - All cargo checks green
 - Zero Cursor/Claude/Codex attribution
 - No emoji, no em/en dashes
