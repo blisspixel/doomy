@@ -58,6 +58,8 @@ pub struct PlayerState {
     pub yaw: f32,
     pub hp: i32,
     pub just_fired: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub behavior: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

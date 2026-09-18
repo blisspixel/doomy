@@ -65,7 +65,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .get(i)
             .unwrap_or(&("Bot", sim::BotBehavior::Balanced));
         state.add_player(bot_id, bot_name.to_string(), Role::Agent);
-        bots.push(BotController::new(bot_id, *behavior));
+        let bot_controller = BotController::new(bot_id, *behavior);
+        bots.push(bot_controller.clone());
+        state.bots.push(bot_controller);
         tracing::info!("Spawned bot: {} ({:?}, {})", bot_name, behavior, bot_id);
     }
 

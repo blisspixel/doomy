@@ -6,6 +6,10 @@ var hp: int = 100
 var player_color: Color = Color.WHITE
 var hit_flash_timer: float = 0.0
 
+var target_position: Vector3 = Vector3.ZERO
+var target_yaw: float = 0.0
+const INTERP_SPEED: float = 10.0
+
 @onready var label: Label3D = $Label3D
 @onready var body: MeshInstance3D = $Body
 @onready var muzzle: MeshInstance3D = $Body/Muzzle
@@ -29,6 +33,10 @@ func _ready():
 		muzzle.visible = false
 
 func _process(delta):
+	# Interpolate position and rotation toward target
+	position = position.lerp(target_position, INTERP_SPEED * delta)
+	rotation.y = lerp_angle(rotation.y, target_yaw, INTERP_SPEED * delta)
+	
 	if hit_flash_timer > 0:
 		hit_flash_timer -= delta
 		if hit_flash_timer <= 0 and body:
@@ -49,10 +57,14 @@ func set_player_data(id: String, name: String):
 	if label:
 		label.text = name
 		label.modulate = player_color
+	
+	# Initialize interpolation targets to avoid snap on spawn
+	target_position = position
+	target_yaw = rotation.y
 
 func update_state(state: Dictionary):
-	position = Vector3(state.x, state.y, state.z)
-	rotation.y = state.yaw
+	target_position = Vector3(state.x, state.y, state.z)
+	target_yaw = state.yaw
 	
 	var old_hp = hp
 	hp = state.hp
@@ -62,7 +74,10 @@ func update_state(state: Dictionary):
 		show_hit_feedback()
 	
 	if label:
-		label.text = player_name + " [" + str(hp) + "]"
+		var behavior_chip = ""
+		if state.has("behavior") and state.behavior != null:
+			behavior_chip = " [" + str(state.behavior) + "]"
+		label.text = player_name + " [" + str(hp) + "]" + behavior_chip
 	
 	if muzzle and state.get("just_fired", false):
 		show_muzzle_flash()

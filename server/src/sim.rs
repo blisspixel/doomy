@@ -16,6 +16,7 @@ pub struct GameState {
     pub tick: u64,
     pub players: Vec<Player>,
     pub events: Vec<GameEvent>,
+    pub bots: Vec<BotController>,
 }
 
 pub struct Player {
@@ -38,6 +39,7 @@ impl GameState {
             tick: 0,
             players: Vec::new(),
             events: Vec::new(),
+            bots: Vec::new(),
         }
     }
 
@@ -251,15 +253,24 @@ impl GameState {
                 .players
                 .iter()
                 .filter(|p| p.respawn_timer.is_none())
-                .map(|p| PlayerState {
-                    id: p.id,
-                    name: p.name.clone(),
-                    x: p.x,
-                    y: p.y,
-                    z: p.z,
-                    yaw: p.yaw,
-                    hp: p.hp,
-                    just_fired: p.just_fired,
+                .map(|p| {
+                    let behavior = self
+                        .bots
+                        .iter()
+                        .find(|b| b.player_id == p.id)
+                        .map(|b| format!("{:?}", b.behavior));
+                    
+                    PlayerState {
+                        id: p.id,
+                        name: p.name.clone(),
+                        x: p.x,
+                        y: p.y,
+                        z: p.z,
+                        yaw: p.yaw,
+                        hp: p.hp,
+                        just_fired: p.just_fired,
+                        behavior,
+                    }
                 })
                 .collect(),
         }
@@ -270,6 +281,7 @@ impl GameState {
     }
 }
 
+#[derive(Clone)]
 pub struct BotController {
     pub player_id: Uuid,
     pub behavior: BotBehavior,

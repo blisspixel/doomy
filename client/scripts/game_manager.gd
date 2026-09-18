@@ -84,6 +84,9 @@ func _on_snapshot_received(data):
 		if not players.has(id):
 			var pawn = player_scene.instantiate()
 			arena.add_child(pawn)
+			# Set initial position before setting player data to avoid snap
+			pawn.position = Vector3(player_data.x, player_data.y, player_data.z)
+			pawn.rotation.y = player_data.yaw
 			pawn.set_player_data(id, player_data.name)
 			players[id] = pawn
 		
