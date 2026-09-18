@@ -61,7 +61,7 @@ cargo run -p fragr-server -- --bind 127.0.0.1:6767 --bots 4
 **fragr** supports two first-class experiences from day one:
 
 - **Solo Scrap (first-class):** Offline boot-and-scrap on loopback **6767**. `./tools/solo_scrap.sh` or Boot menu -> Solo Scrap. Local rule bots always present (server `--bots` / `min_bots`). Same Action path and feel as MP. Not an empty lobby.
-- **Multiplayer:** Self-host and invite peers (LAN or Tailscale). Humans, agents, and spectators share the same arena. Join mid-match, leave to spectate, bots persist. Not a LAN-only demo.
+- **Multiplayer (public OR local):** Self-host with public TCP+UDP **6767** (Minecraft-shaped) for strangers and agents, or keep it on LAN/loopback for buddies. Humans, agents, and spectators share the same arena. Join mid-match, leave to spectate, bots persist. Not a LAN-only demo. Not Tailscale-required.
 
 Both modes use the same server and client. No separate combat rules.
 
@@ -73,27 +73,27 @@ Both modes use the same server and client. No separate combat rules.
 - **Satisfying feedback:** Snappy muzzle flashes (0.08s), hit pulses, camera locks on killer for 1.5s after frag.
 - **Spectator-first, join anytime:** Default is watch. Press J to join, test yourself, press L to leave. Bots persist.
 - **Round scoring:** 10 frag limit or 3 min time limit. Winner announced, next round auto-starts. Continuous match.
-- **Zero friction:** Loopback (one machine) or LAN/Tailscale (friends). No accounts, no cloud, no spend.
+- **Zero friction:** Loopback Solo Scrap, or self-host public/LAN on **6767**. No accounts required. Local play is $0; public host is opt-in under the $50 cap (spend ACK).
 
-## Multi-machine (LAN or Tailscale)
+## Multi-machine (public self-host or LAN)
 
-Run server on one machine, connect spectators/players from others.
+Primary multiplayer story: run the authoritative server on a box you control and open **TCP+UDP 6767** (Minecraft-shaped). Strangers and agents join with no VPN. LAN works the same bind for buddies on your network. See `infra/docs/HOME-LAN.md`, `infra/docs/CHEAP-VPS.md`, and `infra/docs/DURABLE-HOST.md` (plan-only until spend ACK).
 
 ### Server host
 
 ```bash
 cargo run -p fragr-server -- --bind 0.0.0.0:6767 --bots 4
-# Note LAN IP (e.g. 192.168.1.100) or Tailscale IP (e.g. 100.x.y.z)
+# Note LAN IP (e.g. 192.168.1.100) or public IP / DNS after port-forward or VPS firewall
 ```
 
 ### Client (another machine)
 
 ```bash
-export FRAGR_SERVER="192.168.1.100:6767"  # or Tailscale IP
+export FRAGR_SERVER="192.168.1.100:6767"  # or YOUR_PUBLIC:6767
 # Open client/ in Godot 4.7.2, press F5
 ```
 
-**Tailscale Personal:** Free, zero spend. Install from [tailscale.com](https://tailscale.com), connect machines.
+**Tailscale Personal (optional, private/dev smoke only):** Useful for operator smoke when you are away from home. Not the stranger/agent join path. Do not close public 6767 and ship Tailscale-only. Install from [tailscale.com](https://tailscale.com) if you want that overlay.
 
 ## Agent adapter (MCP-compatible)
 
@@ -110,7 +110,7 @@ External agents (clawbots, MCP clients) can observe and act via structured JSON 
 - **Protocol**: WebSocket JSON on port **6767** (on purpose; see `docs/protocol.md`)
 - **Match loop**: Frag limit (default 10) or time limit (default 3min), scoreboard tracks per-round kills, bots persist when humans leave
 - **Audio**: Procedurally generated sounds (fire, hit, frag, round transitions) released under CC0 1.0 Universal (see `client/assets/audio/README.md`)
-- **Spend**: $0 (loopback, LAN, Tailscale Personal only)
+- **Spend**: Local Solo Scrap / LAN is **$0**. Public self-host sits under the **$50** hard cap and needs Nick/Chief spend ACK (GCP IaC stays plan-only until then). Tailscale Personal is optional private/dev smoke, not the product spend story.
 
 See `docs/ARCHITECTURE.md` for stack decisions and `docs/SLICE-1.md` for definition of done.
 

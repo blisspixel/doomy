@@ -6,7 +6,7 @@
 
 **Done when all success criteria below are green.**
 
-**Product stance:** Solo play with bots AND multiplayer (humans/agents/spectators in the same match) are both first-class from Slice 1. Not a LAN-only tech demo. Self-host loopback, then optional Tailscale/LAN peers.
+**Product stance:** Solo play with bots AND multiplayer (humans/agents/spectators in the same match) are both first-class from Slice 1. Not a LAN-only tech demo. Self-host loopback locally, or public TCP+UDP 6767 for peers/agents. Tailscale is private/dev smoke only.
 
 ---
 
@@ -17,7 +17,7 @@
 - [x] Spectator is presentation-only (no local authority); killing the server drops/freezes the match cleanly.
 - [x] Agent-adapter (or documented equivalent) drives ≥1 fighter via `observe` / `act`; MCP tool surface listed in README even if partially stubbed.
 - [x] Optional human: same Godot client can join with keyboard move + shoot in the same match.
-- [x] Second peer can spectate the same match on LAN or Tailscale Personal (server binds non-loopback, client accepts server URL via env var, README documents two-machine steps).
+- [x] Second peer can spectate the same match on LAN or public self-host (server binds non-loopback, client accepts server URL via env var, README documents two-machine steps). Tailscale Personal optional for private/dev smoke only.
 - [x] Incremental spend: **$0**.
 
 ---
@@ -87,7 +87,7 @@
 - UDP / renet / lightyear
 - LLM-backed agents or screenshot observations **[SPEND GATE]**
 - Multiple maps, persistence, auth, matchmaking
-- Public hosting / Tailscale packaging (nice docs ok; no paid VPS)
+- Paid public hosting without spend ACK (nice docs ok; public 6767 self-host path documented; Tailscale packaging is private/dev only)
 - Creating the GitHub remote (wait for Nick/Buildy)
 
 ---
