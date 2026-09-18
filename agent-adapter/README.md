@@ -1,6 +1,15 @@
 # Doomy Agent Adapter
 
-Agent adapter for Doomy - provides both MCP server and scripted bot modes.
+Agent adapter for Doomy - provides both **MCP slow control plane** and fast scripted bot modes.
+
+## Design Philosophy
+
+The agent adapter is a **slow strategic control plane**, not a 20-60 Hz combat interface. Suitable for:
+- LLM agents with 1-10 second think times
+- High-level decision making and goal setting
+- Deliberative AI that observes and acts at human-like cadences
+
+Fast reactive bots run server-side (or via scripted-bot mode) and own the tick loop.
 
 ## Modes
 
