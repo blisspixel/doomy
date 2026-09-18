@@ -43,19 +43,20 @@ var kragge_texture: Texture2D
 # Art bible muted brand tints (bone/gunmetal/rust/blood/ember + muted cyan/magenta).
 # Keep silhouettes readable: labels carry brand color; body stays near-white multiply.
 const BOT_COLORS = {
-	"Rusher": Color(0.75, 0.28, 0.22),
-	"Sniper": Color(0.35, 0.58, 0.62),
-	"Flanker": Color(0.82, 0.55, 0.22),
-	"Tank": Color(0.55, 0.48, 0.4),
-	"Scout": Color(0.62, 0.32, 0.42),
-	"Guard": Color(0.45, 0.38, 0.5),
-	"Hunter": Color(0.769, 0.4, 0.18),
-	"Striker": Color(0.4, 0.62, 0.64),
+	"Dead Air Dan": Color(0.75, 0.28, 0.22),
+	"Nightfall": Color(0.35, 0.58, 0.62),
+	"Static Kid": Color(0.82, 0.55, 0.22),
+	"Aunt Linda": Color(0.55, 0.48, 0.4),
+	"Scout Ant": Color(0.62, 0.32, 0.42),
+	"Crackpot": Color(0.45, 0.38, 0.5),
+	"Buzzkill": Color(0.769, 0.4, 0.18),
+	"Tin Foil Tina": Color(0.4, 0.62, 0.64),
 	"COMPLIANCE-DRONE": Color(0.55, 0.72, 0.35)
 }
 
-const KRAGGE_BOTS = ["Rusher", "Tank", "Hunter"]
-const CYANEX_BOTS = ["Sniper", "Flanker", "Scout", "Guard", "Striker"]
+# Hangar Candy / Kragge grit vs Cyanex / Night Watch signal.
+const KRAGGE_BOTS = ["Dead Air Dan", "Aunt Linda", "Buzzkill"]
+const CYANEX_BOTS = ["Nightfall", "Static Kid", "Scout Ant", "Crackpot", "Tin Foil Tina"]
 
 func _ready():
 	if label:

@@ -452,6 +452,15 @@ pub fn build_round_state_result(state: &ToolState) -> Value {
         other => other,
     };
 
+    let map_id = match snap_field(snap, "map_id") {
+        Value::Null => Value::from(crate::protocol::default_map_id()),
+        other => other,
+    };
+    let map_name = match snap_field(snap, "map_name") {
+        Value::Null => Value::from(crate::protocol::default_map_name()),
+        other => other,
+    };
+
     serde_json::json!({
         "connected": state.connected,
         "self_player_id": state.player_id.map(|id| id.to_string()),
@@ -466,6 +475,8 @@ pub fn build_round_state_result(state: &ToolState) -> Value {
         "pressure": snap_field(snap, "pressure"),
         "mvp": mvp,
         "mvp_frags": mvp_frags,
+        "map_id": map_id,
+        "map_name": map_name,
         "last_round_start": last_round_start,
         "last_round_end": last_round_end
     })
@@ -1506,6 +1517,35 @@ mod mcp_tests {
         assert_eq!(result["last_round_start"]["round_number"], 3);
         assert!(result["mvp"].is_null());
         assert!(result["mvp_frags"].is_null());
+        // Soft: map fields always present (defaults when snapshot omits them).
+        assert_eq!(result["map_id"], crate::protocol::default_map_id());
+        assert_eq!(result["map_name"], crate::protocol::default_map_name());
+    }
+
+    #[test]
+    fn round_state_surfaces_map_from_snapshot() {
+        let mut state = ToolState {
+            connected: true,
+            player_id: Some(Uuid::nil()),
+            last_snapshot: Some(serde_json::json!({
+                "tick": 7,
+                "round_state": "Warmup",
+                "map_id": 2,
+                "map_name": "Compliance Yard"
+            })),
+            ..Default::default()
+        };
+        let out = handle_mcp_request(
+            req(
+                "tools/call",
+                Some(serde_json::json!({"name":"round_state","arguments":{}})),
+            ),
+            &mut state,
+        );
+        let result = out.response.result.unwrap();
+        assert_eq!(result["round_state"], "Warmup");
+        assert_eq!(result["map_id"], 2);
+        assert_eq!(result["map_name"], "Compliance Yard");
     }
 
     #[test]

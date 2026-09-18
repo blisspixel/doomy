@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `cursor/ended-linger-mvp`
 **Spend:** $0. No ElevenLabs, no GCP apply, no renet, no look_at/hit reopen.
-**Status:** In flight (Testy soft follow-ups from MVP Casino).
+**Status:** Shipped (#81 / `8c4f02c`).
 
 ## Goal
 
@@ -12,7 +12,7 @@
 
 ## Tip priorities
 
-Yard (second scrap map) shipped (#80 / `e8f79b5`). **This is the NOW tip.** look_at / hit HOLD. Port 6767. Coverage fail-under 80. Maps 1+2 stay.
+Shipped (#81). Tip NOW: named scrap bots. See [`named-scrap-bots.md`](./named-scrap-bots.md). look_at / hit HOLD. Port 6767. Coverage fail-under 80. Maps 1+2 stay.
 
 ## Non-goals
 
