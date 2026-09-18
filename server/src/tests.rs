@@ -1,7 +1,7 @@
 #[cfg(test)]
 use crate::protocol::{
-    Action, ClientMessage, GameEvent, PlayerScore, PlayerState, Role, ServerMessage, Snapshot,
-    WeaponType,
+    default_host_line, default_mode_name, default_playlist, Action, ClientMessage, GameEvent,
+    PlayerScore, PlayerState, Role, ServerMessage, Snapshot, WeaponType,
 };
 #[cfg(test)]
 use crate::sim::{BotBehavior, BotController, GameState, MatchConfig, RoundState};
@@ -48,6 +48,8 @@ fn test_protocol_server_message_welcome() {
     let welcome = ServerMessage::Welcome {
         player_id: Some(Uuid::new_v4()),
         role: Role::Human,
+        mode_name: default_mode_name(),
+        playlist: default_playlist(),
     };
     let json = serde_json::to_string(&welcome).unwrap();
     assert!(json.contains(r#""type":"welcome""#));
@@ -56,6 +58,8 @@ fn test_protocol_server_message_welcome() {
     let welcome_spectator = ServerMessage::Welcome {
         player_id: None,
         role: Role::Spectator,
+        mode_name: default_mode_name(),
+        playlist: default_playlist(),
     };
     let json = serde_json::to_string(&welcome_spectator).unwrap();
     assert!(json.contains(r#""player_id":null"#));
@@ -170,6 +174,9 @@ fn test_protocol_game_event_round_start() {
         time_limit: Some(180),
         players: vec!["Bot1".to_string(), "Bot2".to_string()],
         previous_winner: Some("Bot1".to_string()),
+        mode_name: default_mode_name(),
+        playlist: default_playlist(),
+        host_line: default_host_line(),
     };
     let json = serde_json::to_value(&event).unwrap();
     assert_eq!(json["event"], "round_start");
@@ -240,6 +247,9 @@ fn test_protocol_snapshot_serialization() {
         round_time_left: Some(60),
         frag_limit: Some(10),
         shot_results: vec![],
+        mode_name: default_mode_name(),
+        playlist: default_playlist(),
+        pressure: None,
     };
     let json = serde_json::to_value(&snapshot).unwrap();
     assert_eq!(json["tick"], 123);
@@ -255,6 +265,9 @@ fn test_protocol_snapshot_empty_players() {
         round_time_left: None,
         frag_limit: None,
         shot_results: vec![],
+        mode_name: default_mode_name(),
+        playlist: default_playlist(),
+        pressure: None,
     };
     let json = serde_json::to_string(&snapshot).unwrap();
     assert!(json.contains(r#""tick":0"#));
@@ -536,6 +549,8 @@ fn test_sim_match_config_custom() {
         time_limit_ticks: Some(100),
         warmup_ticks: 10,
         end_delay_ticks: 20,
+        compliance_ping_ticks: None,
+        compliance_duration_ticks: 20 * 6,
     };
 
     assert_eq!(config.frag_limit, Some(5));
@@ -1755,6 +1770,8 @@ fn test_round_cycle_events_survive_ticks() {
         time_limit_ticks: None,
         warmup_ticks: 3,
         end_delay_ticks: 3,
+        compliance_ping_ticks: None,
+        compliance_duration_ticks: 20 * 6,
     };
 
     let a = uuid::Uuid::new_v4();
@@ -1829,6 +1846,9 @@ fn test_server_round_event_wire_json_shape() {
         time_limit: Some(180),
         players: vec!["Alpha".into(), "Bravo".into()],
         previous_winner: Some("Alpha".into()),
+        mode_name: default_mode_name(),
+        playlist: default_playlist(),
+        host_line: default_host_line(),
     });
     let start_json = serde_json::to_string(&start).unwrap();
     assert!(start_json.contains(r#""type":"event""#), "{}", start_json);
@@ -1839,6 +1859,16 @@ fn test_server_round_event_wire_json_shape() {
     );
     assert!(
         start_json.contains(r#""previous_winner":"Alpha""#),
+        "{}",
+        start_json
+    );
+    assert!(
+        start_json.contains(r#""mode_name":"Contested Frequency""#),
+        "{}",
+        start_json
+    );
+    assert!(
+        start_json.contains(r#""playlist":"Arena Duel""#),
         "{}",
         start_json
     );
@@ -1917,7 +1947,12 @@ async fn test_net_ws_agent_hello_welcome_and_connected_command() {
         ServerMessage::Welcome {
             player_id: Some(_),
             role: Role::Agent,
-        } => {}
+            mode_name,
+            playlist,
+        } => {
+            assert_eq!(mode_name, default_mode_name());
+            assert_eq!(playlist, default_playlist());
+        }
         other => panic!("unexpected welcome: {:?}", other),
     }
 
@@ -1992,7 +2027,12 @@ async fn test_net_ws_spectator_hello_no_player_id() {
         ServerMessage::Welcome {
             player_id: None,
             role: Role::Spectator,
-        } => {}
+            mode_name,
+            playlist,
+        } => {
+            assert_eq!(mode_name, default_mode_name());
+            assert_eq!(playlist, default_playlist());
+        }
         other => panic!("{:?}", other),
     }
 
@@ -2084,6 +2124,9 @@ async fn test_net_ws_action_forwarded_for_agent() {
             round_time_left: Some(100),
             frag_limit: Some(10),
             shot_results: vec![],
+            mode_name: default_mode_name(),
+            playlist: default_playlist(),
+            pressure: None,
         });
         broadcast_to_clients(&clients, &[snap]).await;
         let msg = tokio::time::timeout(std::time::Duration::from_secs(2), stream.next())
@@ -2433,4 +2476,160 @@ fn test_shot_results_miss() {
             .any(|e| matches!(e, GameEvent::Hit { .. })),
         "no Hit event on miss"
     );
+}
+
+#[test]
+fn test_snapshot_carries_contested_frequency_mode_identity() {
+    let state = GameState::new();
+    let snap = state.snapshot();
+    assert_eq!(snap.mode_name, "Contested Frequency");
+    assert_eq!(snap.playlist, "Arena Duel");
+    assert!(snap.pressure.is_none());
+    let json = serde_json::to_value(&snap).unwrap();
+    assert_eq!(json["mode_name"], "Contested Frequency");
+    assert_eq!(json["playlist"], "Arena Duel");
+    assert!(json.get("pressure").is_none() || json["pressure"].is_null());
+}
+
+#[test]
+fn test_compliance_ping_fires_once_and_sets_pressure() {
+    let mut state = GameState::new();
+    state.config = MatchConfig {
+        frag_limit: Some(99),
+        time_limit_ticks: Some(20 * 60),
+        warmup_ticks: 2,
+        end_delay_ticks: 5,
+        compliance_ping_ticks: Some(5),
+        compliance_duration_ticks: 10,
+    };
+    let id = Uuid::new_v4();
+    state.add_player(id, "Scrap".to_string(), Role::Human);
+
+    // Drain warmup into Active.
+    state.tick(0.05);
+    state.tick(0.05);
+    let _ = state.take_events();
+    assert_eq!(state.round_state, RoundState::Active);
+    assert!(!state.compliance_fired);
+
+    // Ticks 1..4: no ping yet.
+    for _ in 0..4 {
+        state.tick(0.05);
+        let ev = state.take_events();
+        assert!(
+            !ev.iter()
+                .any(|e| matches!(e, GameEvent::CompliancePing { .. })),
+            "too early: {:?}",
+            ev
+        );
+    }
+
+    // Tick 5: compliance fires.
+    state.tick(0.05);
+    let ev = state.take_events();
+    let ping = ev
+        .iter()
+        .find_map(|e| match e {
+            GameEvent::CompliancePing {
+                message,
+                duration_ticks,
+            } => Some((message.clone(), *duration_ticks)),
+            _ => None,
+        })
+        .expect("compliance_ping event");
+    assert!(ping.0.contains("CONTINUANCE"));
+    assert_eq!(ping.1, 10);
+    assert!(state.compliance_fired);
+    // Fire sets ticks_left after the decrement check, so the fire tick keeps full duration.
+    assert_eq!(state.compliance_ticks_left, 10);
+
+    let snap = state.snapshot();
+    assert_eq!(snap.pressure.as_deref(), Some("compliance"));
+
+    // Second fire must not happen.
+    for _ in 0..20 {
+        state.tick(0.05);
+        let ev = state.take_events();
+        assert!(
+            !ev.iter()
+                .any(|e| matches!(e, GameEvent::CompliancePing { .. })),
+            "duplicate ping: {:?}",
+            ev
+        );
+    }
+    assert!(state.compliance_ticks_left == 0);
+    assert!(state.snapshot().pressure.is_none());
+}
+
+#[test]
+fn test_compliance_pressure_slows_movement() {
+    let mut state = GameState::new();
+    state.config = MatchConfig {
+        frag_limit: Some(99),
+        time_limit_ticks: Some(20 * 60),
+        warmup_ticks: 1,
+        end_delay_ticks: 5,
+        compliance_ping_ticks: None,
+        compliance_duration_ticks: 20,
+    };
+    let id = Uuid::new_v4();
+    state.add_player(id, "Runner".to_string(), Role::Human);
+    state.tick(0.05); // warmup -> active
+    let _ = state.take_events();
+
+    let start_x = state.players[0].x;
+    state.set_action(
+        id,
+        Action {
+            forward: true,
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+    let normal_dx = (state.players[0].x - start_x).abs();
+
+    // Reset position-ish by measuring another normal step
+    let x2 = state.players[0].x;
+    state.tick(0.05);
+    let normal_dx2 = (state.players[0].x - x2).abs();
+
+    state.compliance_ticks_left = 20;
+    let x3 = state.players[0].x;
+    state.tick(0.05);
+    let slow_dx = (state.players[0].x - x3).abs();
+
+    assert!(
+        slow_dx < normal_dx2 * 0.75,
+        "compliance should slow move: normal={} slow={}",
+        normal_dx2,
+        slow_dx
+    );
+    assert!(normal_dx > 0.0);
+}
+
+#[test]
+fn test_compliance_ping_wire_json_shape() {
+    let event = GameEvent::CompliancePing {
+        message: "HOST: CONTINUANCE COMPLIANCE PING. APPROVED LANES ONLY.".into(),
+        duration_ticks: 120,
+    };
+    let msg = ServerMessage::Event(event);
+    let json = serde_json::to_value(&msg).unwrap();
+    assert_eq!(json["type"], "event");
+    assert_eq!(json["event"], "compliance_ping");
+    assert_eq!(json["duration_ticks"], 120);
+    assert!(json["message"].as_str().unwrap().contains("CONTINUANCE"));
+}
+
+#[test]
+fn test_welcome_includes_mode_identity() {
+    let welcome = ServerMessage::Welcome {
+        player_id: None,
+        role: Role::Spectator,
+        mode_name: default_mode_name(),
+        playlist: default_playlist(),
+    };
+    let json = serde_json::to_value(&welcome).unwrap();
+    assert_eq!(json["mode_name"], "Contested Frequency");
+    assert_eq!(json["playlist"], "Arena Duel");
 }

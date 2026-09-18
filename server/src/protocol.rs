@@ -1,6 +1,23 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// Named scrap-league identity (Contested Frequency denies it exists).
+pub const MODE_NAME: &str = "Contested Frequency";
+/// Playlist label under the league lie.
+pub const PLAYLIST_NAME: &str = "Arena Duel";
+
+pub fn default_mode_name() -> String {
+    MODE_NAME.to_string()
+}
+
+pub fn default_playlist() -> String {
+    PLAYLIST_NAME.to_string()
+}
+
+pub fn default_host_line() -> String {
+    "HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE. ARENA DUEL IS LIVE.".to_string()
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum WeaponType {
@@ -54,7 +71,14 @@ pub enum ClientMessage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ServerMessage {
-    Welcome { player_id: Option<Uuid>, role: Role },
+    Welcome {
+        player_id: Option<Uuid>,
+        role: Role,
+        #[serde(default = "default_mode_name")]
+        mode_name: String,
+        #[serde(default = "default_playlist")]
+        playlist: String,
+    },
     Snapshot(Snapshot),
     Event(GameEvent),
 }
@@ -131,6 +155,15 @@ pub struct Snapshot {
     /// Shots resolved on this tick (empty omitted on wire).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub shot_results: Vec<ShotResult>,
+    /// Contested Frequency (scrap league that denies it exists).
+    #[serde(default = "default_mode_name")]
+    pub mode_name: String,
+    /// Arena Duel under the league lie.
+    #[serde(default = "default_playlist")]
+    pub playlist: String,
+    /// Live pressure beat id when Continuance is squeezing the round.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pressure: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -181,6 +214,12 @@ pub enum GameEvent {
         time_limit: Option<u32>,
         players: Vec<String>,
         previous_winner: Option<String>,
+        #[serde(default = "default_mode_name")]
+        mode_name: String,
+        #[serde(default = "default_playlist")]
+        playlist: String,
+        #[serde(default = "default_host_line")]
+        host_line: String,
     },
     RoundEnd {
         winner: Option<String>,
@@ -199,6 +238,11 @@ pub enum GameEvent {
         score: u32,
         round_number: u32,
         player_count: usize,
+    },
+    /// Mid-round Continuance compliance pressure (Host bumper + move slow).
+    CompliancePing {
+        message: String,
+        duration_ticks: u32,
     },
 }
 
@@ -295,6 +339,9 @@ mod protocol_tests {
             round_time_left: None,
             frag_limit: None,
             shot_results: vec![shot.clone()],
+            mode_name: default_mode_name(),
+            playlist: default_playlist(),
+            pressure: None,
         };
         let v = serde_json::to_value(&snap).unwrap();
         assert_eq!(v["shot_results"][0]["hit"], true);

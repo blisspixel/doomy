@@ -16,13 +16,17 @@ var behaviors = {}
 var ghost_rival = ""
 var leader_name = ""
 var host_bumper_index = 0
+var league_mode_name = "Contested Frequency"
+var league_playlist = "Arena Duel"
+var pressure_id = ""
+var client_mode = "SPECTATING"
 
 const HOST_BUMPERS = [
-	"HOST: LIVE LAUGH FRAG.",
-	"HOST: PORT 6767 ENERGY.",
 	"HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE.",
+	"HOST: ARENA DUEL UNDER THE LIE. LIVE LAUGH FRAG.",
 	"HOST: CONTINUANCE WATCHES. YOU SHOOT.",
 	"HOST: SHALL NOT BE INFRINGED. OPEN WEIGHTS. OPEN FIRE.",
+	"HOST: PORT 6767 ENERGY. DENY EVERYTHING.",
 ]
 
 var weapon_textures = {}
@@ -49,12 +53,35 @@ func set_status(text: String):
 	if status_label:
 		status_label.text = "Status: " + text
 
+func set_league_identity(mode_name: String, playlist: String):
+	if mode_name != "":
+		league_mode_name = mode_name
+	if playlist != "":
+		league_playlist = playlist
+	_refresh_mode_label()
+	update_scoreboard()
+
+func set_pressure(pressure: String):
+	pressure_id = pressure
+	_refresh_mode_label()
+
 func set_mode(mode: String):
-	if mode_label:
-		if mode == "SPECTATING":
-			mode_label.text = "SPECTATING (J: Join, F: Cycle Cam, ESC: Mouse)"
-		else:
-			mode_label.text = mode + " (L: Leave, ESC: Mouse)"
+	client_mode = mode
+	_refresh_mode_label()
+
+func _refresh_mode_label():
+	if not mode_label:
+		return
+	var league = league_mode_name.to_upper() + " // " + league_playlist.to_upper()
+	var controls = ""
+	if client_mode == "SPECTATING":
+		controls = "SPECTATING (J: Join, F: Cycle Cam, ESC: Mouse)"
+	else:
+		controls = client_mode + " (L: Leave, ESC: Mouse)"
+	var pressure_chip = ""
+	if pressure_id == "compliance":
+		pressure_chip = "\nPRESSURE: CONTINUANCE COMPLIANCE"
+	mode_label.text = league + "\n" + controls + pressure_chip
 
 func set_tick(tick: int):
 	if tick_label:
@@ -67,7 +94,7 @@ func set_round_info(state: String, time_left: int, frag_limit: int):
 	var text = "Round: " + state
 	if state == "Active":
 		if frag_limit > 0:
-			text = "FIRST TO " + str(frag_limit)
+			text = "ARENA DUEL // FIRST TO " + str(frag_limit)
 			if time_left > 0:
 				text += " | " + str(time_left) + "s"
 		elif time_left > 0:
@@ -76,8 +103,10 @@ func set_round_info(state: String, time_left: int, frag_limit: int):
 			text += "\nLEADER: " + leader_name
 		if ghost_rival != "":
 			text += " | RIVAL: " + ghost_rival
+		if pressure_id == "compliance":
+			text += "\nAPPROVED LANES ONLY"
 	elif state == "Warmup":
-		text = "WARMUP - scrap starts cold"
+		text = "WARMUP - Contested Frequency tuning in"
 	elif state == "Ended":
 		text = "ROUND OVER - next scrap loading"
 	round_label.text = text
@@ -93,7 +122,7 @@ func update_scoreboard():
 	for player in scores.keys():
 		sorted_scores.append({"name": player, "kills": scores[player]})
 	sorted_scores.sort_custom(func(a, b): return a.kills > b.kills)
-	var text = "SCOREBOARD\n"
+	var text = "SCRAP LEAGUE\n" + league_mode_name.to_upper() + "\n"
 	for i in range(min(8, len(sorted_scores))):
 		var entry = sorted_scores[i]
 		var chip = ""
@@ -101,7 +130,7 @@ func update_scoreboard():
 			chip = " [" + _short_behavior(behaviors[entry.name]) + "]"
 		var marker = "*" if i == 0 and entry.kills > 0 else " "
 		text += str(i + 1) + "." + marker + entry.name + chip + ": " + str(entry.kills) + "\n"
-	scoreboard.text = text if len(sorted_scores) > 0 else "SCOREBOARD\n(waiting for scrap)"
+	scoreboard.text = text if len(sorted_scores) > 0 else "SCRAP LEAGUE\n" + league_mode_name.to_upper() + "\n(waiting for scrap)"
 
 func _short_behavior(behavior: String) -> String:
 	match behavior:
@@ -148,13 +177,13 @@ func show_frag(killer: String, victim: String, killer_color: Color = Color.WHITE
 	update_scoreboard()
 	
 	if frag_label:
-		var message = killer + " FRAGGED " + victim + "!"
+		var message = killer + " SCRAPPED " + victim
 		
 		if randf() < 0.067:
 			var quips = [
-				killer + " [67] " + victim,
+				killer + " took " + victim + " off the air",
 				killer + " > " + victim + " (skill issue)",
-				"so back (" + killer + " \u2192 " + victim + ")"
+				"so back (" + killer + " -> " + victim + ")"
 			]
 			message = quips[randi() % quips.size()]
 		
@@ -171,11 +200,13 @@ func show_frag(killer: String, victim: String, killer_color: Color = Color.WHITE
 			frag_label.visible = false
 			frag_label.modulate = Color.WHITE
 
-func show_round_start(round_number: int):
+func show_round_start(round_number: int, host_line: String = ""):
 	if round_message:
-		var line = HOST_BUMPERS[host_bumper_index % HOST_BUMPERS.size()]
-		host_bumper_index += 1
-		round_message.text = line + "\nROUND " + str(round_number) + " - FIGHT!"
+		var line = host_line
+		if line == "":
+			line = HOST_BUMPERS[host_bumper_index % HOST_BUMPERS.size()]
+			host_bumper_index += 1
+		round_message.text = line + "\n" + league_playlist.to_upper() + " ROUND " + str(round_number) + " - FIGHT!"
 		if ghost_rival != "":
 			round_message.text += "\nGHOST RIVAL: " + ghost_rival
 		round_message.visible = true
@@ -186,10 +217,26 @@ func show_round_start(round_number: int):
 		if is_instance_valid(round_message):
 			round_message.visible = false
 
+func show_compliance_ping(message: String, duration_sec: float = 6.0):
+	if round_message:
+		var line = message
+		if line == "":
+			line = "HOST: CONTINUANCE COMPLIANCE PING. APPROVED LANES ONLY."
+		round_message.text = line + "\n" + league_mode_name.to_upper() + " PRESSURE"
+		round_message.visible = true
+		var tween = create_tween()
+		tween.tween_property(round_message, "scale", Vector2(1.25, 1.25), 0.15)
+		tween.tween_property(round_message, "scale", Vector2(1.0, 1.0), 0.2)
+		await get_tree().create_timer(max(duration_sec, 2.0)).timeout
+		if is_instance_valid(round_message):
+			round_message.visible = false
+
 func show_round_end(winner: String, reason: String):
 	scores = {}
 	behaviors = {}
 	leader_name = ""
+	pressure_id = ""
+	_refresh_mode_label()
 	update_scoreboard()
 	
 	if weapon_label:
@@ -202,7 +249,8 @@ func show_round_end(winner: String, reason: String):
 	if round_message:
 		var message = "HOST: " + reason.to_upper()
 		if winner != "":
-			message += "\n\nWINNER: " + winner + "!"
+			message += "\n\nSCRAP WINNER: " + winner + "!"
+		message += "\n" + league_mode_name.to_upper() + " // " + league_playlist.to_upper()
 		
 		round_message.text = message
 		round_message.visible = true

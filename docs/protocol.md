@@ -97,13 +97,17 @@ Server response to `Hello`. Confirms connection and provides player ID.
 {
   "type": "welcome",
   "player_id": "550e8400-e29b-41d4-a716-446655440000" | null,
-  "role": "spectator" | "human" | "agent"
+  "role": "spectator" | "human" | "agent",
+  "mode_name": "Contested Frequency",
+  "playlist": "Arena Duel"
 }
 ```
 
 **Fields:**
 - `player_id`: UUID of the player entity (null for spectators)
 - `role`: Echoed role from Hello
+- `mode_name`: Named scrap-league identity (default Contested Frequency)
+- `playlist`: Playlist under the league lie (default Arena Duel)
 
 #### Snapshot
 
@@ -141,7 +145,10 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
       "damage": 25,
       "target_hp_after": 75
     }
-  ]
+  ],
+  "mode_name": "Contested Frequency",
+  "playlist": "Arena Duel",
+  "pressure": "compliance"
 }
 ```
 
@@ -161,6 +168,9 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
 - `round_time_left`: (optional) Seconds remaining in active round
 - `frag_limit`: (optional) Frag limit for current round
 - `shot_results`: (optional, omitted when empty) Per-tick fire outcomes for observe hit-confirm. Each entry: `shooter_id`, `shooter`, `hit`, optional `target_id`/`target`/`target_hp_after`, and `damage` (0 on miss).
+- `mode_name`: Contested Frequency (scrap league that denies it exists)
+- `playlist`: Arena Duel under the league lie
+- `pressure`: (optional) Live pressure beat id. `"compliance"` during Continuance compliance ping slow.
 
 **Notes:**
 - Dead players (HP ≤ 0) are omitted from the snapshot
@@ -215,7 +225,20 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
   "frag_limit": 10,
   "time_limit": 180,
   "players": ["Bot1", "Bot2", "Bot3", "Bot4"],
-  "previous_winner": "Bot1"
+  "previous_winner": "Bot1",
+  "mode_name": "Contested Frequency",
+  "playlist": "Arena Duel",
+  "host_line": "HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE. ARENA DUEL IS LIVE."
+}
+```
+
+**Compliance Ping Event:** (mid-round Continuance pressure; fighters move at half speed while active)
+```json
+{
+  "type": "event",
+  "event": "compliance_ping",
+  "message": "HOST: CONTINUANCE COMPLIANCE PING. APPROVED LANES ONLY.",
+  "duration_ticks": 120
 }
 ```
 
@@ -261,7 +284,7 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
 ```
 
 **Fields:**
-- `event`: Event type (`frag`, `hit`, `respawn`, `round_start`, `round_end`, `player_joined`, `player_left`)
+- `event`: Event type (`frag`, `hit`, `respawn`, `round_start`, `round_end`, `player_joined`, `player_left`, `compliance_ping`)
 - `killer` / `victim`: Player names involved in frag
 - `killer_score`: Killer's score after the frag
 - `shooter` / `target` / `shooter_id` / `target_id` / `damage` / `target_hp_after`: Hit event fields

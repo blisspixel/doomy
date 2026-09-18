@@ -93,7 +93,15 @@ func _on_snapshot_received(data):
 	var round_state = data.get("round_state", "")
 	var round_time_left = data.get("round_time_left", 0)
 	var frag_limit = data.get("frag_limit", 0)
+	var mode_name = str(data.get("mode_name", "Contested Frequency"))
+	var playlist = str(data.get("playlist", "Arena Duel"))
+	var pressure = data.get("pressure", null)
 	
+	hud.set_league_identity(mode_name, playlist)
+	if pressure == null:
+		hud.set_pressure("")
+	else:
+		hud.set_pressure(str(pressure))
 	hud.set_tick(tick)
 	hud.set_player_count(len(player_list))
 	hud.sync_scores_from_players(player_list)
@@ -174,9 +182,17 @@ func _on_event_received(data):
 		if not is_human_player and killer_id != "" and camera:
 			camera.lock_on_frag(killer_id, 2.0)
 	elif event_type == "round_start":
-		hud.show_round_start(data.get("round_number", 0))
+		var mode_name = str(data.get("mode_name", "Contested Frequency"))
+		var playlist = str(data.get("playlist", "Arena Duel"))
+		hud.set_league_identity(mode_name, playlist)
+		hud.show_round_start(data.get("round_number", 0), str(data.get("host_line", "")))
 		if round_start_sound and round_start_sound.stream:
 			round_start_sound.play()
+	elif event_type == "compliance_ping":
+		hud.set_pressure("compliance")
+		var duration_ticks = int(data.get("duration_ticks", 120))
+		var duration_sec = float(duration_ticks) / 20.0
+		hud.show_compliance_ping(str(data.get("message", "")), duration_sec)
 	elif event_type == "round_end":
 		hud.show_round_end(data.get("winner", ""), data.get("reason", ""))
 		if round_end_sound and round_end_sound.stream:

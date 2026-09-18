@@ -1,5 +1,6 @@
 use crate::protocol::{
-    Action, GameEvent, PlayerScore, PlayerState, Role, ShotResult, Snapshot, WeaponType,
+    default_host_line, default_mode_name, default_playlist, Action, GameEvent, PlayerScore,
+    PlayerState, Role, ShotResult, Snapshot, WeaponType, MODE_NAME, PLAYLIST_NAME,
 };
 use std::collections::HashMap;
 use std::f32::consts::PI;
@@ -25,6 +26,10 @@ pub struct MatchConfig {
     pub time_limit_ticks: Option<u32>,
     pub warmup_ticks: u32,
     pub end_delay_ticks: u32,
+    /// Tick into Active when Continuance compliance ping fires once (None = off).
+    pub compliance_ping_ticks: Option<u32>,
+    /// How long approved-lanes slow lasts after the ping.
+    pub compliance_duration_ticks: u32,
 }
 
 impl Default for MatchConfig {
@@ -34,6 +39,9 @@ impl Default for MatchConfig {
             time_limit_ticks: Some(20 * 60 * 3),
             warmup_ticks: 20 * 2,
             end_delay_ticks: 20 * 5,
+            // ~15s into Active so one round of play feels the pressure beat.
+            compliance_ping_ticks: Some(20 * 15),
+            compliance_duration_ticks: 20 * 6,
         }
     }
 }
@@ -50,6 +58,10 @@ pub struct GameState {
     pub config: MatchConfig,
     /// Cleared each tick; filled when weapons fire this tick.
     pub shot_results: Vec<ShotResult>,
+    /// Remaining ticks of Continuance compliance slow (0 = none).
+    pub compliance_ticks_left: u32,
+    /// Whether this Active round already fired its compliance ping.
+    pub compliance_fired: bool,
 }
 
 pub struct Player {
@@ -88,6 +100,8 @@ impl GameState {
         self.round_state = RoundState::Active;
         self.round_ticks = 0;
         self.scores.clear();
+        self.compliance_fired = false;
+        self.compliance_ticks_left = 0;
 
         for player in &mut self.players {
             self.scores.insert(player.id, 0);
@@ -101,6 +115,9 @@ impl GameState {
             time_limit: self.config.time_limit_ticks.map(|t| t / 20),
             players,
             previous_winner,
+            mode_name: default_mode_name(),
+            playlist: default_playlist(),
+            host_line: default_host_line(),
         });
 
         tracing::info!(
@@ -216,6 +233,17 @@ impl GameState {
             RoundState::Active => {
                 self.round_ticks += 1;
 
+                if self.compliance_ticks_left > 0 {
+                    self.compliance_ticks_left -= 1;
+                }
+                if !self.compliance_fired {
+                    if let Some(at) = self.config.compliance_ping_ticks {
+                        if self.round_ticks >= at {
+                            self.fire_compliance_ping();
+                        }
+                    }
+                }
+
                 if let Some(time_limit) = self.config.time_limit_ticks {
                     if self.round_ticks >= time_limit {
                         self.end_round("Time limit reached".to_string());
@@ -242,6 +270,11 @@ impl GameState {
         }
 
         let mut respawn_ids = Vec::new();
+        let move_speed = if self.compliance_ticks_left > 0 {
+            MOVE_SPEED * 0.5
+        } else {
+            MOVE_SPEED
+        };
 
         for player in &mut self.players {
             player.just_fired = false;
@@ -289,8 +322,8 @@ impl GameState {
                 dz /= len;
             }
 
-            player.x += dx * MOVE_SPEED * dt;
-            player.z += dz * MOVE_SPEED * dt;
+            player.x += dx * move_speed * dt;
+            player.z += dz * move_speed * dt;
 
             player.x = player.x.clamp(
                 -ARENA_SIZE / 2.0 + PLAYER_RADIUS,
@@ -551,7 +584,27 @@ impl GameState {
             round_time_left,
             frag_limit: self.config.frag_limit,
             shot_results: self.shot_results.clone(),
+            mode_name: MODE_NAME.to_string(),
+            playlist: PLAYLIST_NAME.to_string(),
+            pressure: if self.compliance_ticks_left > 0 {
+                Some("compliance".to_string())
+            } else {
+                None
+            },
         }
+    }
+
+    fn fire_compliance_ping(&mut self) {
+        self.compliance_fired = true;
+        self.compliance_ticks_left = self.config.compliance_duration_ticks;
+        self.events.push(GameEvent::CompliancePing {
+            message: "HOST: CONTINUANCE COMPLIANCE PING. APPROVED LANES ONLY.".to_string(),
+            duration_ticks: self.config.compliance_duration_ticks,
+        });
+        tracing::info!(
+            "Compliance ping fired (duration {} ticks)",
+            self.config.compliance_duration_ticks
+        );
     }
 
     pub fn take_events(&mut self) -> Vec<GameEvent> {
@@ -576,6 +629,8 @@ impl Default for GameState {
             round_number: 0,
             config: MatchConfig::default(),
             shot_results: Vec::new(),
+            compliance_ticks_left: 0,
+            compliance_fired: false,
         }
     }
 }

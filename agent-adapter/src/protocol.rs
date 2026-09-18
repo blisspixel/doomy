@@ -1,6 +1,21 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+pub const MODE_NAME: &str = "Contested Frequency";
+pub const PLAYLIST_NAME: &str = "Arena Duel";
+
+pub fn default_mode_name() -> String {
+    MODE_NAME.to_string()
+}
+
+pub fn default_playlist() -> String {
+    PLAYLIST_NAME.to_string()
+}
+
+pub fn default_host_line() -> String {
+    "HOST: CONTESTED FREQUENCY. LEAGUE DENIES EXISTENCE. ARENA DUEL IS LIVE.".to_string()
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum WeaponType {
@@ -20,7 +35,14 @@ pub enum ClientMessage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ServerMessage {
-    Welcome { player_id: Option<Uuid>, role: Role },
+    Welcome {
+        player_id: Option<Uuid>,
+        role: Role,
+        #[serde(default = "default_mode_name")]
+        mode_name: String,
+        #[serde(default = "default_playlist")]
+        playlist: String,
+    },
     Snapshot(Snapshot),
     Event(GameEvent),
 }
@@ -93,6 +115,12 @@ pub struct Snapshot {
     pub frag_limit: Option<u32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub shot_results: Vec<ShotResult>,
+    #[serde(default = "default_mode_name")]
+    pub mode_name: String,
+    #[serde(default = "default_playlist")]
+    pub playlist: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pressure: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -142,6 +170,12 @@ pub enum GameEvent {
         time_limit: Option<u32>,
         players: Vec<String>,
         previous_winner: Option<String>,
+        #[serde(default = "default_mode_name")]
+        mode_name: String,
+        #[serde(default = "default_playlist")]
+        playlist: String,
+        #[serde(default = "default_host_line")]
+        host_line: String,
     },
     RoundEnd {
         winner: Option<String>,
@@ -160,5 +194,9 @@ pub enum GameEvent {
         score: u32,
         round_number: u32,
         player_count: usize,
+    },
+    CompliancePing {
+        message: String,
+        duration_ticks: u32,
     },
 }
