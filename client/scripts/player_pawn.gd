@@ -49,7 +49,8 @@ const BOT_COLORS = {
 	"Scout": Color(0.62, 0.32, 0.42),
 	"Guard": Color(0.45, 0.38, 0.5),
 	"Hunter": Color(0.769, 0.4, 0.18),
-	"Striker": Color(0.4, 0.62, 0.64)
+	"Striker": Color(0.4, 0.62, 0.64),
+	"COMPLIANCE-DRONE": Color(0.55, 0.72, 0.35)
 }
 
 const KRAGGE_BOTS = ["Rusher", "Tank", "Hunter"]
@@ -117,6 +118,10 @@ func set_player_data(id: String, name: String):
 	else:
 		body.texture = cyanex_texture
 	
+	# Continuance drone: taller billboard silhouette vs scrap fighters.
+	if name == "COMPLIANCE-DRONE" and body:
+		body.pixel_size = body.pixel_size * 1.35
+	
 	if label:
 		label.text = name
 		label.modulate = player_color
@@ -157,6 +162,8 @@ func update_state(state: Dictionary):
 					short = "FLK"
 				"Balanced":
 					short = "BAL"
+				"Compliance":
+					short = "CMP"
 			behavior_chip = " [" + short + "]"
 		
 		var hp_display = str(hp) + " HP"

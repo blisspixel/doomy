@@ -205,7 +205,7 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
 - `shot_results`: (optional, omitted when empty) Per-tick fire outcomes for observe hit-confirm. Each entry: `shooter_id`, `shooter`, `hit`, optional `target_id`/`target`/`target_hp_after`, and `damage` (0 on miss).
 - `mode_name`: Contested Frequency (scrap league that denies it exists)
 - `playlist`: Arena Duel under the league lie
-- `pressure`: (optional) Live pressure beat id. `"compliance"` during Continuance compliance ping slow.
+- `pressure`: (optional) Live pressure beat id. `"compliance_drone"` while the Compliance Drone is alive; `"compliance"` during Continuance compliance ping slow.
 - `host_line`: Sticky Contested Frequency Host chrome for mid-join / mid-round observe. League Host line by default; switches to the compliance Host line while pressure is live. Clients show this on join without waiting for the next `round_start`.
 
 **Notes:**
@@ -290,6 +290,30 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
 }
 ```
 
+**Boss Spawn Event:** (mid-round Continuance Compliance Drone; killable Continuance actor)
+```json
+{
+  "type": "event",
+  "event": "boss_spawn",
+  "name": "COMPLIANCE-DRONE",
+  "boss_id": "550e8400-e29b-41d4-a716-446655440000",
+  "message": "HOST: CONTINUANCE COMPLIANCE DRONE ON DECK. ARTICLE 7 ENFORCEMENT.",
+  "hp": 200
+}
+```
+
+**Boss Down Event:** (drone fragged; does not respawn)
+```json
+{
+  "type": "event",
+  "event": "boss_down",
+  "name": "COMPLIANCE-DRONE",
+  "boss_id": "550e8400-e29b-41d4-a716-446655440000",
+  "killer": "Rusher",
+  "message": "HOST: DRONE DOWN. CONTINUANCE DENIES THE INCIDENT. SCRAP ON."
+}
+```
+
 **Round End Event:**
 ```json
 {
@@ -332,7 +356,7 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
 ```
 
 **Fields:**
-- `event`: Event type (`frag`, `hit`, `respawn`, `round_start`, `round_end`, `player_joined`, `player_left`, `compliance_ping`, `speak`)
+- `event`: Event type (`frag`, `hit`, `respawn`, `round_start`, `round_end`, `player_joined`, `player_left`, `compliance_ping`, `boss_spawn`, `boss_down`, `speak`)
 - `killer` / `victim`: Player names involved in frag
 - `killer_score`: Killer's score after the frag
 - `shooter` / `target` / `shooter_id` / `target_id` / `damage` / `target_hp_after`: Hit event fields

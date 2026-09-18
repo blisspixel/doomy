@@ -214,6 +214,19 @@ pub enum GameEvent {
         message: String,
         duration_ticks: u32,
     },
+    BossSpawn {
+        name: String,
+        boss_id: Uuid,
+        message: String,
+        hp: i32,
+    },
+    BossDown {
+        name: String,
+        boss_id: Uuid,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        killer: Option<String>,
+        message: String,
+    },
     Speak {
         player: String,
         player_id: Uuid,

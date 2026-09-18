@@ -225,6 +225,12 @@ func _on_event_received(data):
 		var duration_ticks = int(data.get("duration_ticks", 120))
 		var duration_sec = float(duration_ticks) / 20.0
 		hud.show_compliance_ping(str(data.get("message", "")), duration_sec)
+	elif event_type == "boss_spawn":
+		hud.set_pressure("compliance_drone")
+		hud.show_boss_spawn(str(data.get("message", "")), str(data.get("name", "COMPLIANCE-DRONE")))
+	elif event_type == "boss_down":
+		hud.set_pressure("")
+		hud.show_boss_down(str(data.get("message", "")), str(data.get("killer", "")))
 	elif event_type == "speak":
 		var speaker = str(data.get("player", "?"))
 		var line = str(data.get("text", ""))
