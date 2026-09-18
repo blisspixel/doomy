@@ -112,3 +112,12 @@ Concrete, checkable, and required before any phase is called done. Evidence is a
 - A change ships through a branch and a PR that passes CI, then a squash merge to `main` and a tag when it changes what a player sees.
 - Shipping an item means updating this file, the plan index, and any doc the change made stale, in the same PR.
 - Anything that bills money stops for written approval first. Anything that touches the wire updates [`protocol.md`](./protocol.md).
+
+## The 1.0 bar
+
+Version 1.0 is a promise, not a milestone count. Until every line below is proven, releases stay at 0.x no matter how much has shipped.
+
+- **Controls feel buttery.** First-person movement and aim with client-side prediction and server reconciliation, interpolation on every other fighter, no rubber-banding on a LAN or a good connection, input latency under fifty milliseconds on a LAN, sixty frames per second at 1080p on a modest machine with a full server. Mouse and gamepad both tuned. All of it measured by the benchmark mode and printed in the release notes.
+- **Validated everywhere it claims to run.** A two-machine LAN session, a public server that stays up for a week with strangers on it, agents playing through the adapter at all three tiers, the single-player campaign complete through episode one, and desktop exports for Windows, macOS, and Linux that boot to Solo Scrap on a clean machine.
+- **Extremely polished.** No placeholder art anywhere: every weapon, fighter, map surface, and HUD element final; the radio, effects, and Host voice complete; onboarding to a fight in under a minute with no docs; a twenty-four hour soak with no crash; the fun bar passing on a recorded session; docs and hosting guides current.
+- **Hardened and honest.** The exposed-server phase complete (join tokens, rate and size caps, protocol versioning, reconnect resume, status endpoint), the playtest harness thresholds tightened to the shipped feel, no known bugs that lose a round, and a changelog that matches the releases.
