@@ -1,10 +1,5 @@
 use clap::Parser;
-use fragr_server::net::NetServer;
-use fragr_server::session::{broadcast_to_clients, send_unicasts_to_players, GameSession};
-use std::future::Future;
-use std::net::SocketAddr;
-use std::time::Duration;
-use tokio::sync::mpsc;
+use fragr_server::run::{run_server, ServerOptions};
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser, Debug, PartialEq, Eq)]
@@ -27,7 +22,7 @@ struct Args {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     init_tracing();
     let args = Args::parse();
     let map = fragr_server::sim::MapKind::from_cli(&args.map).ok_or_else(|| {
@@ -36,15 +31,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             args.map
         )
     })?;
-    run_server(
-        args.bind,
-        args.bots,
+    let options = ServerOptions {
+        bind: args.bind,
+        bots: args.bots,
         map,
-        args.map_rotate,
-        std::future::pending::<()>(),
-        None,
-    )
-    .await
+        map_rotate: args.map_rotate,
+        match_config: None,
+    };
+    run_server(options, std::future::pending::<()>(), None).await
 }
 
 fn init_tracing() {
@@ -56,76 +50,12 @@ fn init_tracing() {
         .init();
 }
 
-/// Bind, accept clients, and tick the session until `shutdown` resolves.
-/// When `ready` is Some, send the bound address once accept is live.
-async fn run_server(
-    bind: String,
-    bots: usize,
-    map: fragr_server::sim::MapKind,
-    map_rotate: bool,
-    shutdown: impl Future<Output = ()>,
-    ready: Option<tokio::sync::oneshot::Sender<SocketAddr>>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let (game_tx, mut game_rx) = mpsc::unbounded_channel();
-
-    let net_server = NetServer::bind(&bind, game_tx.clone()).await?;
-    if let Some(tx) = ready {
-        let _ = tx.send(net_server.local_addr()?);
-    }
-    let clients = net_server.clients.clone();
-
-    tokio::spawn(async move {
-        net_server.accept_loop().await;
-    });
-
-    let mut session = GameSession::with_map(map, map_rotate);
-    session.spawn_bots(bots);
-    tracing::info!(
-        "Map: {} (id {}){}",
-        map.name(),
-        map.id(),
-        if map_rotate {
-            ", rotate each round"
-        } else {
-            ""
-        }
-    );
-
-    let tick_duration = Duration::from_millis(50);
-    let mut tick_interval = tokio::time::interval(tick_duration);
-    tick_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-
-    tracing::info!("Game loop starting (20 Hz tick)");
-
-    tokio::pin!(shutdown);
-
-    loop {
-        tokio::select! {
-            _ = tick_interval.tick() => {
-                let messages = session.tick_messages(tick_duration.as_secs_f32());
-                broadcast_to_clients(&clients, &messages).await;
-            }
-
-            Some(cmd) = game_rx.recv() => {
-                session.apply_command(cmd);
-                let unicasts = session.take_unicasts();
-                send_unicasts_to_players(&clients, &session.client_to_player, &unicasts).await;
-            }
-
-            _ = &mut shutdown => {
-                tracing::info!("Server shutdown requested");
-                break;
-            }
-        }
-    }
-
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use futures_util::{SinkExt, StreamExt};
+    use std::net::SocketAddr;
+    use std::time::Duration;
     use tokio_tungstenite::{connect_async, tungstenite::Message};
 
     #[test]
@@ -162,10 +92,13 @@ mod tests {
 
         let server = tokio::spawn(async move {
             run_server(
-                "127.0.0.1:0".to_string(),
-                1,
-                fragr_server::sim::MapKind::ArenaDuel,
-                false,
+                ServerOptions {
+                    bind: "127.0.0.1:0".to_string(),
+                    bots: 1,
+                    map: fragr_server::sim::MapKind::ArenaDuel,
+                    map_rotate: false,
+                    match_config: None,
+                },
                 async move {
                     let _ = shutdown_rx.await;
                 },
@@ -227,5 +160,14 @@ mod tests {
             .expect("server join timeout")
             .expect("server task");
         assert!(result.is_ok(), "{result:?}");
+    }
+
+    #[test]
+    fn server_options_default_matches_cli_defaults() {
+        let options = ServerOptions::default();
+        let args = Args::try_parse_from(["fragr-server"]).expect("defaults");
+        assert_eq!(options.bind, args.bind);
+        assert_eq!(options.bots, args.bots);
+        assert!(options.match_config.is_none());
     }
 }
