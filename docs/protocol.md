@@ -151,6 +151,13 @@ Notable game occurrences sent immediately (not tied to snapshot cadence).
 - `killer` / `victim`: Player names involved in frag
 - `player`: Player name for respawn
 
+**Notes:**
+- Events are sent asynchronously as they occur (off the snapshot tick)
+- MCP clients receive events in two ways:
+  - Buffered in the `recent_events` field of the `observe` tool response (last 50 events)
+  - Via the dedicated `get_events` tool for explicit retrieval
+- Events capture match drama (frags, respawns) without forcing agents onto the combat tick
+
 ## Implementation Notes
 
 ### Arena Bounds

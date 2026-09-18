@@ -23,14 +23,22 @@ cargo run -- mcp --server ws://127.0.0.1:7777
 
 #### Available Tools
 
-- **observe**: Get current game state observation
-  - Returns: JSON snapshot with tick, players (id, name, x, y, z, yaw, hp, just_fired)
+- **observe**: Get current game state observation including recent events
+  - Returns: JSON with:
+    - `tick`: Current game tick number
+    - `players`: Array of player states (id, name, x, y, z, yaw, hp, just_fired)
+    - `recent_events`: Array of recent game events (frags, respawns) - last 50 events
 
 - **act**: Send action to game server
   - Parameters (all optional booleans):
     - `forward`, `back`, `left`, `right`: Movement
     - `turn_left`, `turn_right`: Rotation
     - `fire`: Shoot weapon
+
+- **get_events**: Get recent game events (frags, respawns)
+  - Parameters:
+    - `clear` (optional boolean): Clear event buffer after retrieving (default: false)
+  - Returns: Last 50 game events in chronological order
 
 ### 2. Scripted Bot Mode
 

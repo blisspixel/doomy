@@ -100,12 +100,30 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
     let last_snapshot = std::sync::Arc::new(tokio::sync::Mutex::new(None::<Value>));
     let last_snapshot_clone = last_snapshot.clone();
 
+    let recent_events = std::sync::Arc::new(tokio::sync::Mutex::new(Vec::<Value>::new()));
+    let recent_events_clone = recent_events.clone();
+
     tokio::spawn(async move {
         while let Some(msg) = ws_stream.next().await {
             if let Ok(Message::Text(text)) = msg {
-                if let Ok(ServerMessage::Snapshot(snapshot)) = serde_json::from_str(&text) {
-                    let snapshot_value = serde_json::to_value(snapshot).unwrap();
-                    *last_snapshot_clone.lock().await = Some(snapshot_value);
+                match serde_json::from_str::<ServerMessage>(&text) {
+                    Ok(ServerMessage::Snapshot(snapshot)) => {
+                        let snapshot_value = serde_json::to_value(snapshot).unwrap();
+                        *last_snapshot_clone.lock().await = Some(snapshot_value);
+                    }
+                    Ok(ServerMessage::Event(event)) => {
+                        let event_value = serde_json::to_value(event).unwrap();
+                        let mut events = recent_events_clone.lock().await;
+                        events.push(event_value);
+                        if events.len() > 50 {
+                            events.remove(0);
+                        }
+                        tracing::info!("Game event received: {}", text);
+                    }
+                    Ok(ServerMessage::Welcome { .. }) => {}
+                    Err(e) => {
+                        tracing::warn!("Failed to parse server message: {} - error: {}", text, e);
+                    }
                 }
             }
         }
@@ -145,7 +163,7 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
                     "tools": [
                         {
                             "name": "observe",
-                            "description": "Get current game state observation",
+                            "description": "Get current game state observation including recent events",
                             "inputSchema": {
                                 "type": "object",
                                 "properties": {},
@@ -168,6 +186,17 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
                                 },
                                 "required": []
                             }
+                        },
+                        {
+                            "name": "get_events",
+                            "description": "Get recent game events (frags, respawns). Includes last 50 events.",
+                            "inputSchema": {
+                                "type": "object",
+                                "properties": {
+                                    "clear": {"type": "boolean", "default": false, "description": "Clear events after retrieving"}
+                                },
+                                "required": []
+                            }
                         }
                     ]
                 })),
@@ -185,10 +214,20 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
                 let result = match tool_name {
                     "observe" => {
                         let snapshot_lock = last_snapshot.lock().await;
-                        snapshot_lock.clone().unwrap_or(serde_json::json!({
+                        let events_lock = recent_events.lock().await;
+                        let mut observation = snapshot_lock.clone().unwrap_or(serde_json::json!({
                             "tick": 0,
                             "players": []
-                        }))
+                        }));
+
+                        if let Some(obj) = observation.as_object_mut() {
+                            obj.insert(
+                                "recent_events".to_string(),
+                                serde_json::json!(events_lock.clone()),
+                            );
+                        }
+
+                        observation
                     }
 
                     "act" => {
@@ -238,6 +277,34 @@ async fn run_mcp_server(server_url: String) -> Result<(), Box<dyn std::error::Er
                             "content": [{
                                 "type": "text",
                                 "text": "Action sent successfully"
+                            }]
+                        })
+                    }
+
+                    "get_events" => {
+                        let arguments = request
+                            .params
+                            .as_ref()
+                            .and_then(|p| p.get("arguments"))
+                            .cloned()
+                            .unwrap_or(Value::Null);
+
+                        let should_clear = arguments
+                            .get("clear")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false);
+
+                        let mut events_lock = recent_events.lock().await;
+                        let events_copy = events_lock.clone();
+
+                        if should_clear {
+                            events_lock.clear();
+                        }
+
+                        serde_json::json!({
+                            "content": [{
+                                "type": "text",
+                                "text": format!("Recent events: {}", serde_json::to_string_pretty(&events_copy).unwrap())
                             }]
                         })
                     }
@@ -404,4 +471,56 @@ fn compute_bot_action(bot_id: uuid::Uuid, snapshot: &protocol::Snapshot) -> prot
     }
 
     action
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_game_event_serialization() {
+        let frag_event = protocol::GameEvent::Frag {
+            killer: "Bot1".to_string(),
+            victim: "Bot2".to_string(),
+        };
+
+        let frag_json = serde_json::to_value(&frag_event).unwrap();
+        assert_eq!(frag_json["event"], "frag");
+        assert_eq!(frag_json["killer"], "Bot1");
+        assert_eq!(frag_json["victim"], "Bot2");
+
+        let respawn_event = protocol::GameEvent::Respawn {
+            player: "Bot2".to_string(),
+        };
+
+        let respawn_json = serde_json::to_value(&respawn_event).unwrap();
+        assert_eq!(respawn_json["event"], "respawn");
+        assert_eq!(respawn_json["player"], "Bot2");
+    }
+
+    #[test]
+    fn test_server_message_event_parsing() {
+        let frag_msg = r#"{"type":"event","event":"frag","killer":"Bot1","victim":"Bot2"}"#;
+        let parsed: Result<protocol::ServerMessage, _> = serde_json::from_str(frag_msg);
+        assert!(parsed.is_ok());
+
+        match parsed.unwrap() {
+            protocol::ServerMessage::Event(protocol::GameEvent::Frag { killer, victim }) => {
+                assert_eq!(killer, "Bot1");
+                assert_eq!(victim, "Bot2");
+            }
+            _ => panic!("Expected Event(Frag)"),
+        }
+
+        let respawn_msg = r#"{"type":"event","event":"respawn","player":"Bot2"}"#;
+        let parsed: Result<protocol::ServerMessage, _> = serde_json::from_str(respawn_msg);
+        assert!(parsed.is_ok());
+
+        match parsed.unwrap() {
+            protocol::ServerMessage::Event(protocol::GameEvent::Respawn { player }) => {
+                assert_eq!(player, "Bot2");
+            }
+            _ => panic!("Expected Event(Respawn)"),
+        }
+    }
 }
