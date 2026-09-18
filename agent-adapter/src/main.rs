@@ -79,6 +79,96 @@ fn resolve_agent_name(cli_name: Option<&str>, default: &str) -> String {
     default.to_string()
 }
 
+struct McpWsSession {
+    sink: futures_util::stream::SplitSink<
+        tokio_tungstenite::WebSocketStream<
+            tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+        >,
+        Message,
+    >,
+    recv_task: tokio::task::JoinHandle<()>,
+}
+
+async fn mcp_connect_and_hello(
+    server_url: &str,
+    name: &str,
+    tool_state: &std::sync::Arc<tokio::sync::Mutex<ToolState>>,
+) -> Result<McpWsSession, Box<dyn std::error::Error>> {
+    let (ws_stream, _) = connect_async(server_url).await?;
+    let (mut ws_sink, mut ws_stream) = ws_stream.split();
+
+    let hello = ClientMessage::Hello {
+        role: Role::Agent,
+        name: name.to_string(),
+    };
+    ws_sink
+        .send(Message::Text(serde_json::to_string(&hello)?))
+        .await?;
+
+    if let Some(Ok(Message::Text(text))) = ws_stream.next().await {
+        {
+            let mut state = tool_state.lock().await;
+            ingest_server_text(&mut state, &text);
+            state.session_name = Some(name.to_string());
+        }
+        if let Ok(ServerMessage::Welcome { player_id: pid, .. }) = serde_json::from_str(&text) {
+            tracing::info!("Connected to game server, player_id: {:?}", pid);
+        }
+    }
+
+    let tool_state_clone = tool_state.clone();
+    let recv_task = tokio::spawn(async move {
+        while let Some(msg) = ws_stream.next().await {
+            match msg {
+                Ok(Message::Text(text)) => {
+                    let mut state = tool_state_clone.lock().await;
+                    ingest_server_text(&mut state, &text);
+                }
+                Ok(Message::Close(_)) => {
+                    tracing::info!("Server closed connection");
+                    let mut state = tool_state_clone.lock().await;
+                    state.connected = false;
+                    state.player_id = None;
+                    break;
+                }
+                Ok(Message::Ping(_)) | Ok(Message::Pong(_)) => {}
+                Ok(Message::Binary(_)) => {
+                    tracing::warn!("Unexpected binary message, ignoring");
+                }
+                Ok(Message::Frame(_)) => {}
+                Err(e) => {
+                    tracing::error!("WebSocket error: {}", e);
+                    let mut state = tool_state_clone.lock().await;
+                    state.connected = false;
+                    state.player_id = None;
+                    break;
+                }
+            }
+        }
+    });
+
+    Ok(McpWsSession {
+        sink: ws_sink,
+        recv_task,
+    })
+}
+
+async fn mcp_leave_session(
+    session: &mut Option<McpWsSession>,
+    tool_state: &std::sync::Arc<tokio::sync::Mutex<ToolState>>,
+) {
+    if let Some(mut s) = session.take() {
+        let _ = s.sink.send(Message::Close(None)).await;
+        s.recv_task.abort();
+    }
+    let mut state = tool_state.lock().await;
+    state.connected = false;
+    state.player_id = None;
+    state.session_name = None;
+    state.last_snapshot = None;
+    state.last_speak_tick = None;
+}
+
 async fn run_mcp_server(
     server_url: String,
     name: String,
@@ -89,50 +179,14 @@ async fn run_mcp_server(
         server_url
     );
 
-    let (ws_stream, _) = connect_async(&server_url).await?;
-    let (mut ws_sink, mut ws_stream) = ws_stream.split();
+    let tool_state = std::sync::Arc::new(tokio::sync::Mutex::new(ToolState {
+        default_name: name.clone(),
+        ..Default::default()
+    }));
 
-    let hello = ClientMessage::Hello {
-        role: Role::Agent,
-        name,
-    };
-    ws_sink
-        .send(Message::Text(serde_json::to_string(&hello)?))
-        .await?;
-
-    let tool_state = std::sync::Arc::new(tokio::sync::Mutex::new(ToolState::default()));
-
-    if let Some(Ok(Message::Text(text))) = ws_stream.next().await {
-        if let Ok(ServerMessage::Welcome { player_id: pid, .. }) = serde_json::from_str(&text) {
-            tool_state.lock().await.player_id = pid;
-            tracing::info!("Connected to game server, player_id: {:?}", pid);
-        }
-    }
-
-    let tool_state_clone = tool_state.clone();
-    tokio::spawn(async move {
-        while let Some(msg) = ws_stream.next().await {
-            match msg {
-                Ok(Message::Text(text)) => {
-                    let mut state = tool_state_clone.lock().await;
-                    ingest_server_text(&mut state, &text);
-                }
-                Ok(Message::Close(_)) => {
-                    tracing::info!("Server closed connection");
-                    break;
-                }
-                Ok(Message::Ping(_)) | Ok(Message::Pong(_)) => {}
-                Ok(Message::Binary(_)) => {
-                    tracing::warn!("Unexpected binary message, ignoring");
-                }
-                Ok(Message::Frame(_)) => {}
-                Err(e) => {
-                    tracing::error!("WebSocket error: {}", e);
-                    break;
-                }
-            }
-        }
-    });
+    // Boot path: Hello on start (tools remain first-class for leave / re-join).
+    let mut session: Option<McpWsSession> =
+        Some(mcp_connect_and_hello(&server_url, &name, &tool_state).await?);
 
     let stdin = io::stdin();
     let mut stdout = io::stdout();
@@ -171,18 +225,50 @@ async fn run_mcp_server(
             handle_mcp_request(request, &mut state)
         };
 
+        if outcome.pending_leave {
+            mcp_leave_session(&mut session, &tool_state).await;
+            tracing::info!("MCP leave: WebSocket disconnected");
+        }
+
+        if let Some(join_name) = outcome.pending_join {
+            // Drop any stale socket (recv died) before Hello reconnect.
+            if session.is_some() {
+                if let Some(mut s) = session.take() {
+                    let _ = s.sink.send(Message::Close(None)).await;
+                    s.recv_task.abort();
+                }
+            }
+            match mcp_connect_and_hello(&server_url, &join_name, &tool_state).await {
+                Ok(s) => {
+                    session = Some(s);
+                    tracing::info!("MCP join: Hello/Welcome as '{}'", join_name);
+                }
+                Err(e) => {
+                    tracing::error!("MCP join failed: {}", e);
+                    let mut state = tool_state.lock().await;
+                    state.connected = false;
+                    state.player_id = None;
+                    state.session_name = None;
+                }
+            }
+        }
+
         if let Some(action) = outcome.pending_action {
-            let action_msg = ClientMessage::Action(action);
-            ws_sink
-                .send(Message::Text(serde_json::to_string(&action_msg)?))
-                .await?;
+            if let Some(ref mut s) = session {
+                let action_msg = ClientMessage::Action(action);
+                s.sink
+                    .send(Message::Text(serde_json::to_string(&action_msg)?))
+                    .await?;
+            }
         }
 
         if let Some(speak) = outcome.pending_speak {
-            let speak_msg = ClientMessage::Speak(speak);
-            ws_sink
-                .send(Message::Text(serde_json::to_string(&speak_msg)?))
-                .await?;
+            if let Some(ref mut s) = session {
+                let speak_msg = ClientMessage::Speak(speak);
+                s.sink
+                    .send(Message::Text(serde_json::to_string(&speak_msg)?))
+                    .await?;
+            }
         }
 
         let response_json = serde_json::to_string(&outcome.response)?;
