@@ -47,6 +47,20 @@ WantedBy=multi-user.target
 
 Create a dedicated `fragr` user, place binary in `/opt/fragr/`, install unit to `/etc/systemd/system/fragr-server.service`, then `systemctl enable --now fragr-server.service`.
 
+## Near-term scale ladder (Nick)
+
+Rust dedicated authority is the spine. Keep it rock solid and able to grow. Combat tick is an always-on process (sticky WebSocket today; UDP later if renet). It is **not** Cloud Run, Functions, or any scale-to-zero host.
+
+**Near-term reality:** once the arena is actually fun, some agents plus a couple friends try it. Not a launch-day crowd.
+
+**Ladder under the $50 hard cap (plan-only until spend ACK):**
+
+1. **Friends + agents:** public Always Free `e2-micro` with public TCP+UDP 7777 (this recipe).
+2. **When load proves it:** one bigger/cheaper VM, or a second arena instance. Do not invent day-zero MIG or LB.
+3. **HTTP agent-adapter (optional):** may be Cloud Run with `min_instances=0` only if it stays **off** the combat tick (private path + app auth to the VM). Never put the authoritative tick on scale-to-zero.
+
+Ideal later "serverless / scale great" energy is fine as aspiration. The combat tick still stays on dedicated always-on compute.
+
 ## Cost ceiling honesty
 
 ### Documented costs (ESTIMATE)
@@ -78,7 +92,7 @@ Billable egress from 0.0.0.0/0 public play will blow the 1 GB Free Tier crumb qu
 
 ## Throw-outs (not this recipe)
 
-- **Cloud Run / Functions / GKE as tick host:** Authoritative server is long-lived, prefers GCE.
+- **Cloud Run / Functions / GKE as tick host:** Authoritative combat tick is long-lived sticky sockets. Never scale-to-zero for the game process. GCE (or later a bigger dedicated VM) only.
 - **Day-zero LB / unused static IP:** No forwarding rules or reserved addresses on day one.
 - **WS to renet mid-ship change:** Slice 1 transport is WebSocket. Do not scrap and rewrite to renet UDP mid-implementation unless Nick asks.
 - **Any terraform apply without Nick approval:** This is still plan-only until spend gate opens.
