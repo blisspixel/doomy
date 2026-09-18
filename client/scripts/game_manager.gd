@@ -4,6 +4,9 @@ extends Node
 @onready var hud = $HUD
 @onready var arena = $Arena
 @onready var camera = $SpectatorCamera
+@onready var frag_sound = $AudioPlayers/FragSound
+@onready var round_start_sound = $AudioPlayers/RoundStartSound
+@onready var round_end_sound = $AudioPlayers/RoundEndSound
 
 var players = {}
 var player_scene = preload("res://scenes/player.tscn")
@@ -25,6 +28,8 @@ func _ready():
 	net_client.connected_to_server.connect(_on_connected)
 	net_client.disconnected_from_server.connect(_on_disconnected)
 	
+	_load_audio_streams()
+	
 	var role = "spectator"
 	var player_name = "Spectator"
 	
@@ -34,6 +39,18 @@ func _ready():
 		is_human_player = true
 	
 	net_client.connect_to_server(role, player_name)
+
+func _load_audio_streams():
+	var audio_dir = "res://assets/audio/"
+	
+	if frag_sound and ResourceLoader.exists(audio_dir + "frag.wav"):
+		frag_sound.stream = load(audio_dir + "frag.wav")
+	
+	if round_start_sound and ResourceLoader.exists(audio_dir + "round_start.wav"):
+		round_start_sound.stream = load(audio_dir + "round_start.wav")
+	
+	if round_end_sound and ResourceLoader.exists(audio_dir + "round_end.wav"):
+		round_end_sound.stream = load(audio_dir + "round_end.wav")
 
 func _input(event):
 	if event is InputEventKey and event.pressed:
@@ -132,9 +149,16 @@ func _on_event_received(data):
 		
 		hud.show_frag(killer_name, victim_name, killer_color, victim_color)
 		
+		if frag_sound and frag_sound.stream:
+			frag_sound.play()
+		
 		if not is_human_player and killer_id != "" and camera:
 			camera.lock_on_frag(killer_id, 1.5)
 	elif event_type == "round_start":
 		hud.show_round_start(data.get("round_number", 0))
+		if round_start_sound and round_start_sound.stream:
+			round_start_sound.play()
 	elif event_type == "round_end":
 		hud.show_round_end(data.get("winner", ""), data.get("reason", ""))
+		if round_end_sound and round_end_sound.stream:
+			round_end_sound.play()
