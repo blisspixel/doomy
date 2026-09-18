@@ -21,6 +21,8 @@ Live tip captures (Xvfb + Godot 4.7.2-stable + opengl3). See `docs/screenshots/R
 
 ![Host flash mid-join (tip)](docs/screenshots/08_tip_host_flash_midjoin_16x9.png)
 
+![Human join FP juice (tip)](docs/screenshots/10_tip_human_join_fp_16x9.png)
+
 ![Weapons / frags (tip)](docs/screenshots/09_tip_weapons_frags_16x9.png)
 
 ![Compliance pressure (tip)](docs/screenshots/07_tip_compliance_pressure_16x9.png)
