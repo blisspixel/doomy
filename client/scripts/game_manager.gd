@@ -92,7 +92,7 @@ func _resolve_boot() -> Dictionary:
 			var mode = str(meta.get("mode", "spectate"))
 			var host = str(meta.get("host", "127.0.0.1:6767"))
 			if mode == "solo":
-				return {"role": "human", "name": "Human Player", "host": host, "hud_mode": "SOLO SCRAP"}
+				return {"role": "human", "name": "Human Player", "host": host, "hud_mode": "SOLO BROADCAST"}
 			if mode == "join":
 				return {"role": "human", "name": "Human Player", "host": host, "hud_mode": "PLAYING"}
 			return {"role": "spectator", "name": "Spectator", "host": host, "hud_mode": "SPECTATING"}
@@ -101,7 +101,7 @@ func _resolve_boot() -> Dictionary:
 	var user_args = OS.get_cmdline_user_args()
 	var wants_solo = OS.get_environment("FRAGR_SOLO") == "1" or "--solo" in args or "--solo" in user_args
 	if wants_solo:
-		return {"role": "human", "name": "Human Player", "host": "127.0.0.1:6767", "hud_mode": "SOLO SCRAP"}
+		return {"role": "human", "name": "Human Player", "host": "127.0.0.1:6767", "hud_mode": "SOLO BROADCAST"}
 	if "--human" in args or "--human" in user_args:
 		return {"role": "human", "name": "Human Player", "host": "", "hud_mode": "PLAYING"}
 	return {"role": "spectator", "name": "Spectator", "host": "", "hud_mode": "SPECTATING"}
@@ -277,6 +277,13 @@ func _on_snapshot_received(data):
 				round_start_sound.play()
 	elif round_state == "Warmup" and hud.has_method("refresh_warmup_tv"):
 		hud.refresh_warmup_tv("", int(round_time_left) if round_time_left != null else 0, roster)
+	var ep_id = str(data.get("episode_id", "")) if data.get("episode_id", null) != null else ""
+	var ep_title = str(data.get("episode_title", "")) if data.get("episode_title", null) != null else ""
+	var ep_obj = str(data.get("episode_objective", "")) if data.get("episode_objective", null) != null else ""
+	var ep_prog = str(data.get("episode_progress", "")) if data.get("episode_progress", null) != null else ""
+	var ep_phase = str(data.get("episode_phase", "")) if data.get("episode_phase", null) != null else ""
+	if hud.has_method("set_episode_chrome"):
+		hud.set_episode_chrome(ep_id, ep_title, ep_obj, ep_prog, ep_phase)
 	hud.set_tick(tick)
 	hud.set_player_count(len(player_list))
 	hud.sync_scores_from_players(player_list)
@@ -383,6 +390,27 @@ func _on_event_received(data):
 	elif event_type == "boss_spawn":
 		hud.set_pressure("compliance_drone")
 		hud.show_boss_spawn(str(data.get("message", "")), str(data.get("name", "COMPLIANCE-DRONE")))
+	elif event_type == "episode_start":
+		var title = str(data.get("title", "Solo Broadcast: Calibration"))
+		var objective = str(data.get("objective", ""))
+		var map_name = str(data.get("map_name", "Larak Lot"))
+		if hud.has_method("set_map_name"):
+			hud.set_map_name(map_name)
+		if hud.has_method("set_episode_chrome"):
+			hud.set_episode_chrome(str(data.get("id", "ep0")), title, objective, "", "nods")
+		if hud.has_method("show_episode_title_card"):
+			hud.show_episode_title_card(title, objective)
+		hud.set_host_line(str(data.get("host_line", "")), true)
+		if round_start_sound and round_start_sound.stream:
+			round_start_sound.play()
+	elif event_type == "episode_complete":
+		if hud.has_method("show_episode_complete"):
+			hud.show_episode_complete(str(data.get("host_line", "")), str(data.get("unlock_teaser", "")))
+		if round_end_sound and round_end_sound.stream:
+			round_end_sound.play()
+	elif event_type == "episode_fail":
+		if hud.has_method("show_episode_fail"):
+			hud.show_episode_fail(str(data.get("host_line", "")))
 	elif event_type == "boss_down":
 		hud.set_pressure("")
 		var killer_raw = data.get("killer", null)

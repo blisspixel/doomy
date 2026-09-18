@@ -53,6 +53,7 @@ pub enum ClientMessage {
     SetDisplayBehavior(SetDisplayBehavior),
 }
 
+#[allow(clippy::large_enum_variant)] // Snapshot carries round chrome; boxing churns every tick.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ServerMessage {
@@ -191,6 +192,16 @@ pub struct Snapshot {
     pub map_id: u32,
     #[serde(default = "default_map_name")]
     pub map_name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub episode_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub episode_title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub episode_objective: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub episode_progress: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub episode_phase: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -312,5 +323,23 @@ pub enum GameEvent {
         player: String,
         player_id: Uuid,
         text: String,
+    },
+    EpisodeStart {
+        id: String,
+        title: String,
+        objective: String,
+        host_line: String,
+        map_name: String,
+    },
+    EpisodeComplete {
+        id: String,
+        reason: String,
+        host_line: String,
+        unlock_teaser: String,
+    },
+    EpisodeFail {
+        id: String,
+        reason: String,
+        host_line: String,
     },
 }

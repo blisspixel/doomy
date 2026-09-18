@@ -51,8 +51,18 @@ const BOT_COLORS = {
 	"Crackpot": Color(0.45, 0.38, 0.5),
 	"Buzzkill": Color(0.769, 0.4, 0.18),
 	"Tin Foil Tina": Color(0.4, 0.62, 0.64),
-	"COMPLIANCE-DRONE": Color(0.55, 0.72, 0.35)
+	"COMPLIANCE-DRONE": Color(0.55, 0.72, 0.35),
+	"AUDITOR": Color(0.72, 0.78, 0.28),
+	"NODS-01": Color(0.45, 0.48, 0.42),
+	"NODS-02": Color(0.42, 0.45, 0.4),
+	"NODS-03": Color(0.48, 0.5, 0.44),
+	"NODS-04": Color(0.4, 0.43, 0.38),
+	"NODS-05": Color(0.46, 0.49, 0.41),
+	"NODS-06": Color(0.43, 0.46, 0.39),
+	"NODS-07": Color(0.47, 0.5, 0.43),
+	"NODS-08": Color(0.41, 0.44, 0.37)
 }
+
 
 # Hangar Candy / Kragge grit vs Cyanex / Night Watch signal.
 const KRAGGE_BOTS = ["Dead Air Dan", "Aunt Linda", "Buzzkill"]
@@ -128,6 +138,10 @@ func set_player_data(id: String, name: String):
 	
 	if BOT_COLORS.has(name):
 		player_color = BOT_COLORS[name]
+	elif str(name).begins_with("NODS-"):
+		player_color = Color(0.44, 0.47, 0.4)
+	elif name == "AUDITOR":
+		player_color = Color(0.72, 0.78, 0.28)
 	else:
 		var color_val = float(abs(hash(id)) % 100) / 100.0
 		player_color = Color.from_hsv(color_val, 0.8, 0.9)
@@ -138,6 +152,10 @@ func set_player_data(id: String, name: String):
 		body.texture = cyanex_texture
 	
 	# Continuance drone: taller billboard silhouette vs scrap fighters.
+	if str(name).begins_with("NODS-") and label:
+		label.modulate = Color(0.7, 0.75, 0.65)
+	if name == "AUDITOR" and body:
+		body.scale = Vector3(1.25, 1.45, 1.25)
 	if name == "COMPLIANCE-DRONE" and body:
 		body.pixel_size = body.pixel_size * 1.35
 	

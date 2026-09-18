@@ -501,6 +501,7 @@ mod tests {
             bots,
             map: MapKind::default(),
             map_rotate: false,
+            solo_broadcast: false,
             match_config: Some(MatchConfig {
                 warmup_ticks: 1,
                 boss_spawn_ticks: None,

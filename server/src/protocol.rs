@@ -199,6 +199,49 @@ pub fn rule_bot_taunt_line(name: &str, kind: BotTauntKind, salt: u64) -> String 
 /// Display name for the mid-round Continuance boss NPC (NODS-flavored Compliance Drone).
 pub const BOSS_NAME: &str = "COMPLIANCE-DRONE";
 
+/// Solo Broadcast Episode 0 id.
+pub const EPISODE_ID_EP0: &str = "ep0";
+/// Solo Broadcast Episode 0 title face.
+pub const EPISODE_TITLE_EP0: &str = "Solo Broadcast: Calibration";
+/// Larak Lot map face for Episode 0 (geometry may reuse map 1).
+pub const EPISODE_MAP_LARAK_LOT: &str = "Larak Lot";
+/// Continuance Auditor elite display name (Compliance Drone retitled).
+pub const AUDITOR_NAME: &str = "AUDITOR";
+
+pub fn episode0_host_line_cold_open() -> String {
+    "HOST: In the morning. Calibration night. Continuance brought NODS. You're on the air."
+        .to_string()
+}
+
+pub fn episode0_host_line_nods() -> String {
+    "HOST: Null-Objective Drones don't trash-talk. That's how you know they're approved."
+        .to_string()
+}
+
+pub fn episode0_host_line_jammer() -> String {
+    "HOST: Jammer's up. Seize the dish or I go text-only. Value for value.".to_string()
+}
+
+pub fn episode0_host_line_auditor() -> String {
+    "HOST: Auditor on the lot. Clipboard shield. Smile for the audit.".to_string()
+}
+
+pub fn episode0_host_line_win() -> String {
+    "HOST: Amen, fistbump. Frequency still unmetered. Don't touch that dial.".to_string()
+}
+
+pub fn episode0_host_line_fail() -> String {
+    "HOST: Citizen Handle assigned. Reload.".to_string()
+}
+
+pub fn episode0_objective_chip() -> String {
+    "Clear NODS. Seize jammer dish. Drop the Auditor.".to_string()
+}
+
+pub fn episode0_unlock_teaser() -> String {
+    "Callsign stub unlocked. Next: Area Kitchen.".to_string()
+}
+
 pub fn default_pickup_kind() -> String {
     "weapon".to_string()
 }
@@ -282,6 +325,7 @@ pub enum ClientMessage {
     SetDisplayBehavior(SetDisplayBehavior),
 }
 
+#[allow(clippy::large_enum_variant)] // Snapshot carries round chrome; boxing churns every tick.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ServerMessage {
@@ -433,6 +477,21 @@ pub struct Snapshot {
     /// Human-readable scrap layout name.
     #[serde(default = "default_map_name")]
     pub map_name: String,
+    /// Solo Broadcast episode id (e.g. ep0). Omitted on MP.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub episode_id: Option<String>,
+    /// Episode title card face.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub episode_title: Option<String>,
+    /// Short objective chip.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub episode_objective: Option<String>,
+    /// Progress chip (NODS n/N | JAMMER | AUDITOR).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub episode_progress: Option<String>,
+    /// Phase: nods / jammer / auditor / won / failed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub episode_phase: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -565,6 +624,27 @@ pub enum GameEvent {
         player_id: Uuid,
         text: String,
     },
+    /// Solo Broadcast episode cold open / title card.
+    EpisodeStart {
+        id: String,
+        title: String,
+        objective: String,
+        host_line: String,
+        map_name: String,
+    },
+    /// Solo Broadcast episode win.
+    EpisodeComplete {
+        id: String,
+        reason: String,
+        host_line: String,
+        unlock_teaser: String,
+    },
+    /// Solo Broadcast episode fail (Citizen Handle assigned).
+    EpisodeFail {
+        id: String,
+        reason: String,
+        host_line: String,
+    },
 }
 
 #[cfg(test)]
@@ -669,6 +749,11 @@ mod protocol_tests {
             pickups: vec![],
             map_id: default_map_id(),
             map_name: default_map_name(),
+            episode_id: None,
+            episode_title: None,
+            episode_objective: None,
+            episode_progress: None,
+            episode_phase: None,
         };
         let v = serde_json::to_value(&snap).unwrap();
         assert_eq!(v["shot_results"][0]["hit"], true);
@@ -833,6 +918,11 @@ mod protocol_tests {
             pickups: vec![pad.clone()],
             map_id: default_map_id(),
             map_name: default_map_name(),
+            episode_id: None,
+            episode_title: None,
+            episode_objective: None,
+            episode_progress: None,
+            episode_phase: None,
         };
         let v = serde_json::to_value(&snap).unwrap();
         assert_eq!(v["pickups"][0]["id"], "pad_rail");

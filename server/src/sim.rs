@@ -1,10 +1,13 @@
 use crate::protocol::{
     boss_down_host_line, boss_host_line, boss_round_wipe_host_line, compliance_host_line,
     default_host_line, default_mode_name, default_playlist, empty_mvp_host_line,
-    killstreak_host_line, mvp_host_line, roster_host_line, round_open_host_line,
-    rule_bot_taunt_line, warmup_host_line, Action, BotTauntKind, GameEvent, PickupState,
-    PlayerScore, PlayerState, Role, ShotResult, Snapshot, WeaponType, BOSS_NAME, MODE_NAME,
-    PLAYLIST_NAME,
+    episode0_host_line_auditor, episode0_host_line_cold_open, episode0_host_line_fail,
+    episode0_host_line_jammer, episode0_host_line_nods, episode0_host_line_win,
+    episode0_objective_chip, episode0_unlock_teaser, killstreak_host_line, mvp_host_line,
+    roster_host_line, round_open_host_line, rule_bot_taunt_line, warmup_host_line, Action,
+    BotTauntKind, GameEvent, PickupState, PlayerScore, PlayerState, Role, ShotResult, Snapshot,
+    WeaponType, AUDITOR_NAME, BOSS_NAME, EPISODE_ID_EP0, EPISODE_MAP_LARAK_LOT, EPISODE_TITLE_EP0,
+    MODE_NAME, PLAYLIST_NAME,
 };
 use std::collections::HashMap;
 use std::f32::consts::PI;
@@ -47,6 +50,11 @@ pub const PLAYER_MAX_ARMOR: i32 = 100;
 pub const HEALTH_PAD_AMOUNT: i32 = 40;
 /// Armor scrap grant amount (capped at PLAYER_MAX_ARMOR).
 pub const ARMOR_PAD_AMOUNT: i32 = 25;
+
+/// Solo Broadcast Episode 0: NODS frags the meatbag must clear.
+pub const EP0_NODS_GOAL: u32 = 5;
+/// Soft-touch radius for the jammer dish (arena center).
+pub const EP0_JAMMER_RADIUS: f32 = 3.0;
 
 /// Axis-aligned scrap solid in XZ (Godot props mirrored for authoritative cover).
 #[derive(Debug, Clone, Copy)]
@@ -409,6 +417,55 @@ pub enum SpeakOutcome {
     Rejected,
 }
 
+/// Solo Broadcast Episode 0 phase (Calibration on Larak Lot).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EpisodePhase {
+    Nods,
+    Jammer,
+    Auditor,
+    Won,
+    Failed,
+}
+
+impl EpisodePhase {
+    pub fn wire(self) -> &'static str {
+        match self {
+            Self::Nods => "nods",
+            Self::Jammer => "jammer",
+            Self::Auditor => "auditor",
+            Self::Won => "won",
+            Self::Failed => "failed",
+        }
+    }
+}
+
+/// Contested Frequency Solo Broadcast Episode 0 runtime (off = MP unchanged).
+#[derive(Debug, Clone)]
+pub struct SoloBroadcastEp0 {
+    pub enabled: bool,
+    pub started: bool,
+    pub nods_cleared: u32,
+    pub nods_goal: u32,
+    pub jammer_seized: bool,
+    pub phase: EpisodePhase,
+    /// Sticky Host line override while Solo Broadcast is live.
+    pub host_line: Option<String>,
+}
+
+impl Default for SoloBroadcastEp0 {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            started: false,
+            nods_cleared: 0,
+            nods_goal: EP0_NODS_GOAL,
+            jammer_seized: false,
+            phase: EpisodePhase::Nods,
+            host_line: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RoundState {
     Warmup,
@@ -558,6 +615,8 @@ pub struct GameState {
     pub map_rotate: bool,
     /// Fighters that just respawned and their remaining shield ticks.
     pub spawn_shields: HashMap<Uuid, u32>,
+    /// Solo Broadcast Episode 0 (Calibration / Larak Lot). Off for MP.
+    pub solo_broadcast: SoloBroadcastEp0,
 }
 
 pub struct Player {
@@ -618,6 +677,14 @@ impl GameState {
         self.compliance_fired = false;
         self.compliance_ticks_left = 0;
         self.clear_boss();
+        if self.solo_broadcast.enabled {
+            self.solo_broadcast.nods_cleared = 0;
+            self.solo_broadcast.jammer_seized = false;
+            self.solo_broadcast.phase = EpisodePhase::Nods;
+            self.solo_broadcast.started = false;
+            self.solo_broadcast.host_line = Some(episode0_host_line_cold_open());
+            self.relabel_rule_bots_as_nods();
+        }
         if self.map_rotate && self.round_number > 1 {
             self.map = self.map.next();
             tracing::info!("Map rotate -> {} ({})", self.map.name(), self.map.id());
@@ -642,7 +709,11 @@ impl GameState {
             previous_winner,
             mode_name: default_mode_name(),
             playlist: default_playlist(),
-            host_line: round_open_host_line(self.map.name(), &self.roster_names),
+            host_line: if self.solo_broadcast.enabled {
+                episode0_host_line_cold_open()
+            } else {
+                round_open_host_line(self.map.name(), &self.roster_names)
+            },
         });
 
         tracing::info!(
@@ -812,6 +883,7 @@ impl GameState {
             RoundState::Warmup => {
                 self.round_ticks += 1;
                 self.maybe_warmup_rule_bot_taunts();
+                self.tick_solo_broadcast();
                 if self.round_ticks >= self.config.warmup_ticks {
                     self.start_round();
                 }
@@ -819,6 +891,7 @@ impl GameState {
             }
             RoundState::Active => {
                 self.round_ticks += 1;
+                self.tick_solo_broadcast();
 
                 if self.compliance_ticks_left > 0 {
                     self.compliance_ticks_left -= 1;
@@ -830,7 +903,7 @@ impl GameState {
                         }
                     }
                 }
-                if !self.boss_spawned {
+                if !self.boss_spawned && !self.solo_broadcast.enabled {
                     if let Some(at) = self.config.boss_spawn_ticks {
                         if self.round_ticks >= at {
                             self.spawn_compliance_drone();
@@ -840,7 +913,11 @@ impl GameState {
 
                 if let Some(time_limit) = self.config.time_limit_ticks {
                     if self.round_ticks >= time_limit {
-                        self.end_round("Time limit reached".to_string());
+                        if self.solo_broadcast.enabled {
+                            self.fail_episode("Calibration timed out".to_string());
+                        } else {
+                            self.end_round("Time limit reached".to_string());
+                        }
                         return;
                     }
                 }
@@ -1100,11 +1177,16 @@ impl GameState {
                     );
 
                     if victim_was_boss {
+                        let boss_msg = if self.solo_broadcast.enabled {
+                            episode0_host_line_win()
+                        } else {
+                            boss_down_host_line()
+                        };
                         self.events.push(GameEvent::BossDown {
                             name: target_name.clone(),
                             boss_id,
                             killer: Some(shooter_name.clone()),
-                            message: boss_down_host_line(),
+                            message: boss_msg,
                         });
                         tracing::info!(
                             "BOSS DOWN: {} fragged {} (score: {})",
@@ -1112,7 +1194,15 @@ impl GameState {
                             target_name,
                             killer_score
                         );
+                        if self.solo_broadcast.enabled
+                            && self.solo_broadcast.phase == EpisodePhase::Auditor
+                        {
+                            self.complete_episode(
+                                "Auditor down. Frequency stays unmetered.".to_string(),
+                            );
+                        }
                     } else {
+                        self.note_nods_frag(shooter_id);
                         tracing::info!(
                             "FRAG: {} -> {} (score: {})",
                             shooter_name,
@@ -1308,6 +1398,8 @@ impl GameState {
                 self.ended_host_line
                     .clone()
                     .unwrap_or_else(default_host_line)
+            } else if let Some(line) = self.solo_broadcast.host_line.as_ref() {
+                line.clone()
             } else if self.boss_id.is_some() {
                 boss_host_line()
             } else if self.compliance_ticks_left > 0 {
@@ -1315,7 +1407,7 @@ impl GameState {
             } else if self.round_state == RoundState::Warmup {
                 let remaining = self.config.warmup_ticks.saturating_sub(self.round_ticks);
                 let secs = remaining.div_ceil(20).max(1);
-                warmup_host_line(self.map.name(), &self.roster_names, secs)
+                warmup_host_line(&self.display_map_name(), &self.roster_names, secs)
             } else {
                 default_host_line()
             },
@@ -1331,7 +1423,32 @@ impl GameState {
             },
             pickups: self.pickups.iter().map(|p| p.to_state()).collect(),
             map_id: self.map.id(),
-            map_name: self.map.name().to_string(),
+            map_name: self.display_map_name(),
+            episode_id: if self.solo_broadcast.enabled {
+                Some(EPISODE_ID_EP0.to_string())
+            } else {
+                None
+            },
+            episode_title: if self.solo_broadcast.enabled {
+                Some(EPISODE_TITLE_EP0.to_string())
+            } else {
+                None
+            },
+            episode_objective: if self.solo_broadcast.enabled {
+                Some(episode0_objective_chip())
+            } else {
+                None
+            },
+            episode_progress: if self.solo_broadcast.enabled {
+                Some(self.episode_progress_chip())
+            } else {
+                None
+            },
+            episode_phase: if self.solo_broadcast.enabled {
+                Some(self.solo_broadcast.phase.wire().to_string())
+            } else {
+                None
+            },
         }
     }
 
@@ -1343,6 +1460,232 @@ impl GameState {
             self.roster_host_line = None;
         } else {
             self.roster_host_line = Some(roster_host_line(names));
+        }
+    }
+
+    /// Enable Contested Frequency Solo Broadcast Episode 0 (Calibration / Larak Lot).
+    /// Relabels rule bots as NODS, disables timed Compliance Drone (Auditor is gated),
+    /// and arms episode chrome. Safe to call once at boot.
+    pub fn enable_solo_broadcast_ep0(&mut self) {
+        self.solo_broadcast = SoloBroadcastEp0 {
+            enabled: true,
+            started: false,
+            nods_cleared: 0,
+            nods_goal: EP0_NODS_GOAL,
+            jammer_seized: false,
+            phase: EpisodePhase::Nods,
+            host_line: Some(episode0_host_line_cold_open()),
+        };
+        // Auditor spawns after jammer seize, not on a timed mid-round drone.
+        self.config.boss_spawn_ticks = None;
+        // Insanely-fun: time-to-first-frag under ~30s. Short Warmup, keep guns loud.
+        self.config.warmup_ticks = 20; // 1s
+                                       // Slightly earlier compliance ping as Continuance probe-van flavor.
+        self.config.compliance_ping_ticks = Some(20 * 8);
+        self.relabel_rule_bots_as_nods();
+    }
+
+    pub(crate) fn relabel_rule_bots_as_nods(&mut self) {
+        let mut n = 0u32;
+        for player in &mut self.players {
+            if player.is_boss || player.role == Role::Human {
+                continue;
+            }
+            if self.bots.iter().any(|b| b.player_id == player.id) {
+                n += 1;
+                player.name = format!("NODS-{n:02}");
+            }
+        }
+        let names: Vec<String> = self
+            .players
+            .iter()
+            .filter(|p| self.bots.iter().any(|b| b.player_id == p.id) && !p.is_boss)
+            .map(|p| p.name.clone())
+            .collect();
+        self.set_roster_host_line_from_names(&names);
+    }
+
+    fn display_map_name(&self) -> String {
+        if self.solo_broadcast.enabled {
+            EPISODE_MAP_LARAK_LOT.to_string()
+        } else {
+            self.map.name().to_string()
+        }
+    }
+
+    fn episode_progress_chip(&self) -> String {
+        let sb = &self.solo_broadcast;
+        let nods = format!(
+            "NODS {}/{}",
+            sb.nods_cleared.min(sb.nods_goal),
+            sb.nods_goal
+        );
+        let jammer = if sb.jammer_seized {
+            "JAMMER OK"
+        } else if sb.phase == EpisodePhase::Jammer {
+            "SEIZE JAMMER"
+        } else {
+            "JAMMER"
+        };
+        let auditor = match sb.phase {
+            EpisodePhase::Auditor => "AUDITOR LIVE",
+            EpisodePhase::Won => "AUDITOR DOWN",
+            EpisodePhase::Failed => "FAILED",
+            _ => "AUDITOR",
+        };
+        format!("{nods} | {jammer} | {auditor}")
+    }
+
+    pub(crate) fn maybe_start_episode(&mut self) {
+        if !self.solo_broadcast.enabled || self.solo_broadcast.started {
+            return;
+        }
+        self.solo_broadcast.started = true;
+        self.solo_broadcast.host_line = Some(episode0_host_line_cold_open());
+        self.events.push(GameEvent::EpisodeStart {
+            id: EPISODE_ID_EP0.to_string(),
+            title: EPISODE_TITLE_EP0.to_string(),
+            objective: episode0_objective_chip(),
+            host_line: episode0_host_line_cold_open(),
+            map_name: EPISODE_MAP_LARAK_LOT.to_string(),
+        });
+        tracing::info!("Solo Broadcast Episode 0 started (Calibration / Larak Lot)");
+    }
+
+    pub(crate) fn note_nods_frag(&mut self, killer_id: Uuid) {
+        if !self.solo_broadcast.enabled {
+            return;
+        }
+        if self.solo_broadcast.phase != EpisodePhase::Nods {
+            return;
+        }
+        let Some(killer) = self.players.iter().find(|p| p.id == killer_id) else {
+            return;
+        };
+        if killer.role != Role::Human {
+            return;
+        }
+        self.solo_broadcast.nods_cleared = self.solo_broadcast.nods_cleared.saturating_add(1);
+        if self.solo_broadcast.nods_cleared == 1 {
+            self.solo_broadcast.host_line = Some(episode0_host_line_nods());
+        }
+        if self.solo_broadcast.nods_cleared >= self.solo_broadcast.nods_goal {
+            self.solo_broadcast.phase = EpisodePhase::Jammer;
+            self.solo_broadcast.host_line = Some(episode0_host_line_jammer());
+            tracing::info!("Episode 0: NODS cleared, jammer dish is live");
+        }
+    }
+
+    pub(crate) fn try_seize_jammer(&mut self) {
+        if !self.solo_broadcast.enabled || self.solo_broadcast.phase != EpisodePhase::Jammer {
+            return;
+        }
+        let human_near = self.players.iter().any(|p| {
+            p.role == Role::Human
+                && p.respawn_timer.is_none()
+                && (p.x * p.x + p.z * p.z).sqrt() <= EP0_JAMMER_RADIUS
+        });
+        if !human_near {
+            return;
+        }
+        self.solo_broadcast.jammer_seized = true;
+        self.solo_broadcast.phase = EpisodePhase::Auditor;
+        self.solo_broadcast.host_line = Some(episode0_host_line_auditor());
+        self.spawn_auditor();
+        tracing::info!("Episode 0: jammer seized, Auditor inbound");
+    }
+
+    /// Continuance Auditor elite (clipboard shield). Reuses Compliance AI path.
+    pub fn spawn_auditor(&mut self) -> Option<Uuid> {
+        if self.boss_spawned || self.boss_id.is_some() {
+            return None;
+        }
+        if self.round_state != RoundState::Active {
+            return None;
+        }
+        let id = Uuid::new_v4();
+        let name = AUDITOR_NAME.to_string();
+        self.players.push(Player {
+            id,
+            name: name.clone(),
+            x: 0.0,
+            y: 2.2,
+            z: 0.0,
+            yaw: 0.0,
+            hp: BOSS_MAX_HP,
+            armor: 50,
+            pending_action: Action::default(),
+            fire_cooldown: 0,
+            respawn_timer: None,
+            just_fired: false,
+            role: Role::Agent,
+            weapon: WeaponType::Rail,
+            last_speak_tick: None,
+            is_boss: true,
+            killstreak: 0,
+            display_behavior: None,
+        });
+        self.bots
+            .push(BotController::new(id, BotBehavior::Compliance));
+        self.scores.insert(id, 0);
+        self.boss_id = Some(id);
+        self.boss_spawned = true;
+        self.events.push(GameEvent::BossSpawn {
+            name: name.clone(),
+            boss_id: id,
+            message: episode0_host_line_auditor(),
+            hp: BOSS_MAX_HP,
+        });
+        tracing::info!("Auditor spawned ({})", id);
+        Some(id)
+    }
+
+    pub(crate) fn complete_episode(&mut self, reason: String) {
+        if !self.solo_broadcast.enabled || self.solo_broadcast.phase == EpisodePhase::Won {
+            return;
+        }
+        self.solo_broadcast.phase = EpisodePhase::Won;
+        let host = episode0_host_line_win();
+        self.solo_broadcast.host_line = Some(host.clone());
+        self.events.push(GameEvent::EpisodeComplete {
+            id: EPISODE_ID_EP0.to_string(),
+            reason: reason.clone(),
+            host_line: host,
+            unlock_teaser: episode0_unlock_teaser(),
+        });
+        tracing::info!("Episode 0 complete: {reason}");
+        self.end_round(reason);
+    }
+
+    pub(crate) fn fail_episode(&mut self, reason: String) {
+        if !self.solo_broadcast.enabled {
+            self.end_round(reason);
+            return;
+        }
+        if self.solo_broadcast.phase == EpisodePhase::Won
+            || self.solo_broadcast.phase == EpisodePhase::Failed
+        {
+            return;
+        }
+        self.solo_broadcast.phase = EpisodePhase::Failed;
+        let host = episode0_host_line_fail();
+        self.solo_broadcast.host_line = Some(host.clone());
+        self.events.push(GameEvent::EpisodeFail {
+            id: EPISODE_ID_EP0.to_string(),
+            reason: reason.clone(),
+            host_line: host,
+        });
+        tracing::info!("Episode 0 fail: {reason}");
+        self.end_round("Citizen Handle assigned".to_string());
+    }
+
+    pub(crate) fn tick_solo_broadcast(&mut self) {
+        if !self.solo_broadcast.enabled {
+            return;
+        }
+        self.maybe_start_episode();
+        if self.round_state == RoundState::Active {
+            self.try_seize_jammer();
         }
     }
 
@@ -1699,6 +2042,7 @@ impl Default for GameState {
             map: MapKind::ArenaDuel,
             map_rotate: false,
             spawn_shields: HashMap::new(),
+            solo_broadcast: SoloBroadcastEp0::default(),
         }
     }
 }

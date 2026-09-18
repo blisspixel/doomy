@@ -19,6 +19,11 @@ struct Args {
     /// Alternate Arena Duel and Compliance Yard each round.
     #[arg(long, default_value_t = false)]
     map_rotate: bool,
+
+    /// Contested Frequency Solo Broadcast Episode 0 (Calibration / Larak Lot).
+    /// NODS clear + jammer dish + Auditor. MP unchanged when off.
+    #[arg(long, default_value_t = false)]
+    solo_broadcast: bool,
 }
 
 #[tokio::main]
@@ -37,6 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         map,
         map_rotate: args.map_rotate,
         match_config: None,
+        solo_broadcast: args.solo_broadcast,
     };
     run_server(options, std::future::pending::<()>(), None).await
 }
@@ -65,6 +71,7 @@ mod tests {
         assert_eq!(args.bots, 4);
         assert_eq!(args.map, "1");
         assert!(!args.map_rotate);
+        assert!(!args.solo_broadcast);
     }
 
     #[test]
@@ -85,6 +92,12 @@ mod tests {
         assert!(fragr_server::sim::MapKind::from_cli(&args.map).is_some());
     }
 
+    #[test]
+    fn args_solo_broadcast() {
+        let args = Args::try_parse_from(["fragr-server", "--solo-broadcast"]).expect("solo");
+        assert!(args.solo_broadcast);
+    }
+
     #[tokio::test]
     async fn run_server_ws_hello_welcome_tick_then_shutdown() {
         let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
@@ -98,6 +111,7 @@ mod tests {
                     map: fragr_server::sim::MapKind::ArenaDuel,
                     map_rotate: false,
                     match_config: None,
+                    solo_broadcast: false,
                 },
                 async move {
                     let _ = shutdown_rx.await;

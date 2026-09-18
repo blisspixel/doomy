@@ -3,13 +3,17 @@ use crate::protocol::{
     boss_down_host_line, boss_host_line, boss_round_wipe_host_line, compliance_host_line,
     default_host_line, default_map_id, default_map_name, default_mode_name, default_playlist,
     mvp_host_line, round_open_host_line, warmup_host_line, Action, ClientMessage, GameEvent,
-    PlayerScore, PlayerState, Role, ServerMessage, Snapshot, WeaponType, BOSS_NAME,
+    PlayerScore, PlayerState, Role, ServerMessage, Snapshot, WeaponType, AUDITOR_NAME, BOSS_NAME,
+    EPISODE_ID_EP0, EPISODE_MAP_LARAK_LOT,
 };
 #[cfg(test)]
+use crate::session::GameSession;
+#[cfg(test)]
 use crate::sim::{
-    BotBehavior, BotController, GameState, MapKind, MatchConfig, RoundState, BOSS_MAX_HP,
-    HEALTH_PICKUP_RESPAWN_TICKS, PICKUP_RESPAWN_TICKS,
+    BotBehavior, BotController, EpisodePhase, GameState, MapKind, MatchConfig, RoundState,
+    BOSS_MAX_HP, HEALTH_PICKUP_RESPAWN_TICKS, PICKUP_RESPAWN_TICKS,
 };
+
 #[cfg(test)]
 use uuid::Uuid;
 
@@ -268,6 +272,11 @@ fn test_protocol_snapshot_serialization() {
         pickups: vec![],
         map_id: default_map_id(),
         map_name: default_map_name(),
+        episode_id: None,
+        episode_title: None,
+        episode_objective: None,
+        episode_progress: None,
+        episode_phase: None,
     };
     let json = serde_json::to_value(&snapshot).unwrap();
     assert_eq!(json["tick"], 123);
@@ -292,6 +301,11 @@ fn test_protocol_snapshot_empty_players() {
         pickups: vec![],
         map_id: default_map_id(),
         map_name: default_map_name(),
+        episode_id: None,
+        episode_title: None,
+        episode_objective: None,
+        episode_progress: None,
+        episode_phase: None,
     };
     let json = serde_json::to_string(&snapshot).unwrap();
     assert!(json.contains(r#""tick":0"#));
@@ -2173,6 +2187,11 @@ async fn test_net_ws_action_forwarded_for_agent() {
             pickups: vec![],
             map_id: default_map_id(),
             map_name: default_map_name(),
+            episode_id: None,
+            episode_title: None,
+            episode_objective: None,
+            episode_progress: None,
+            episode_phase: None,
         });
         broadcast_to_clients(&clients, &[snap]).await;
         let msg = tokio::time::timeout(std::time::Duration::from_secs(2), stream.next())
@@ -4228,4 +4247,123 @@ fn test_sim_spawn_shield_blocks_damage_for_one_second() {
     state.tick(0.05);
     let hp = state.players.iter().find(|p| p.id == target).unwrap().hp;
     assert!(hp < 100, "the shot lands once the shield is down, hp {hp}");
+}
+
+#[test]
+fn solo_broadcast_ep0_win_path() {
+    let mut session = GameSession::new();
+    session.spawn_bots(4);
+    session.enable_solo_broadcast_ep0();
+    assert!(session.state.solo_broadcast.enabled);
+    assert_eq!(session.state.solo_broadcast.phase, EpisodePhase::Nods);
+
+    let human = Uuid::new_v4();
+    session
+        .state
+        .add_player(human, "Meatbag".to_string(), Role::Human);
+
+    // Cold open during Warmup.
+    for _ in 0..25 {
+        session.state.tick(0.05);
+    }
+    let events = session.state.take_events();
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, GameEvent::EpisodeStart { .. })),
+        "expected EpisodeStart, got {events:?}"
+    );
+
+    if session.state.round_state != RoundState::Active {
+        session.state.start_round();
+    }
+
+    let nods: Vec<_> = session
+        .state
+        .players
+        .iter()
+        .filter(|p| p.name.starts_with("NODS-") && !p.is_boss)
+        .map(|p| p.id)
+        .collect();
+    assert!(!nods.is_empty(), "expected NODS labels after enable");
+
+    while session.state.solo_broadcast.nods_cleared < session.state.solo_broadcast.nods_goal {
+        session.state.note_nods_frag(human);
+    }
+    assert_eq!(session.state.solo_broadcast.phase, EpisodePhase::Jammer);
+
+    if let Some(p) = session.state.players.iter_mut().find(|p| p.id == human) {
+        p.x = 0.0;
+        p.z = 0.0;
+        p.respawn_timer = None;
+    }
+    session.state.try_seize_jammer();
+    assert_eq!(session.state.solo_broadcast.phase, EpisodePhase::Auditor);
+    assert!(session.state.boss_id.is_some());
+    assert_eq!(
+        session
+            .state
+            .players
+            .iter()
+            .find(|p| p.is_boss)
+            .map(|p| p.name.as_str()),
+        Some(AUDITOR_NAME)
+    );
+
+    session
+        .state
+        .complete_episode("Auditor down. Frequency stays unmetered.".to_string());
+    assert_eq!(session.state.solo_broadcast.phase, EpisodePhase::Won);
+    let events = session.state.take_events();
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, GameEvent::EpisodeComplete { .. })),
+        "expected EpisodeComplete, got {events:?}"
+    );
+
+    let snap = session.state.snapshot();
+    assert_eq!(snap.map_name, EPISODE_MAP_LARAK_LOT);
+    assert_eq!(snap.episode_id.as_deref(), Some(EPISODE_ID_EP0));
+    assert_eq!(snap.episode_phase.as_deref(), Some("won"));
+}
+
+#[test]
+fn solo_broadcast_ep0_fail_on_timeout() {
+    let mut session = GameSession::new();
+    session.spawn_bots(2);
+    session.enable_solo_broadcast_ep0();
+    session.state.config.warmup_ticks = 1;
+    session.state.config.time_limit_ticks = Some(5);
+    let human = Uuid::new_v4();
+    session
+        .state
+        .add_player(human, "Meatbag".to_string(), Role::Human);
+    for _ in 0..40 {
+        session.state.tick(0.05);
+        if session.state.solo_broadcast.phase == EpisodePhase::Failed {
+            break;
+        }
+    }
+    assert_eq!(session.state.solo_broadcast.phase, EpisodePhase::Failed);
+    let events = session.state.take_events();
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, GameEvent::EpisodeFail { .. })),
+        "expected EpisodeFail, got {events:?}"
+    );
+}
+
+#[test]
+fn solo_broadcast_off_leaves_mp_snapshot_clean() {
+    let mut session = GameSession::new();
+    session.spawn_bots(2);
+    let snap = session.state.snapshot();
+    assert!(snap.episode_id.is_none());
+    assert!(snap.episode_title.is_none());
+    assert!(snap.episode_objective.is_none());
+    assert!(snap.episode_progress.is_none());
+    assert!(snap.episode_phase.is_none());
+    assert_ne!(snap.map_name, EPISODE_MAP_LARAK_LOT);
 }
