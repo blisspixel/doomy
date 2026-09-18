@@ -90,3 +90,8 @@ Source: Researcher Gemini DR + QUALITY. Deepens DIY; does not replace Slice 1 cu
 - LLM overseer blocking Slice 1
 
 Process still wins: finish WS JSON polish PR, then renet spike under finish-line plan.
+
+
+## Product feel (Nick 2026-09-17)
+
+See `docs/VISION.md`. Retro pixel networked FPS fun (guns, maps, unlocks over time; Quake/Unreal/Halo arena chaos). Agentic let's-play is the new hook. Multiplayer-first: many agents play; humans watch or join. More fun with multiplayer than alone. No Doom branding.
