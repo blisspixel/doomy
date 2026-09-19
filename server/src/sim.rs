@@ -2,7 +2,7 @@ use crate::protocol::{
     boss_down_host_line, boss_host_line, boss_round_wipe_host_line, compliance_host_line,
     default_host_line, default_mode_name, default_playlist, empty_mvp_host_line,
     episode0_host_line_auditor, episode0_host_line_cold_open, episode0_host_line_fail,
-    episode0_host_line_jammer, episode0_host_line_nods, episode0_host_line_win,
+    episode0_host_line_jammer, episode0_host_line_nods_tick, episode0_host_line_win,
     episode0_objective_chip, episode0_unlock_teaser, killstreak_host_line, mvp_host_line,
     roster_host_line, round_open_host_line, rule_bot_taunt_line, warmup_host_line, Action,
     BotTauntKind, GameEvent, PickupState, PlayerScore, PlayerState, Role, ServerMessage,
@@ -1699,10 +1699,14 @@ impl GameState {
             return;
         }
         self.solo_broadcast.nods_cleared = self.solo_broadcast.nods_cleared.saturating_add(1);
-        if self.solo_broadcast.nods_cleared == 1 {
-            self.solo_broadcast.host_line = Some(episode0_host_line_nods());
+        let cleared = self.solo_broadcast.nods_cleared;
+        let goal = self.solo_broadcast.nods_goal;
+        // Rate-sane Host bump: one sticky line per credited clear. Goal clear
+        // hands Host to jammer only (no double booth beat).
+        if cleared < goal {
+            self.solo_broadcast.host_line = Some(episode0_host_line_nods_tick(cleared, goal));
         }
-        if self.solo_broadcast.nods_cleared >= self.solo_broadcast.nods_goal {
+        if cleared >= goal {
             self.solo_broadcast.phase = EpisodePhase::Jammer;
             self.solo_broadcast.host_line = Some(episode0_host_line_jammer());
             tracing::info!("Episode 0: NODS cleared, jammer dish is live");
