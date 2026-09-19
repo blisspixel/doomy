@@ -741,6 +741,9 @@ func _update_local_fp_hud(player_list: Array) -> void:
 			if hud and hud.has_method("show_spawn_flash"):
 				hud.show_spawn_flash()
 		local_hp_seen = hp
+		# The number a player actually needs. It was never on screen.
+		if hud and hud.has_method("set_vitals"):
+			hud.set_vitals(hp, int(pdata.get("armor", 0)))
 		var weapon = str(pdata.get("weapon", ""))
 		if hud and hud.has_method("set_fp_weapon"):
 			hud.set_fp_weapon(weapon)

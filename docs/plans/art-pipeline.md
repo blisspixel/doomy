@@ -88,9 +88,19 @@ Three things to confirm in writing, because none of them can be assumed from a m
 
 The budget ceiling for the whole art effort is 300 dollars. The estimate above for the first full asset set through the pixel services is 15 to 40 dollars, so the ceiling is comfortable and the risk is not money but licence terms. Each tool run takes a `--max-spend-usd` cap and appends to the ledger under `.agents/spend/`, the same gate the brain uses. Approval is still not given.
 
+### Tried and rejected: just turning shading on (2026-09-19)
+
+The cheap version of this is to set `shaded = true` on the fighter sprite and let Godot's lights do the rest. It was tried and it is worse. The arena's key light, fill and ember pits tint the fighters a muddy brown and drop them a long way in value, so they blend into a floor made of the same browns and stop reading as targets at a distance. Integration was bought with readability, which is the wrong trade in a shooter where finding the enemy is the game.
+
+The lesson for the shader: lighting a sprite needs a floor under it. A fighter must never fall below a minimum value however dark the room, and the light should mostly ride on top as tint and rim rather than multiply the whole sprite down. `Sprite3D` cannot express that, which is why the rung below is a shader on a quad and not a property change.
+
 ### The rung that costs nothing and should come first
 
 Normal-mapped billboards are engine work, not art work. A `Sprite3D` shader that reads an albedo and a normal map, and falls back to a normal derived from the silhouette when no map exists, makes the sprites already in the repository react to the lights already in the scene. That is the muzzle flash lighting the fighter in front of you, for free, before a single asset is bought.
+
+## What to generate
+
+The itemised list, by group, with counts, sizes and the order to generate in, is [`docs/ART-ASSET-LIST.md`](../ART-ASSET-LIST.md). About 2550 frames in total, with effects and interface first at roughly 130 frames between them, because those are the two groups where the game currently has nothing rather than something rough.
 
 ## Spend gate
 

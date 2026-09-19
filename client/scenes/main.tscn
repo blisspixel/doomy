@@ -241,6 +241,67 @@ grow_vertical = 0
 theme_override_styles/panel = SubResource("PanelStyleBox_Weapon")
 
 
+[node name="Vitals" type="Control" parent="HUD"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -140.0
+offset_right = 320.0
+offset_bottom = -24.0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="HealthValue" type="Label" parent="HUD/Vitals"]
+offset_right = 200.0
+offset_bottom = 74.0
+theme_override_colors/font_color = Color(0.93, 0.29, 0.24, 1)
+theme_override_colors/font_outline_color = Color(0.04, 0.04, 0.05, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 64
+text = "100"
+vertical_alignment = 1
+
+[node name="HealthBar" type="ColorRect" parent="HUD/Vitals"]
+offset_top = 76.0
+offset_right = 200.0
+offset_bottom = 84.0
+color = Color(0.93, 0.29, 0.24, 1)
+
+[node name="HealthBarBack" type="ColorRect" parent="HUD/Vitals"]
+show_behind_parent = true
+offset_top = 76.0
+offset_right = 200.0
+offset_bottom = 84.0
+color = Color(0.16, 0.08, 0.08, 0.85)
+
+[node name="ArmorValue" type="Label" parent="HUD/Vitals"]
+offset_left = 216.0
+offset_top = 18.0
+offset_right = 340.0
+offset_bottom = 74.0
+theme_override_colors/font_color = Color(0.56, 0.75, 0.86, 1)
+theme_override_colors/font_outline_color = Color(0.04, 0.04, 0.05, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 40
+text = "0"
+vertical_alignment = 1
+
+[node name="ArmorBar" type="ColorRect" parent="HUD/Vitals"]
+offset_left = 216.0
+offset_top = 76.0
+offset_right = 316.0
+offset_bottom = 84.0
+color = Color(0.56, 0.75, 0.86, 1)
+
+[node name="ArmorBarBack" type="ColorRect" parent="HUD/Vitals"]
+show_behind_parent = true
+offset_left = 216.0
+offset_top = 76.0
+offset_right = 316.0
+offset_bottom = 84.0
+color = Color(0.09, 0.12, 0.14, 0.85)
+
 [node name="Crosshair" type="Control" parent="HUD"]
 anchors_preset = 8
 anchor_left = 0.5
