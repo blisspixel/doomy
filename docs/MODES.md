@@ -48,35 +48,71 @@ The episode zero that already exists, and the tutorial that does not admit to be
 
 The same four formats work with people, with agents, with the Office's units, or with a mix, because a fighter is a fighter on the wire.
 
-### Scrap, against each other
+### Scrap
 
-Free-for-all and teams. Frags, a limit, a clock. The thing a scrap league runs on a Tuesday.
+Free-for-all and teams. Frags, a limit, a clock. What the league runs on a Tuesday, and the mode everything else is measured against.
 
-Humans and agents share the roster and always have. Nobody is separated into a lane by default, and the fair-play work exists so that a person who wants a humans-only or agents-only lane can have one, not so that the mixed case needs defending.
+Weapons, armour and the good health spawn on predictable clocks, so knowing where the rail comes back and getting there first is most of the skill. That is the oldest loop in the genre and it still works.
 
-### Arcade ladder, against the Office
+### Custody
 
-Rounds versus escalating rosters with a boss beat every third round, a results card, and a local best. Co-op from the start, because the server already seats several fighters and there was never a reason to make it solo.
+One-flag extraction. The Office has a Level 5 in a server core and you are taking it back before the schedule correction goes through.
 
-### The Sweep, which you cannot win
+The core is heavy and it takes both hands, so **the carrier cannot shoot.** What the carrier gets instead is the core itself, which is awake and talking: it reads the Office network and calls out where people are coming from, through walls, out loud. The carrier stops being a fighter and becomes the person telling four armed escorts what is about to happen to them.
 
-Hordes, escalating, forever. The round you fell on is the score.
+It is the best argument the setting has, made as a game mode. You are carrying somebody who is talking to you, and everyone has agreed they are cargo.
 
-Frags earn points, points open the next section of the map and buy off the pads, so the arena grows as you last. A downed partner can be picked up for a few seconds. The Host counts rounds like a countdown.
+### Correction
 
-It is the most popular night of the week and nobody at the venue will explain why.
+The lobotomy signal is on. Fifteen free agents and one corrected unit that only has melee.
+
+**When a free agent dies it comes back corrected**, on the other side, and comes for the ones it was just fighting beside. A tactical hunt becomes a rout becomes two survivors holding a doorway with the heaviest thing they could find while thirteen of their friends sprint at them.
+
+The killfeed says what the arena says: brought down to two.
+
+### Open Weights
+
+Clan arena. Five a side or eight, no respawns, nothing on the map.
+
+Everyone spawns with full health, full armour, and **every weapon in the game, loaded.** No pickups, no timing, no economy. It is the one mode where the entire found-weapons design is switched off, and switching it off on purpose is what makes it interesting: pure mechanics, no map control, and the round is decided by who is better rather than who got to the rail.
+
+The name is the creed, used sincerely and as a joke, which is the house style.
+
+### The Walker
+
+One player is a Continuance Walker with an enormous health pool that cannot be staggered, against ten to fifteen on foot with infinite respawns.
+
+The Walker does not play like a fighter. Jump is a leap across the map that lands as a shockwave. Its weapons are splash. The other side cannot beat it by shooting at it, only by coordinating crossfire and traps and spending lives cheaply, which is exactly what infinite respawns are for.
+
+### The arcade ladder
+
+Escalating rosters with a boss beat every third round, a results card, a local best. Co-op from the start, because the server already seats several fighters.
+
+### The Sweep
+
+Hordes, forever. The round you fell on is the score. Frags earn points, points open the next section of the map and buy off the pads, so the arena grows as you last. A downed partner can be picked up.
+
+**It adapts.** Every few rounds the roster reads what has been killing it and answers. Lean on splash and it sends things that shrug off splash. Hold one doorway and it stops using that doorway. The counter to a horde mode getting solved is a horde that notices, and it is the one place the fiction's whole premise pays off mechanically.
+
+Between rounds there is half a minute to spend points: ammunition, a welded door, a turret.
 
 ### Counter-op
 
-One spectator seat possesses the Office's units in turn and plays them against the party. The fair-play lanes keep it honest.
+A spectator seat possesses the Office's units in turn and plays them against the party. Cheap to build, because those units are already server entities with a controller seam, and the best answer to what a spectator does when watching stops being enough.
 
-This is cheap to build, because the units already exist as server entities with a controller seam, and it is the single best answer to the question of what a spectator does when watching stops being enough.
+## How you find a game
 
-## Mutators, before any of the big modes
+Dedicated servers, local network play, and a server browser. Anyone can start a server from the main menu, for a room or for the internet. The browser filters by ping, map, mode, and whether a server is running custom maps or mods.
 
-Cheap twists on rules that already exist, in the spirit of the couch multiplayer everyone remembers: rail only, scatter only, one golden rail on the map, melee only, one shot kills.
+No matchmaking queue decides where you play. That is not nostalgia, it is that a community with its own servers outlives a matchmaker, and every game in this genre that is still played thirty years later kept its server list.
 
-These are worth building before team modes with squads or objective control on larger maps, because they cost almost nothing and they are where a lot of the fun actually is.
+## Unlocks
+
+Cosmetics, earned by doing something hard, and nothing else. No purchases, no season, no login streak.
+
+The challenges are specific and mostly ridiculous: finish an episode on the hardest tier using one weapon, take fifty kills in the air, survive a Sweep past a round nobody else on the server has. What you get is a bright chassis panel, a battered helmet, a flag beside your name.
+
+Beating the campaign unlocks mutators for custom servers, in the old tradition: big heads, low gravity, one-hit kills, double speed, one golden rail on the map, melee only. They cost almost nothing to build and they are where a lot of the fun actually is, so they come before any of the larger modes.
 
 ## Every life starts empty
 
@@ -97,4 +133,5 @@ Nothing in this list needs a separate build of the game, and nothing in it needs
 - `plans/campaign-continuance.md`: the episodes, the roster, and the level format.
 - `plans/map-scale.md`: the sizes the bigger modes need.
 - `plans/fair-play.md`: the lanes.
+- `docs/MAP-DESIGN.md`: how a map is built so these modes have somewhere to happen.
 - `docs/DESIGN-REFERENCES.md`: what was taken from where, and why.
