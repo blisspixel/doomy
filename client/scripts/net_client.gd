@@ -2,6 +2,7 @@ extends Node
 
 signal connected_to_server
 signal disconnected_from_server
+signal map_info_received(info: Dictionary)
 signal snapshot_received(data)
 signal event_received(data)
 ## Per-tick acknowledgement of the newest input the server applied to us.
@@ -151,6 +152,9 @@ func _handle_message(text: String):
 			player_id = data.get("player_id")
 			print("Welcome received! Role: ", data.get("role"), " Player ID: ", player_id, " Mode: ", data.get("mode_name", "Contested Frequency"), "/", data.get("playlist", "Arena Duel"))
 		
+		"map_info":
+			map_info_received.emit(data)
+
 		"snapshot":
 			snapshot_received.emit(data)
 		

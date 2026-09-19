@@ -51,11 +51,13 @@ const SPEAK_LINES = [
 var speak_line_index = 0
 var pending_weapon_swap = null
 
+var arena_cover: ArenaCover = null
 var console: FragrConsole = null
 var pause_menu: PauseMenu = null
 
 func _ready():
 	net_client.snapshot_received.connect(_on_snapshot_received)
+	net_client.map_info_received.connect(_on_map_info)
 	net_client.event_received.connect(_on_event_received)
 	net_client.ack_received.connect(_on_ack_received)
 	net_client.connected_to_server.connect(_on_connected)
@@ -75,6 +77,19 @@ func _ready():
 	hud.set_mode(str(boot.get("hud_mode", "SPECTATING")))
 	_setup_radio()
 	_setup_frontend(str(boot.get("mode", "spectate")))
+
+	# Cover is built from what the server sends, never from a second copy in
+	# the scene. See arena_cover.gd for why that matters.
+	arena_cover = ArenaCover.new()
+	var arena_root: Node = get_node_or_null("Arena")
+	if arena_root != null:
+		arena_root.add_child(arena_cover)
+	else:
+		add_child(arena_cover)
+
+func _on_map_info(info: Dictionary) -> void:
+	if arena_cover != null:
+		arena_cover.apply_map_info(info)
 
 ## The console, the pause menu and the loading card. Built here rather than in
 ## the scene because they are the same three things whatever the match is.

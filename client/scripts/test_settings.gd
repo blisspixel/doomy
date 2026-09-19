@@ -72,8 +72,35 @@ func _initialize() -> void:
 				push_error("test_settings: %s/%s read back as null" % [section, key])
 				ok = false
 
+	# The tips are player-facing text with a pure accessor, so they get checked
+	# here rather than needing a harness of their own.
+	var tips: GDScript = load("res://scripts/tips.gd") as GDScript
+	if tips == null:
+		push_error("test_settings: failed to load tips.gd")
+		ok = false
+	else:
+		var total: int = int(tips.count())
+		if total < 40:
+			push_error("test_settings: only %d tips, the card will repeat itself" % total)
+			ok = false
+		# The draw is deterministic for a seed and covers the whole list.
+		var seen: Dictionary = {}
+		for i in range(total * 3):
+			var t: String = str(tips.pick(i))
+			if t.is_empty():
+				push_error("test_settings: tip %d is empty" % i)
+				ok = false
+				break
+			seen[t] = true
+		if seen.size() != total:
+			push_error("test_settings: the draw reached %d of %d tips" % [seen.size(), total])
+			ok = false
+		if tips.pick(7) != tips.pick(7 + total):
+			push_error("test_settings: the draw is not deterministic for a seed")
+			ok = false
+
 	if ok:
-		print("test_settings: PASS defaults, fallback, clamp, reset, and a disk round trip")
+		print("test_settings: PASS defaults, fallback, clamp, reset, a disk round trip, and %d tips" % int(tips.count()))
 		quit(0)
 	else:
 		push_error("test_settings: FAIL")

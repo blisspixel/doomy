@@ -14,6 +14,9 @@ use std::f32::consts::PI;
 use uuid::Uuid;
 
 const MOVE_SPEED: f32 = 5.0;
+/// The ring fighters spawn on, and therefore the ring their cover is built
+/// around. Kept in step with `MapKind::spawn_radius` for Arena Duel.
+const SPAWN_RING_RADIUS: f32 = ARENA_SIZE * 0.3;
 /// The y a standing fighter reports. It is a reference point rather than the
 /// floor: the client hangs the body below it and the eye just above it.
 pub const PLAYER_FLOOR_Y: f32 = 1.5;
@@ -25,7 +28,7 @@ const TURN_SPEED: f32 = 2.0;
 /// bottom of the arena tier in `plans/map-scale.md`, which is the size a
 /// six-to-sixteen fighter Doom or Unreal map actually is.
 const ARENA_SIZE: f32 = 100.0;
-const PLAYER_RADIUS: f32 = 0.5;
+pub const PLAYER_RADIUS: f32 = 0.5;
 /// Extra forgiveness on aim, as radians of cone that widen with distance.
 /// Zero means a shot has to actually pass through a fighter. A gamepad may
 /// earn a small positive value later; a mouse never should.
@@ -112,6 +115,84 @@ pub enum MapKind {
     ComplianceYard = 2,
 }
 
+/// Arena Duel's cover, built from polar coordinates so it is eight-fold
+/// symmetric and therefore fair whichever spawn you get.
+///
+/// The layout is generated rather than listed because the numbers that matter
+/// are the ring radii, and a list of forty boxes hides them. Rings, outward:
+/// a centre block to break the middle, low walls to fight across, a pillar
+/// ring at mid field, an L of cover at every spawn so nobody arrives in the
+/// open, and long outer walls that make the corners mean something.
+///
+/// Spawn cover is the load-bearing one. When the arena doubled and this did
+/// not, fighters spawned thirty units out in an empty field and the playtest
+/// harness immediately reported four spawn deaths in ten frags.
+fn arena_duel_solids() -> Vec<Aabb2> {
+    let mut out = Vec::with_capacity(48);
+
+    // Four blocks around the middle rather than one in it. The hub at the
+    // origin has to stay walkable: it is the fallback when every spawn point
+    // on the ring is blocked, and the drone spawns there. A block at (0, 0)
+    // put a fighter inside a wall and four movement tests said so at once.
+    for (dx, dz) in [(4.5, 4.5), (-4.5, 4.5), (4.5, -4.5), (-4.5, -4.5)] {
+        out.push(Aabb2::from_center(dx, dz, 2.0, 2.0));
+    }
+
+    // Low walls on the axes, close in, to fight across rather than around.
+    for (dx, dz, hx, hz) in [
+        (0.0, -12.0, 6.0, 0.5),
+        (0.0, 12.0, 6.0, 0.5),
+        (12.0, 0.0, 0.5, 6.0),
+        (-12.0, 0.0, 0.5, 6.0),
+    ] {
+        out.push(Aabb2::from_center(dx, dz, hx, hz));
+    }
+
+    // Pillar ring at mid field, on the diagonals and the axes.
+    for i in 0..8 {
+        let angle = std::f32::consts::PI * 2.0 * (i as f32) / 8.0;
+        out.push(Aabb2::from_center(
+            angle.cos() * 20.0,
+            angle.sin() * 20.0,
+            1.6,
+            1.6,
+        ));
+    }
+
+    // A pocket at every spawn: a block directly behind and one to each side,
+    // open toward the centre. Boxes are axis aligned, so a true U cannot be
+    // built at an arbitrary angle, and three blocks around the point do the
+    // same job at any angle.
+    //
+    // This is the part that matters most. When the arena doubled and the cover
+    // did not move with it, fighters were arriving thirty units out in empty
+    // ground and the harness reported four spawn deaths in eight frags. Cover
+    // beside the spawn was not enough either. It has to be around it.
+    for i in 0..8 {
+        let angle = std::f32::consts::PI * 2.0 * (i as f32) / 8.0;
+        let (ox, oz) = (angle.cos(), angle.sin());
+        let (tx, tz) = (-oz, ox);
+        let (sx, sz) = (ox * SPAWN_RING_RADIUS, oz * SPAWN_RING_RADIUS);
+        // Behind, between the spawn and the wall.
+        out.push(Aabb2::from_center(sx + ox * 4.0, sz + oz * 4.0, 2.5, 2.5));
+        // Flanks, far enough apart to walk out between them.
+        out.push(Aabb2::from_center(sx + tx * 5.0, sz + tz * 5.0, 1.6, 1.6));
+        out.push(Aabb2::from_center(sx - tx * 5.0, sz - tz * 5.0, 1.6, 1.6));
+    }
+
+    // Outer walls, set in from the boundary, so the corners are rooms.
+    for (dx, dz, hx, hz) in [
+        (0.0, -40.0, 14.0, 0.7),
+        (0.0, 40.0, 14.0, 0.7),
+        (40.0, 0.0, 0.7, 14.0),
+        (-40.0, 0.0, 0.7, 14.0),
+    ] {
+        out.push(Aabb2::from_center(dx, dz, hx, hz));
+    }
+
+    out
+}
+
 impl MapKind {
     pub fn from_cli(raw: &str) -> Option<Self> {
         match raw.trim().to_ascii_lowercase().as_str() {
@@ -173,30 +254,7 @@ impl MapKind {
 
     pub(crate) fn obstacles(self) -> Vec<Aabb2> {
         match self {
-            Self::ArenaDuel => vec![
-                // Pillars at (±7, ±7), mesh 2.5x2.5
-                Aabb2::from_center(7.0, -7.0, 1.25, 1.25),
-                Aabb2::from_center(-7.0, -7.0, 1.25, 1.25),
-                Aabb2::from_center(7.0, 7.0, 1.25, 1.25),
-                Aabb2::from_center(-7.0, 7.0, 1.25, 1.25),
-                // Low walls N/S/E/W
-                Aabb2::from_center(0.0, -10.0, 4.0, 0.4),
-                Aabb2::from_center(0.0, 10.0, 4.0, 0.4),
-                Aabb2::from_center(10.0, 0.0, 0.4, 4.0),
-                Aabb2::from_center(-10.0, 0.0, 0.4, 4.0),
-                // Crates
-                Aabb2::from_center(4.0, 16.0, 1.0, 1.0),
-                Aabb2::from_center(-15.0, 3.0, 1.0, 1.0),
-                Aabb2::from_center(16.0, -4.0, 1.0, 1.0),
-                Aabb2::from_center(-3.5, -14.0, 1.0, 1.0),
-                Aabb2::from_center(3.5, -14.0, 1.0, 1.0),
-                Aabb2::from_center(-3.5, 14.0, 1.0, 1.0),
-                Aabb2::from_center(3.5, 14.0, 1.0, 1.0),
-                Aabb2::from_center(-14.0, -5.0, 1.0, 1.0),
-                Aabb2::from_center(-14.0, 5.0, 1.0, 1.0),
-                Aabb2::from_center(14.0, 5.0, 1.0, 1.0),
-                Aabb2::from_center(14.0, -5.0, 1.0, 1.0),
-            ],
+            Self::ArenaDuel => arena_duel_solids(),
             Self::ComplianceYard => vec![
                 // Inner yard posts (±5, ±5)
                 Aabb2::from_center(5.0, -5.0, 1.0, 1.0),
@@ -351,6 +409,13 @@ impl MapKind {
             ],
         }
     }
+}
+
+/// Test-only view of the solid test, so a test can find clear ground instead
+/// of hard-coding coordinates that move when a map is laid out again.
+#[cfg(test)]
+pub fn circle_blocked_for_test(map: MapKind, x: f32, z: f32) -> bool {
+    circle_blocked(map, x, z)
 }
 
 fn circle_blocked(map: MapKind, x: f32, z: f32) -> bool {
