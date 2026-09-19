@@ -4367,3 +4367,208 @@ fn solo_broadcast_off_leaves_mp_snapshot_clean() {
     assert!(snap.episode_phase.is_none());
     assert_ne!(snap.map_name, EPISODE_MAP_LARAK_LOT);
 }
+
+#[test]
+fn client_owned_yaw_replaces_the_turn_bits_and_steers_the_same_tick() {
+    let mut state = GameState::new();
+    state.start_round();
+    let id = Uuid::new_v4();
+    state.add_player(id, "Aimer".to_string(), Role::Human);
+    let idx = state.players.iter().position(|p| p.id == id).unwrap();
+    state.players[idx].x = 0.0;
+    state.players[idx].z = 0.0;
+    state.players[idx].yaw = 0.0;
+
+    // Facing east (yaw 0) but told to face north (yaw pi/2) while running
+    // forward: the fighter must travel north on this tick, not east.
+    let north = std::f32::consts::PI / 2.0;
+    state.set_action(
+        id,
+        Action {
+            forward: true,
+            turn_left: true,
+            yaw: Some(north),
+            seq: Some(7),
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+
+    let p = &state.players[idx];
+    assert!(
+        (p.yaw - north).abs() < 1e-5,
+        "client yaw wins over the turn bits: {}",
+        p.yaw
+    );
+    assert!(p.z > 0.01, "moved along the new facing: z={}", p.z);
+    assert!(
+        p.x.abs() < 1e-3,
+        "did not move along the old facing: x={}",
+        p.x
+    );
+    assert_eq!(p.last_input_seq, Some(7));
+
+    // Yaw is normalised into [0, 2 pi).
+    state.set_action(
+        id,
+        Action {
+            yaw: Some(-std::f32::consts::FRAC_PI_2),
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+    let yaw = state.players[idx].yaw;
+    assert!(
+        (0.0..2.0 * std::f32::consts::PI).contains(&yaw)
+            && (yaw - (1.5 * std::f32::consts::PI)).abs() < 1e-4,
+        "negative yaw wraps: {yaw}"
+    );
+
+    // Nonsense yaw is ignored and the turn bits take over again.
+    let before = state.players[idx].yaw;
+    state.set_action(
+        id,
+        Action {
+            turn_right: true,
+            yaw: Some(f32::NAN),
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+    let after = state.players[idx].yaw;
+    assert!(after.is_finite(), "yaw stays finite");
+    assert!(
+        (after - before).abs() > 1e-6,
+        "turn bits still work without a usable yaw"
+    );
+}
+
+#[test]
+fn agents_keep_turning_with_bits_when_they_send_no_yaw() {
+    let mut state = GameState::new();
+    state.start_round();
+    let id = Uuid::new_v4();
+    state.add_player(id, "Probe".to_string(), Role::Agent);
+    let idx = state.players.iter().position(|p| p.id == id).unwrap();
+    state.players[idx].yaw = 1.0;
+    state.set_action(
+        id,
+        Action {
+            turn_right: true,
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+    assert!(
+        state.players[idx].yaw > 1.0,
+        "turn bits unchanged for agents: {}",
+        state.players[idx].yaw
+    );
+    assert_eq!(state.players[idx].last_input_seq, None);
+    assert!(
+        state.input_acks().is_empty(),
+        "agents are not acknowledged; they do not predict"
+    );
+}
+
+#[test]
+fn acks_report_the_state_the_input_produced() {
+    let mut state = GameState::new();
+    state.start_round();
+    let human = Uuid::new_v4();
+    let quiet = Uuid::new_v4();
+    state.add_player(human, "Runner".to_string(), Role::Human);
+    state.add_player(quiet, "Watcher".to_string(), Role::Human);
+    assert!(
+        state.input_acks().is_empty(),
+        "nothing to acknowledge before an input arrives"
+    );
+
+    state.set_action(
+        human,
+        Action {
+            forward: true,
+            yaw: Some(0.0),
+            seq: Some(41),
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+
+    let acks = state.input_acks();
+    assert_eq!(
+        acks.len(),
+        1,
+        "one ack, only for the client that numbers inputs"
+    );
+    let (id, msg) = &acks[0];
+    assert_eq!(*id, human);
+    let idx = state.players.iter().position(|p| p.id == human).unwrap();
+    match msg {
+        ServerMessage::Ack {
+            seq,
+            tick,
+            x,
+            z,
+            yaw,
+        } => {
+            assert_eq!(*seq, 41);
+            assert_eq!(*tick, state.tick);
+            assert_eq!(*x, state.players[idx].x);
+            assert_eq!(*z, state.players[idx].z);
+            assert_eq!(*yaw, state.players[idx].yaw);
+        }
+        other => panic!("expected an Ack, got {other:?}"),
+    }
+
+    // A later input replaces the acknowledged sequence.
+    state.set_action(
+        human,
+        Action {
+            seq: Some(42),
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+    match &state.input_acks()[0].1 {
+        ServerMessage::Ack { seq, .. } => assert_eq!(*seq, 42),
+        other => panic!("expected an Ack, got {other:?}"),
+    }
+}
+
+#[test]
+fn action_wire_accepts_yaw_and_seq_and_still_accepts_neither() {
+    let with_both: Action =
+        serde_json::from_str(r#"{"forward":true,"yaw":1.25,"seq":9}"#).expect("new client");
+    assert_eq!(with_both.yaw, Some(1.25));
+    assert_eq!(with_both.seq, Some(9));
+    let without: Action =
+        serde_json::from_str(r#"{"forward":true,"turn_left":true}"#).expect("old client");
+    assert_eq!(without.yaw, None);
+    assert_eq!(without.seq, None);
+    // Unknown fields are still rejected.
+    assert!(serde_json::from_str::<Action>(r#"{"yaww":1.0}"#).is_err());
+    // Omitted on the wire when absent, present when set.
+    let json = serde_json::to_string(&Action::default()).unwrap();
+    assert!(!json.contains("yaw"), "{json}");
+    assert!(!json.contains("seq"), "{json}");
+    let json = serde_json::to_string(&with_both).unwrap();
+    assert!(
+        json.contains("\"yaw\":1.25") && json.contains("\"seq\":9"),
+        "{json}"
+    );
+    // The Ack shape agents and clients read.
+    let ack = ServerMessage::Ack {
+        seq: 3,
+        tick: 12,
+        x: 1.5,
+        z: -2.0,
+        yaw: 0.5,
+    };
+    let json = serde_json::to_string(&ack).unwrap();
+    assert!(json.contains("\"type\":\"ack\""), "{json}");
+    assert!(
+        json.contains("\"seq\":3") && json.contains("\"tick\":12"),
+        "{json}"
+    );
+}

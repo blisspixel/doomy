@@ -31,7 +31,9 @@ var action_state = {
 	"turn_left": false,
 	"turn_right": false,
 	"fire": false,
-	"weapon_swap": null
+	"weapon_swap": null,
+	"yaw": 0.0,
+	"seq": 0
 }
 const WEAPON_CYCLE = ["flechette", "rail", "scatter"]
 const SPEAK_LINES = [
@@ -46,6 +48,7 @@ var pending_weapon_swap = null
 func _ready():
 	net_client.snapshot_received.connect(_on_snapshot_received)
 	net_client.event_received.connect(_on_event_received)
+	net_client.ack_received.connect(_on_ack_received)
 	net_client.connected_to_server.connect(_on_connected)
 	net_client.disconnected_from_server.connect(_on_disconnected)
 	
@@ -149,6 +152,18 @@ func _input(_event):
 	elif is_human_player and Input.is_action_just_pressed("weapon_prev"):
 		pending_weapon_swap = _next_weapon_swap(-1)
 
+## Input sequence. The server echoes the newest one it applied in an ack,
+## which is what a predicting client reconciles against.
+var input_seq: int = 0
+## Newest ack from the server: {seq, tick, x, z, yaw}. Recorded now, used by
+## prediction later; the difference against the local view is the correction.
+var last_ack: Dictionary = {}
+
+
+func _on_ack_received(data: Dictionary) -> void:
+	last_ack = data
+
+
 func _process(_delta):
 	if is_human_player and net_client.connection_state == WebSocketPeer.STATE_OPEN:
 		action_state.forward = Input.is_action_pressed("move_forward")
@@ -156,11 +171,15 @@ func _process(_delta):
 		action_state.left = Input.is_action_pressed("move_left")
 		action_state.right = Input.is_action_pressed("move_right")
 		action_state.fire = Input.is_action_pressed("fire")
-		var turns = {"turn_left": false, "turn_right": false}
-		if camera and camera.has_method("consume_turn_bits"):
-			turns = camera.consume_turn_bits()
-		action_state.turn_left = turns.get("turn_left", false)
-		action_state.turn_right = turns.get("turn_right", false)
+		# Client-owned yaw: the server takes the absolute facing and never turns
+		# us at a fixed rate, so the look axis does not round-trip. Turn bits stay
+		# zero for humans and remain the path for agents and older clients.
+		if camera and camera.has_method("consume_yaw"):
+			action_state.yaw = camera.consume_yaw()
+		action_state.turn_left = false
+		action_state.turn_right = false
+		input_seq += 1
+		action_state.seq = input_seq
 		action_state.weapon_swap = pending_weapon_swap
 		pending_weapon_swap = null
 		net_client.send_action(action_state)

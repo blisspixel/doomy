@@ -327,6 +327,8 @@ pub async fn run_bot(
                             }
                         }
                     }
+                    // The brain does not predict, so an ack is nothing to act on.
+                    Ok(ServerMessage::Ack { .. }) => {}
                     Ok(ServerMessage::Error { code, message }) => {
                         tracing::warn!("server rejected: {code}: {message}");
                     }
