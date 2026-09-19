@@ -35,7 +35,7 @@ static func solid_blocks(solid: Dictionary, x: float, z: float, radius: float) -
 
 
 static func arena_blocked(arena: Dictionary, x: float, z: float) -> bool:
-	for solid in arena["solids"]:
+	for solid: Dictionary in arena["solids"]:
 		if solid_blocks(solid, x, z, RADIUS):
 			return true
 	return false

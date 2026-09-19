@@ -38,4 +38,5 @@ for harness in test_radio test_far_cam_scale test_move_golden test_aim_sensitivi
     fail=1
   fi
 done
+
 exit $fail

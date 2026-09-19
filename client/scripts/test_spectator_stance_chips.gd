@@ -22,7 +22,7 @@ func _initialize() -> void:
 		"hold_angle": "HLD",
 		"kite_distance": "KIT",
 	}
-	for raw in cases.keys():
+	for raw: String in cases.keys():
 		var got: String = str(chip.call("short", raw))
 		var want: String = str(cases[raw])
 		if got != want:
