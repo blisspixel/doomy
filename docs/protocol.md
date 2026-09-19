@@ -57,7 +57,9 @@ Sent by `human` or `agent` roles to control their player. All fields are optiona
   "turn_right": false,
   "fire": false,
   "weapon_swap": "rail",
-  "look_at": { "player_id": "550e8400-e29b-41d4-a716-446655440000" }
+  "look_at": { "player_id": "550e8400-e29b-41d4-a716-446655440000" },
+  "yaw": 1.5707963,
+  "seq": 4123
 }
 ```
 
@@ -78,6 +80,8 @@ World-point aim:
 - `fire`: Fire weapon
 - `weapon_swap`: (optional) Switch to weapon type: `"flechette"` | `"rail"` | `"scatter"`
 - `look_at`: (optional) Authoritative aim object. Prefer `player_id` (UUID string), or both `x` and `z` (world point). Server snaps yaw toward the target on the Action tick. Invalid/missing target is a yaw no-op.
+- `yaw`: (optional) Client-owned absolute facing in radians. When present the server takes it as the fighter's yaw for this input, before movement, instead of turning at a fixed rate from the turn bits. Normalised into `[0, 2 pi)`; non-finite values are ignored and the turn bits apply as before. This is how a human client keeps the look axis off the network.
+- `seq`: (optional) Input sequence number. The server acknowledges the newest sequence it applied for this fighter in an `ack` message every tick. Clients that do not predict may omit it.
 
 **Notes:**
 - Actions are **level-held (sticky)** within each server tick window, not edge-triggered
@@ -85,6 +89,8 @@ World-point aim:
 - All `true` fields are applied together on the next server tick
 - Movement keys combine (e.g., forward + left = diagonal)
 - `look_at` is applied after movement/turn so agents can strafe while locking aim
+- `yaw` is applied **before** movement, so a fighter travels along the facing the client predicted for that same input
+- Sending `yaw` disables the turn bits for that input; agents and older clients that send no `yaw` are unchanged
 - Weapon swap is processed immediately on the next tick
 - Server enforces rate limits and cooldowns (weapon-specific)
 - Spectators that send actions are ignored
@@ -129,6 +135,28 @@ Off-tick callout / taunt from a human or agent. Not sticky Action. Control-plane
 - MCP adapter mirrors the cooldown and returns tool `isError` (never a success toast on a no-op)
 - Spectators cannot speak
 - Named server rule bots may emit occasional Contested Frequency Speak events on frag/death/Warmup/killstreak via the same `try_speak` path (SPEAK_COOLDOWN applies; silent drop on rate-limit; Compliance boss excluded)
+
+
+#### Ack
+
+Unicast, once per tick, to a client whose input carried a `seq`. Carries the newest sequence the server applied to that client's fighter and the authoritative state it produced, which is what a predicting client reconciles against. Clients that send no `seq` (agents, spectators, older clients) never receive it.
+
+```json
+{
+  "type": "ack",
+  "seq": 4123,
+  "tick": 88210,
+  "x": 12.25,
+  "z": -3.5,
+  "yaw": 1.5707963
+}
+```
+
+**Fields:**
+- `seq`: the newest input sequence applied to this fighter
+- `tick`: the server tick that applied it
+- `x` / `z`: authoritative position after that tick
+- `yaw`: authoritative facing after that tick
 
 
 ### Solo Broadcast episode fields (Snapshot)
@@ -505,7 +533,8 @@ MVP is the top scorer (same selection as `winner`). `mvp` / `mvp_frags` / `host_
 
 ### Movement
 - **Speed**: 5 units/second
-- **Turn speed**: 2 radians/second
+- **Turn speed**: 2 radians/second, used only when an input carries no `yaw`
+- **Facing**: a client-owned absolute `yaw` on the Action wins and is applied before the move
 - **Collision**: Simple AABB with 0.5 unit radius
 
 ### Round System

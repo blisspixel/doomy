@@ -67,6 +67,16 @@ pub enum ServerMessage {
     },
     Snapshot(Snapshot),
     Event(GameEvent),
+    /// Unicast acknowledgement of the newest numbered input the server applied.
+    /// Only clients that predict receive it; mirrored so the adapter never
+    /// chokes on a message it is not interested in.
+    Ack {
+        seq: u32,
+        tick: u64,
+        x: f32,
+        z: f32,
+        yaw: f32,
+    },
     /// Unicast control-plane rejection (e.g. speak rate limit). Not broadcast.
     Error {
         code: String,
@@ -128,6 +138,12 @@ pub struct Action {
     pub weapon_swap: Option<WeaponType>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub look_at: Option<LookAt>,
+    /// Client-owned absolute facing in radians; wins over the turn bits.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub yaw: Option<f32>,
+    /// Input sequence the server acknowledges for predicting clients.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seq: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

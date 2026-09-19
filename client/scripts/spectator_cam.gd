@@ -22,6 +22,10 @@ var mouse_motion = Vector2.ZERO
 var fp_mode = false
 var fp_target: Node3D = null
 var fp_pitch = 0.0
+## First-person facing the client owns. Mouse and stick move it on the frame
+## the input arrives; the server is told the absolute value and agrees. Turn
+## bits stay for agents and for anything that does not send a yaw.
+var fp_yaw = 0.0
 var turn_accum = 0.0
 const FP_EYE_HEIGHT = 1.55
 const FP_FORWARD_NUDGE = 0.15
@@ -123,7 +127,7 @@ func _apply_stick_look(delta: float, apply_yaw_to_node: bool) -> void:
 		if apply_yaw_to_node:
 			rotation.y -= yaw * stick_look_sensitivity * delta
 		else:
-			turn_accum += yaw * stick_turn_scale * delta * 60.0
+			fp_yaw = wrapf(fp_yaw + yaw * stick_look_sensitivity * delta, 0.0, TAU)
 
 	if abs(pitch) > 0.0:
 		if apply_yaw_to_node:
@@ -250,7 +254,7 @@ func _follow_frag_target():
 func _process_fp(delta):
 	# Mouse look: yaw becomes turn bits for Action; pitch stays local.
 	if mouse_motion.length() > 0:
-		turn_accum += mouse_motion.x
+		fp_yaw = wrapf(fp_yaw + mouse_motion.x * look_sensitivity, 0.0, TAU)
 		fp_pitch -= mouse_motion.y * look_sensitivity
 		fp_pitch = clamp(fp_pitch, -1.15, 1.15)
 		mouse_motion = Vector2.ZERO
@@ -262,7 +266,8 @@ func _process_fp(delta):
 		return
 
 	var eye = fp_target.global_position + Vector3(0, FP_EYE_HEIGHT, 0)
-	var yaw = fp_target.rotation.y
+	# The eye looks where the client aims, not where the last snapshot said.
+	var yaw = fp_yaw
 	eye += Vector3(sin(yaw), 0, cos(yaw)) * FP_FORWARD_NUDGE
 
 	if camera_shake_intensity > 0:
@@ -275,6 +280,11 @@ func _process_fp(delta):
 	position = position.lerp(eye, min(1.0, 18.0 * delta))
 	rotation.y = yaw
 	rotation.x = fp_pitch
+
+## The absolute facing to send with this input, in the server's convention.
+func consume_yaw() -> float:
+	return wrapf(fp_yaw, 0.0, TAU)
+
 
 func consume_turn_bits() -> Dictionary:
 	# Discrete turn for Action. Called each tick while human; clears accum.
@@ -294,10 +304,13 @@ func set_fp_mode(enabled: bool, target: Node3D = null) -> void:
 	if not enabled:
 		fp_pitch = 0.0
 		turn_accum = 0.0
+		fp_yaw = 0.0
 		fp_target = null
 	elif is_instance_valid(target):
-		# Snap once so join does not tween from spectator orbit.
+		# Snap once so join does not tween from spectator orbit, and adopt the
+		# fighter's facing so the first mouse move continues from it.
 		var yaw = target.rotation.y
+		fp_yaw = wrapf(yaw, 0.0, TAU)
 		position = target.global_position + Vector3(0, FP_EYE_HEIGHT, 0)
 		rotation.y = yaw
 		rotation.x = fp_pitch
