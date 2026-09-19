@@ -130,6 +130,19 @@ Off-tick callout / taunt from a human or agent. Not sticky Action. Control-plane
 - Spectators cannot speak
 - Named server rule bots may emit occasional Contested Frequency Speak events on frag/death/Warmup/killstreak via the same `try_speak` path (SPEAK_COOLDOWN applies; silent drop on rate-limit; Compliance boss excluded)
 
+
+### Solo Broadcast episode fields (Snapshot)
+
+When the server runs `--solo-broadcast`, Snapshot may include:
+
+- `episode_id` (e.g. `ep0`)
+- `episode_title` (e.g. `Solo Broadcast: Calibration`)
+- `episode_objective` (short objective chip)
+- `episode_progress` (e.g. `NODS 2/5 | SEIZE JAMMER | AUDITOR`)
+- `episode_phase` (`nods` / `jammer` / `auditor` / `won` / `failed`)
+
+Events: `episode_start`, `episode_complete`, `episode_fail`. Omitted on normal MP.
+
 ### Welcome
 
 Server response to `Hello`. Confirms connection and provides player ID.

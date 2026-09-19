@@ -81,6 +81,12 @@ impl GameSession {
         self.refresh_roster_host_line();
     }
 
+    /// Arm Solo Broadcast Episode 0 after bots are spawned (Calibration / Larak Lot).
+    pub fn enable_solo_broadcast_ep0(&mut self) {
+        self.state.enable_solo_broadcast_ep0();
+        self.refresh_roster_host_line();
+    }
+
     /// Rebuild sticky Warmup Host line from current rule-bot display names.
     fn refresh_roster_host_line(&mut self) {
         let names: Vec<String> = self

@@ -266,6 +266,9 @@ pub fn compute_report(obs: &Observation, agents: usize) -> Report {
             | GameEvent::PlayerJoined { .. }
             | GameEvent::PlayerLeft { .. }
             | GameEvent::Speak { .. } => {}
+            GameEvent::EpisodeStart { .. }
+            | GameEvent::EpisodeComplete { .. }
+            | GameEvent::EpisodeFail { .. } => {}
         }
     }
     for report in per_agent.values_mut() {
@@ -428,6 +431,7 @@ pub async fn run(config: Config) -> Result<(Report, Observation), Error> {
         map: config.map,
         map_rotate: false,
         match_config: Some(match_config),
+        solo_broadcast: false,
     };
     let server = tokio::spawn(async move {
         run_server(
@@ -546,6 +550,11 @@ mod tests {
             pickups: Vec::new(),
             map_id: 1,
             map_name: "Arena Duel".to_string(),
+            episode_id: None,
+            episode_title: None,
+            episode_objective: None,
+            episode_progress: None,
+            episode_phase: None,
         }
     }
 

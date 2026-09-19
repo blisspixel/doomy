@@ -838,6 +838,11 @@ mod tests {
             pickups: vec![],
             map_id: protocol::default_map_id(),
             map_name: protocol::default_map_name(),
+            episode_id: None,
+            episode_title: None,
+            episode_objective: None,
+            episode_progress: None,
+            episode_phase: None,
         };
 
         let json = serde_json::to_value(&snapshot).unwrap();
@@ -872,6 +877,11 @@ mod tests {
             pickups: vec![],
             map_id: protocol::default_map_id(),
             map_name: protocol::default_map_name(),
+            episode_id: None,
+            episode_title: None,
+            episode_objective: None,
+            episode_progress: None,
+            episode_phase: None,
         };
         let json = serde_json::to_value(&snap).unwrap();
         assert_eq!(json["host_line"], protocol::default_host_line());
@@ -940,6 +950,11 @@ mod tests {
             pickups: vec![],
             map_id: protocol::default_map_id(),
             map_name: protocol::default_map_name(),
+            episode_id: None,
+            episode_title: None,
+            episode_objective: None,
+            episode_progress: None,
+            episode_phase: None,
         };
 
         let json = serde_json::to_value(&snapshot).unwrap();
@@ -1249,6 +1264,11 @@ mod tests {
             pickups: vec![],
             map_id: protocol::default_map_id(),
             map_name: protocol::default_map_name(),
+            episode_id: None,
+            episode_title: None,
+            episode_objective: None,
+            episode_progress: None,
+            episode_phase: None,
         };
         let action = compute_bot_action(bot_id, &snapshot);
         let look = action.look_at.expect("look_at toward nearest");

@@ -22,6 +22,8 @@ pub struct ServerOptions {
     pub map_rotate: bool,
     /// Match rules override (frag limit, timers). `None` keeps the defaults.
     pub match_config: Option<MatchConfig>,
+    /// Contested Frequency Solo Broadcast Episode 0 (Calibration / Larak Lot).
+    pub solo_broadcast: bool,
 }
 
 impl Default for ServerOptions {
@@ -32,6 +34,7 @@ impl Default for ServerOptions {
             map: MapKind::default(),
             map_rotate: false,
             match_config: None,
+            solo_broadcast: false,
         }
     }
 }
@@ -60,6 +63,10 @@ pub async fn run_server(
         session.state.config = config;
     }
     session.spawn_bots(options.bots);
+    if options.solo_broadcast {
+        session.enable_solo_broadcast_ep0();
+        tracing::info!("Solo Broadcast Episode 0 armed (Calibration / Larak Lot)");
+    }
     tracing::info!(
         "Map: {} (id {}){}",
         options.map.name(),

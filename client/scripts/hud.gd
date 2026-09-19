@@ -42,6 +42,12 @@ var pressure_id = ""
 var sticky_host_line = ""
 var host_line_seen = false
 var client_mode = "SPECTATING"
+var episode_id = ""
+var episode_title = ""
+var episode_objective = ""
+var episode_progress = ""
+var episode_phase = ""
+var episode_title_shown = false
 var round_chrome_state = "Warmup"
 
 const HOST_BUMPERS = [
@@ -180,7 +186,14 @@ func _refresh_mode_label():
 		pressure_chip = "\nPRESSURE: CONTINUANCE COMPLIANCE DRONE"
 	elif pressure_id == "compliance":
 		pressure_chip = "\nPRESSURE: CONTINUANCE COMPLIANCE"
-	mode_label.text = league + map_chip + host_chip + "\n" + controls + pressure_chip
+	var episode_chip = ""
+	if episode_title != "":
+		episode_chip = "\n" + episode_title.to_upper()
+		if episode_objective != "":
+			episode_chip += "\nOBJ: " + episode_objective
+		if episode_progress != "":
+			episode_chip += "\n" + episode_progress
+	mode_label.text = league + map_chip + host_chip + "\n" + controls + pressure_chip + episode_chip
 
 func set_tick(tick: int):
 	if tick_label:
@@ -194,7 +207,15 @@ func set_round_info(state: String, time_left: int, frag_limit: int):
 		return
 	var text = "Round: " + state
 	if state == "Active":
-		if frag_limit > 0:
+		if episode_title != "":
+			text = episode_title.to_upper()
+			if episode_progress != "":
+				text += "\n" + episode_progress
+			elif episode_objective != "":
+				text += "\n" + episode_objective
+			if time_left > 0:
+				text += " | " + str(time_left) + "s"
+		elif frag_limit > 0:
 			text = "ARENA DUEL // FIRST TO " + str(frag_limit)
 			if time_left > 0:
 				text += " | " + str(time_left) + "s"
@@ -287,6 +308,57 @@ func sync_scores_from_players(player_list: Array):
 
 func set_ghost_rival(rival: String):
 	ghost_rival = rival
+
+
+func set_episode_chrome(ep_id: String, title: String, objective: String, progress: String, phase: String):
+	# Solo Broadcast face: title + objective chip. Silly booth, not wiki.
+	episode_id = ep_id
+	episode_title = title
+	episode_objective = objective
+	episode_progress = progress
+	episode_phase = phase
+	_refresh_mode_label()
+	if title != "" and not episode_title_shown and round_message:
+		episode_title_shown = true
+		show_episode_title_card(title, objective)
+
+func show_episode_title_card(title: String, objective: String = ""):
+	if not round_message:
+		return
+	round_message.visible = true
+	var line = title.to_upper()
+	if objective != "":
+		line += "\n" + objective
+	line += "\nLARAK LOT // YOU'RE ON THE AIR"
+	round_message.text = line
+	await get_tree().create_timer(3.2).timeout
+	if round_message and episode_phase != "won" and episode_phase != "failed":
+		round_message.visible = false
+
+func show_episode_complete(host_line: String, unlock_teaser: String = ""):
+	if not round_message:
+		return
+	round_message.visible = true
+	var line = host_line if host_line != "" else "HOST: Amen, fistbump. Frequency still unmetered."
+	if unlock_teaser != "":
+		line += "\n" + unlock_teaser
+	round_message.text = line
+	streak_flash_timer = 0.7
+	if streak_flash:
+		streak_flash.visible = true
+		streak_flash.modulate = Color(1.0, 0.85, 0.3, 0.55)
+
+func show_episode_fail(host_line: String):
+	# Comedy fail splash, not a lecture.
+	if not round_message:
+		return
+	round_message.visible = true
+	var line = host_line if host_line != "" else "HOST: Citizen Handle assigned. Reload."
+	round_message.text = line + "\n( Continuance paperwork is the real final boss )"
+	if damage_flash:
+		damage_flash.visible = true
+		damage_flash.modulate = Color(0.6, 0.15, 0.55, 0.45)
+		damage_flash_timer = 0.8
 
 func show_frag(killer: String, victim: String, killer_color: Color = Color.WHITE, victim_color: Color = Color.WHITE):
 	if not scores.has(killer):

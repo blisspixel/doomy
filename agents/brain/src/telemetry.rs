@@ -365,6 +365,11 @@ pub(crate) mod fixtures {
             pickups,
             map_id: 1,
             map_name: "Arena Duel".to_string(),
+            episode_id: None,
+            episode_title: None,
+            episode_objective: None,
+            episode_progress: None,
+            episode_phase: None,
         }
     }
 }

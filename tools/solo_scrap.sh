@@ -10,6 +10,7 @@ BIND="${FRAGR_BIND:-127.0.0.1:6767}"
 BOTS="${FRAGR_BOTS:-4}"
 MAP="${FRAGR_MAP:-1}"
 MAP_ROTATE="${FRAGR_MAP_ROTATE:-0}"
+SOLO_BROADCAST="${FRAGR_SOLO_BROADCAST:-1}"
 GODOT_BIN="${GODOT_BIN:-}"
 
 resolve_godot() {
@@ -52,8 +53,11 @@ MAP_ARGS=(--map "$MAP")
 if [ "$MAP_ROTATE" = "1" ] || [ "$MAP_ROTATE" = "true" ]; then
   MAP_ARGS+=(--map-rotate)
 fi
+if [ "$SOLO_BROADCAST" = "1" ] || [ "$SOLO_BROADCAST" = "true" ]; then
+  MAP_ARGS+=(--solo-broadcast)
+fi
 
-echo "Starting server on $BIND with $BOTS bots (map=$MAP rotate=$MAP_ROTATE)..."
+echo "Starting Solo Broadcast server on $BIND with $BOTS NODS (map face=Larak Lot, map=$MAP)..."
 "$SERVER_BIN" --bind "$BIND" --bots "$BOTS" "${MAP_ARGS[@]}" >/tmp/fragr-solo-server.log 2>&1 &
 SERVER_PID=$!
 
@@ -87,7 +91,7 @@ export FRAGR_SERVER="$BIND"
 export FRAGR_SOLO=1
 export FRAGR_MAP="$MAP"
 
-echo "Launching Solo Scrap (human on loopback). Server pid=$SERVER_PID"
+echo "Launching Solo Broadcast Episode 0 (human on loopback). Server pid=$SERVER_PID"
 echo "Controls: WASD move, mouse look, LMB fire, L leave to spectate, ESC mouse"
 # Jump straight into arena as human; boot menu still available via plain F5.
 "$GODOT_BIN" --path "$ROOT/client" res://scenes/main.tscn -- --solo
