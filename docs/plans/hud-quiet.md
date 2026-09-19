@@ -37,9 +37,34 @@ About a fifth of the screen, in every state, before the world-space nameplates a
 6. **An unstyled black panel sits behind the weapon in the bottom-right corner** and clips the view model.
 7. **The crosshair is a bare plus with no feedback.** Nothing changes on a hit, a kill, or a reload.
 
+## Rung 1 landed (2026-09-19)
+
+Nothing is clipped off the window and nothing is drawn twice. The first-person panel went from twenty lines to ten.
+
+| | Before | After |
+|---|---|---|
+| Lines of text in the playing panel | 20 | 10 |
+| HUD coverage, first person | 19.9% | 18.8% |
+| HUD coverage, arena overview | 18.9% | 15.5% |
+| HUD coverage, warmup spectator | 23.3% | 22.1% |
+
+What was cut, and why each was a duplicate rather than a judgement call:
+
+- The status panel grew in both directions when its text outran its width, so half of every long line sat outside the window. It grows to the right now, every label wraps, and the panel clips as a safety net.
+- The ON AIR and Contested Frequency badges were drawn under a chrome strip that already bakes both, the same way Hangar Candy was already being suppressed. They are the fallback for when the strip is down.
+- The map name was on screen three times: in the playlist line, in a MAP line under it, and in the corner chip. The corner chip keeps it.
+- The host line and the pressure line said the same sentence one above the other. The pressure line now only appears when there is no host line.
+- The leader and rival line named the top two fighters directly above a scoreboard whose first two rows are the top two fighters.
+- The scoreboard carried two header lines repeating the league and playlist already on the panel's first line, and listed eight names, which ran the panel off the bottom of the screen. Four names, no headers.
+- Connection status, wall clock, and head count are for whoever is debugging the client. They are hidden while playing, where the round line already carries the clock.
+- The control legend now shows for eight seconds after joining and then gets out of the way. It still belongs in a settings screen, which is rung 2.
+- The panel behind the weapon icon sat flush in the corner with nothing in it. It is inset and only appears when the icon it backs does.
+
+The number that did not move much is the interesting one. Coverage fell only a point in first person while the text halved, because most of the coverage is the dark panel behind the words rather than the words. Rung 2 should make the panel fit its content instead of reserving a block.
+
 ## Rungs
 
-1. **Nothing clipped, nothing duplicated.** Anchor every HUD element inside the safe area, delete the duplicate badge pair, remove the black panel behind the view model. Gate: the tour's stills show no element crossing a window edge, checked by sampling the outer eight pixel border of the HUD layer for opaque content. Evidence: before and after stills in the same state.
+1. ~~**Nothing clipped, nothing duplicated.**~~ Landed 2026-09-19, table above. Anchor every HUD element inside the safe area, delete the duplicate badge pair, remove the black panel behind the view model. Gate: the tour's stills show no element crossing a window edge, checked by sampling the outer eight pixel border of the HUD layer for opaque content. Evidence: before and after stills in the same state.
 2. **The legend leaves the game.** Controls move to the settings screen and a first-run overlay that the player dismisses. Gate: HUD coverage in the first-person state drops below 12%.
 3. **Nameplates become a bar and a chip.** Health as a short bar, stance as the existing stance chip sprite, score as a number with an icon. The name stays, at a size that does not exceed a fixed fraction of screen height at any distance, with a hard cap on how many draw at once and a fade by distance. Gate: three fighters in frame at eight units produce no overlapping nameplate rectangles, asserted in the tour.
 4. **Host lines move out of the centre.** A single line, one at a time, in a fixed band that never crosses the crosshair, with a queue rather than two lines stacked on the same pixels. Gate: no HUD text within the central tenth of the screen in any tour state.
