@@ -34,7 +34,8 @@ Status words: **planned**, **in flight**, **shipped** (merged to `main`, PR numb
 | [`localization.md`](./localization.md) | **planned** | Keys for every string, the basics plus regional, community-signed, and lore locales, fonts and layout, a tour per locale. |
 | [`benchmark-and-stats.md`](./benchmark-and-stats.md) | **planned** | Benchmark mode with phase histograms and budget headroom, plus the deep analysis layer: distributions, intervals, TrueSkill, a nerd overlay, and a full export. |
 | [`massive-arenas.md`](./massive-arenas.md) | **planned** | Seeded sim, spatial grid, interest sets, delta snapshots, binary wire, tick budget, and the measured scale ladder to hundreds of fighters. |
-| [`visual-qa-tour.md`](./visual-qa-tour.md) | **planned** | Manifest-driven tour of every player-facing state with stills, a contact sheet, and feel probes for the agent developer to critique. |
+| [`visual-qa-tour.md`](./visual-qa-tour.md) | **rung 1 landed** | Manifest-driven tour of every player-facing state with stills, a contact sheet, and feel probes for the agent developer to critique. |
+| [`hud-quiet.md`](./hud-quiet.md) | **in progress** | Get the words off the screen. Measured HUD coverage per state, clipped panels, duplicate badges, and nameplates that hide the fighter behind them. |
 | [`gunfeel.md`](./gunfeel.md) | **in flight** (aim defaults shipped) | What the weapons and the aim do: the parameter set from the classics, dispersion separated from aim assist, feedback timings, the dodge. |
 | [`ttk-feel-harness-proof.md`](./ttk-feel-harness-proof.md) | **in flight** | Sticky flechette/rail/scatter TTK asserted from playtest `--assert` (#124 proof). |
 | [`buttery-controls.md`](./buttery-controls.md) | **planned** | Client-owned yaw, prediction and reconciliation, timeline interpolation, 60 Hz sim, lag compensation, gamepad curves, transport spike, all with pass numbers. |
