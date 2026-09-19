@@ -24,7 +24,7 @@ Status words: **planned**, **in flight**, **shipped** (merged to `main`, PR numb
 | [`jammer-dish-unmissable.md`](./jammer-dish-unmissable.md) | **shipped** (#123) | Studio dish unmissable + footprint harness; live tip_capture gap owned by live-tip-dish-map-chip. |
 | [`live-tip-dish-map-chip.md`](./live-tip-dish-map-chip.md) | **shipped** (#125) | Live tip_capture hangar dish + kill Hangar Candy dual map chip on Larak Lot. |
 | [`tip-capture-dish-gate.md`](./tip-capture-dish-gate.md) | **shipped** (#129) | Live tip_capture hangar dish gate: tip_force survives seize, pose lock, orange pixel CI. |
-| [`first-calib-seize-stall.md`](./first-calib-seize-stall.md) | **in flight** | Soft first Calibration jammer seize: pad radius matches eyes so meatbag does not soft-lock. |
+| [`first-calib-seize-stall.md`](./first-calib-seize-stall.md) | **shipped** (#131) | Soft first Calibration jammer seize: pad radius matches eyes so meatbag does not soft-lock. |
 | [`tip-capture-dish-pose.md`](./tip-capture-dish-pose.md) | **in flight** | Tip pose lock held transform + chunky dish look-at so orange gate PASSES on stranger re-run. |
 | [`tip-stills-hangar-guns.md`](./tip-stills-hangar-guns.md) | **in flight** | README tip face: v0.13.0 hangar dish + guns that kill (not Episode 0 lead). |
 | [`host-per-nods-tick.md`](./host-per-nods-tick.md) | **shipped** (#120) | Soft juice: Host / HUD beat on every Solo Broadcast NODS clear, not only the first. |

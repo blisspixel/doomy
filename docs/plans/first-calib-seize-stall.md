@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `fix/first-calib-seize-stall`
 **Spend:** $0. Loopback. No Cloud Agent. No release tag. No dish chrome.
-**Status:** in flight.
+**Status:** shipped (#131).
 
 ## Goal
 
