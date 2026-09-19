@@ -28,7 +28,7 @@ volume_db = -2.0
 max_distance = 40.0
 
 [node name="Body" type="Sprite3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.35, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.15, 0)
 pixel_size = 0.042
 billboard = 2
 shaded = false
@@ -64,7 +64,7 @@ light_color = Color(0.769, 0.45, 0.18, 1)
 omni_range = 3.5
 
 [node name="Label3D" type="Label3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.1, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 pixel_size = 0.012
 billboard = 1
 modulate = Color(0.91, 0.886, 0.839, 1)
@@ -74,7 +74,7 @@ font_size = 32
 outline_size = 10
 
 [node name="Highlight" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.44, 0)
 visible = false
 mesh = SubResource("HighlightMesh")
 surface_material_override/0 = SubResource("HighlightMaterial")
