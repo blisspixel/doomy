@@ -11,6 +11,8 @@ extends Node
 var players = {}
 var pickups = {}
 var jammer_dish_node = null
+# tip_capture latch: keep forced live dish through nods-phase Snapshot nulls.
+var tip_force_jammer_dish = false
 const JammerDishBuilderScript = preload("res://scripts/jammer_dish.gd")
 const StanceChipScript = preload("res://scripts/stance_chip.gd")
 var pickup_scene = preload("res://scenes/weapon_pickup.tscn")
@@ -570,6 +572,16 @@ func _sync_pickups(pickup_list):
 
 func _sync_jammer_dish(dish):
 	# Solo Broadcast jammer dish: chunky in-world silhouette while phase is jammer (and after seize).
+	# tip_capture may latch tip_force_jammer_dish so live hangar stills keep the bowl
+	# even when Snapshot jammer_dish is null (still in NODS phase).
+	if dish == null and tip_force_jammer_dish:
+		dish = {
+			"live": true,
+			"seized": false,
+			"x": 0.0,
+			"y": 0.35,
+			"z": 0.0,
+		}
 	if dish == null:
 		if jammer_dish_node != null and is_instance_valid(jammer_dish_node):
 			jammer_dish_node.visible = false

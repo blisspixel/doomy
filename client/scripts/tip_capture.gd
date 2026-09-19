@@ -246,17 +246,15 @@ func _capture_midjoin_host_flash(out_dir: String) -> void:
 
 
 
-func _capture_jammer_dish_proof(out_dir: String) -> void:
-	# Force-spawn a live jammer dish and aim the spectator camera at it so proof
-	# stills cannot miss the silhouette the way Casino FP scrapes did.
-	var gm: Node = _find_game_manager()
-	if gm == null:
-		push_warning("tip_capture: GameManager missing; skip jammer dish proof")
-		return
+func _force_live_jammer_dish(gm: Node) -> void:
+	# Latch so nods-phase Snapshot nulls cannot hide the forced live dish mid-capture.
+	if "tip_force_jammer_dish" in gm:
+		gm.tip_force_jammer_dish = true
+	var hud: Node = gm.get_node_or_null("HUD")
+	if hud != null and hud.has_method("set_map_name"):
+		hud.set_map_name("Larak Lot")
 	if not gm.has_method("_sync_jammer_dish"):
-		push_warning("tip_capture: GameManager missing _sync_jammer_dish; skip jammer dish proof")
 		return
-
 	var dish := {
 		"live": true,
 		"seized": false,
@@ -266,9 +264,27 @@ func _capture_jammer_dish_proof(out_dir: String) -> void:
 	}
 	gm.call("_sync_jammer_dish", dish)
 
-	# Follow-distance still (~12m), looking straight at the dish.
+
+func _capture_jammer_dish_proof(out_dir: String) -> void:
+	# Live hangar tip face: force dish + aim so stills include the bowl under
+	# racks / killfeed / HUD (studio black-void proof alone is not tip face).
+	var gm: Node = _find_game_manager()
+	if gm == null:
+		push_warning("tip_capture: GameManager missing; skip jammer dish proof")
+		return
+	if not gm.has_method("_sync_jammer_dish"):
+		push_warning("tip_capture: GameManager missing _sync_jammer_dish; skip jammer dish proof")
+		return
+
+	_force_live_jammer_dish(gm)
+	# Let one Snapshot cycle land; latch must keep the dish visible.
+	await create_timer(0.45).timeout
+	_force_live_jammer_dish(gm)
+
+	# Follow-distance still (~12m), looking straight at the dish in the hangar.
 	_pose_jammer_follow_camera()
 	await create_timer(0.35).timeout
+	_force_live_jammer_dish(gm)
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
 	_save_viewport_png(out_dir, "20_jammer_dish_follow_16x9.png")
@@ -276,13 +292,15 @@ func _capture_jammer_dish_proof(out_dir: String) -> void:
 	# Overview still (~36m corner), dish centered in frame.
 	_pose_overview_camera()
 	await create_timer(0.25).timeout
+	_force_live_jammer_dish(gm)
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
 	_save_viewport_png(out_dir, "22_jammer_dish_overview_16x9.png")
 
-	# Closer label-read still so SEIZE JAMMER is unmistakable.
+	# Closer label-read still so SEIZE JAMMER is unmistakable in hangar light.
 	_pose_jammer_label_camera()
 	await create_timer(0.25).timeout
+	_force_live_jammer_dish(gm)
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
 	_save_viewport_png(out_dir, "23_jammer_dish_seize_label_16x9.png")
@@ -337,6 +355,34 @@ func _pose_jammer_label_camera() -> void:
 		n3.look_at(Vector3(0.0, 8.5, 0.0), Vector3.UP)
 		if "follow_mode" in n3:
 			n3.follow_mode = false
+
+
+
+func _aim_local_fp_at_jammer(gm: Node) -> void:
+	# Point the local FP pawn at dish origin so Join FP stills include it.
+	if gm == null:
+		return
+	var dish := Vector3(0.0, 0.35, 0.0)
+	if "players" in gm and typeof(gm.players) == TYPE_DICTIONARY:
+		for pid in gm.players.keys():
+			var pawn = gm.players[pid]
+			if pawn == null or not is_instance_valid(pawn):
+				continue
+			var is_fp = ("is_local_fp" in pawn and pawn.is_local_fp)
+			if not is_fp:
+				continue
+			if pawn is Node3D:
+				var n3: Node3D = pawn
+				var delta: Vector3 = dish - n3.global_position
+				delta.y = 0.0
+				if delta.length_squared() > 0.01:
+					var yaw: float = atan2(-delta.x, -delta.z)
+					if "target_yaw" in pawn:
+						pawn.target_yaw = yaw
+					n3.rotation.y = yaw
+			return
+	# Fallback: spectator follow pose aimed at dish.
+	_pose_jammer_follow_camera()
 
 
 func _restore_follow_camera() -> void:
@@ -428,7 +474,11 @@ func _capture_human_join_fp(out_dir: String) -> void:
 	await create_timer(2.5).timeout
 	if gm.has_method("_refresh_fp_target"):
 		gm._refresh_fp_target()
-	await create_timer(0.4).timeout
+	# Force jammer dish into live hangar FP so Join still is not empty racks.
+	_force_live_jammer_dish(gm)
+	_aim_local_fp_at_jammer(gm)
+	await create_timer(0.45).timeout
+	_force_live_jammer_dish(gm)
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
 

@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `feat/jammer-dish-unmissable`
 **Spend:** $0. Loopback. No Cloud Agent. No release tag claiming unmissable until Testy re-Casino.
-**Status:** ready for PR.
+**Status:** shipped (#123). Live tip_capture gap: see live-tip-dish-map-chip.md.
 **Tip base:** main at `28ea826` (includes #120 Host-per-NODS-tick). Prior tip `5c94706` (#116) sealed scrap amazement YES; dish claim stayed OPEN.
 
 ## Goal
