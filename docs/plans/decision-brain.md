@@ -4,6 +4,20 @@
 **Branch:** `feat/decision-brain`
 **Spend:** $0 by default. Paid providers need an explicit per-run cap on the command line; the pre-approved ceiling for developer sessions is 5 dollars per run. Never in CI.
 
+## Treating the model as a policy network (2026-09-19)
+
+A walkthrough of wiring a decision model into a real-time game made three points that this crate had wrong, and one it already had right.
+
+**The model is stateless, so it cannot see its own oscillation.** Each call is a fresh situation with no trace of what the fighter just did, and two situations a tick apart look identical, so a fighter picks push, then hold, then push forever. The state now carries the last few decisions, with a run of the same decision collapsed to one entry so holding a stance for a while does not push the oscillation out of the window.
+
+**The distribution is the policy, and taking its largest entry throws that away.** A calibrated model returns a probability for every option; using only the argmax makes the fighter deterministic, so the same situation always produces the same move and a fighter that walked into a corner walks into it again. The stance is now drawn from the distribution, which keeps the model's own ordering (its favourite is still what it usually does) while letting the rest of the distribution break a loop. The draw comes from a per-fighter xorshift stream seeded off the fighter's name, kept in the repo rather than taken from a crate for the same reason the simulation's stream is, so a run reproduces and two fighters do not move in lockstep.
+
+This is the same failure the reference agents hit from the other direction. They stood still because a policy with no memory and no randomness has nothing to do when the situation repeats. The harness fixed it with a patrol and a wedge counter; the brain fixes it with memory and a draw.
+
+**Several typed questions ride in one call.** Already true here: the stance, the weapon and the danger score go together. The point worth adding is using a `noul` question as a local override rather than as advice: ask whether the fighter is stuck, and when the answer is confident enough, ignore the movement choice and run a local escape for a moment before handing control back. That is the next rung.
+
+**A richer observation.** The state is words rather than numbers, which is right, but it describes only the nearest enemy. A vision cone, with each visible entity's bearing bucket and what it appears to be doing, is what a fighter would actually use to choose between backing off and flanking. Also on the next rung.
+
 ## Goal
 
 Give fragr a reference agent whose macro intent comes from a decision model at two to five decisions per second while a local controller plays every tick. It is another way to engage as an agent, not a new kind of participant: one agent may combine a language model, other ML, and a decision model, and the server sees one fighter. The first brain is Jev, TypeSafe AI's decision model, reached natively or through OpenRouter. Any paid call sits behind one budget gate with a pre-approved cap, a pre-send estimate, a post-return settlement, and a ledger on disk.

@@ -230,7 +230,55 @@ impl DecisionResponse {
 /// the plan's `source`; weapon and danger are best effort. Danger takes the
 /// most likely level, never the interpolated expectation, because TypeSafe
 /// documents the score's numerical calibration as weak.
-pub fn plan_from_answers(answers: &BTreeMap<String, Answer>, gate: &Gate, fallback: &Plan) -> Plan {
+/// Draw an option from the distribution the model returned, rather than always
+/// taking the largest.
+///
+/// A decision model trained to be calibrated returns a probability for every
+/// option, and that distribution is the policy. Taking the argmax every tick
+/// throws the calibration away and makes the fighter deterministic: the same
+/// situation always produces the same move, so a fighter that has walked into
+/// a corner walks into it again, forever. Sampling keeps the model's own
+/// ordering (the option it favours is still the one it usually gets) while
+/// letting the rest of the distribution break a loop.
+///
+/// `roll` is a value in [0, 1) from a seeded stream, so a run reproduces.
+pub fn sample_choice(probabilities: &BTreeMap<String, f64>, roll: f64) -> Option<&str> {
+    let total: f64 = probabilities
+        .values()
+        .filter(|p| p.is_finite() && **p > 0.0)
+        .sum();
+    if !total.is_finite() || total <= 0.0 {
+        return None;
+    }
+    let target = roll.clamp(0.0, 1.0) * total;
+    let mut seen = 0.0;
+    let mut last: Option<&str> = None;
+    for (option, weight) in probabilities {
+        if !weight.is_finite() || *weight <= 0.0 {
+            continue;
+        }
+        seen += weight;
+        last = Some(option.as_str());
+        if seen > target {
+            return last;
+        }
+    }
+    // Floating point can leave the last bucket just short of the target.
+    last
+}
+
+/// Turn the model's answers into a plan.
+///
+/// `roll` is a value in [0, 1) from a seeded stream. The stance is drawn from
+/// the distribution the model returned rather than taken as its largest entry,
+/// so the same situation does not always produce the same move and a fighter
+/// wedged in a corner has a way out of it. Pass 0.0 for the model's favourite.
+pub fn plan_from_answers(
+    answers: &BTreeMap<String, Answer>,
+    gate: &Gate,
+    fallback: &Plan,
+    roll: f64,
+) -> Plan {
     let mut plan = fallback.clone();
     match answers.get(Q_STANCE) {
         Some(Answer::Choice {
@@ -240,7 +288,10 @@ pub fn plan_from_answers(answers: &BTreeMap<String, Answer>, gate: &Gate, fallba
         }) => {
             let (trusted, figure) = gate.accepts(*confidence, probabilities);
             plan.confidence = figure;
-            match Stance::parse(choice) {
+            // The distribution is the policy. Fall back to the named choice
+            // when the model sent no probabilities to draw from.
+            let drawn = sample_choice(probabilities, roll).unwrap_or(choice.as_str());
+            match Stance::parse(drawn) {
                 Some(stance) if trusted => {
                     plan.stance = stance;
                     plan.source = Source::Remote;
@@ -408,7 +459,7 @@ mod tests {
                 probabilities: BTreeMap::new(),
             },
         );
-        let plan = plan_from_answers(&answers, &Gate::default(), &local());
+        let plan = plan_from_answers(&answers, &Gate::default(), &local(), 0.0);
         assert_eq!(plan.stance, Stance::PushEnemy);
         assert_eq!(plan.weapon, Some(WeaponType::Rail));
         assert_eq!(plan.danger, 5, "3.6 rounds to index 4, the last level");
@@ -417,7 +468,7 @@ mod tests {
 
         answers.insert(Q_STANCE.to_string(), choice("push_enemy", 0.5));
         answers.insert(Q_WEAPON.to_string(), choice("rail", 0.5));
-        let plan = plan_from_answers(&answers, &Gate::default(), &local());
+        let plan = plan_from_answers(&answers, &Gate::default(), &local(), 0.0);
         assert_eq!(
             plan.stance,
             Stance::HoldAngle,
@@ -429,7 +480,7 @@ mod tests {
 
         answers.insert(Q_STANCE.to_string(), choice("teleport", 0.99));
         answers.insert(Q_WEAPON.to_string(), choice("bfg", 0.99));
-        let plan = plan_from_answers(&answers, &Gate::default(), &local());
+        let plan = plan_from_answers(&answers, &Gate::default(), &local(), 0.0);
         assert_eq!(
             plan.stance,
             Stance::HoldAngle,
@@ -438,7 +489,7 @@ mod tests {
         assert_eq!(plan.weapon, None);
         assert_eq!(plan.source, Source::LowConfidence);
 
-        let plan = plan_from_answers(&BTreeMap::new(), &Gate::default(), &local());
+        let plan = plan_from_answers(&BTreeMap::new(), &Gate::default(), &local(), 0.0);
         assert_eq!(plan.source, Source::LowConfidence);
         assert_eq!(plan.danger, 1);
 
@@ -460,7 +511,7 @@ mod tests {
                 probabilities: BTreeMap::new(),
             },
         );
-        let plan = plan_from_answers(&odd, &loose(), &local());
+        let plan = plan_from_answers(&odd, &loose(), &local(), 0.0);
         assert_eq!(
             plan.source,
             Source::Remote,
@@ -477,7 +528,7 @@ mod tests {
             },
         );
         assert_eq!(
-            plan_from_answers(&odd, &loose(), &local()).danger,
+            plan_from_answers(&odd, &loose(), &local(), 0.0).danger,
             5,
             "scores clamp"
         );
@@ -492,7 +543,7 @@ mod tests {
                 },
             );
             assert_eq!(
-                plan_from_answers(&odd, &loose(), &local()).danger,
+                plan_from_answers(&odd, &loose(), &local(), 0.0).danger,
                 level,
                 "score {score}"
             );
@@ -532,7 +583,7 @@ mod tests {
                 probabilities: split,
             },
         );
-        let plan = plan_from_answers(&answers, &gate, &local());
+        let plan = plan_from_answers(&answers, &gate, &local(), 0.0);
         assert_eq!(plan.source, Source::Remote);
         assert!(
             (plan.confidence - 0.22).abs() < 1e-9,
@@ -561,7 +612,7 @@ mod tests {
             },
         );
         assert_eq!(
-            plan_from_answers(&answers, &Gate::default(), &local()).danger,
+            plan_from_answers(&answers, &Gate::default(), &local(), 0.0).danger,
             5
         );
         let named = BTreeMap::from([("safe".to_string(), 0.9)]);
@@ -576,9 +627,63 @@ mod tests {
             },
         );
         assert_eq!(
-            plan_from_answers(&answers, &Gate::default(), &local()).danger,
+            plan_from_answers(&answers, &Gate::default(), &local(), 0.0).danger,
             2,
             "falls back to the rounded expectation"
         );
+    }
+}
+
+#[cfg(test)]
+mod sampling_tests {
+    use super::*;
+
+    fn dist(pairs: &[(&str, f64)]) -> BTreeMap<String, f64> {
+        pairs.iter().map(|(k, v)| ((*k).to_string(), *v)).collect()
+    }
+
+    #[test]
+    fn a_roll_lands_in_the_option_that_owns_it() {
+        // Sorted by key: hold 0.1, push 0.7, retreat 0.2 -> cuts at .1 and .8.
+        let d = dist(&[("push", 0.7), ("hold", 0.1), ("retreat", 0.2)]);
+        assert_eq!(sample_choice(&d, 0.0), Some("hold"));
+        assert_eq!(sample_choice(&d, 0.05), Some("hold"));
+        assert_eq!(sample_choice(&d, 0.5), Some("push"));
+        assert_eq!(sample_choice(&d, 0.79), Some("push"));
+        assert_eq!(sample_choice(&d, 0.9), Some("retreat"));
+        assert_eq!(sample_choice(&d, 1.0), Some("retreat"));
+    }
+
+    #[test]
+    fn the_favoured_option_is_still_the_usual_one() {
+        let d = dist(&[("push", 0.7), ("hold", 0.1), ("retreat", 0.2)]);
+        let mut pushes = 0;
+        let steps = 1000;
+        for i in 0..steps {
+            if sample_choice(&d, i as f64 / steps as f64) == Some("push") {
+                pushes += 1;
+            }
+        }
+        // Sweeping the whole range reproduces the distribution it came from.
+        assert!(
+            (pushes as f64 / steps as f64 - 0.7).abs() < 0.02,
+            "push drawn {pushes} times in {steps}"
+        );
+    }
+
+    #[test]
+    fn a_distribution_that_does_not_add_up_is_still_usable() {
+        // Unnormalised weights are normalised by their own total.
+        let d = dist(&[("a", 2.0), ("b", 2.0)]);
+        assert_eq!(sample_choice(&d, 0.1), Some("a"));
+        assert_eq!(sample_choice(&d, 0.9), Some("b"));
+    }
+
+    #[test]
+    fn nothing_to_draw_from_draws_nothing() {
+        assert_eq!(sample_choice(&BTreeMap::new(), 0.5), None);
+        assert_eq!(sample_choice(&dist(&[("a", 0.0)]), 0.5), None);
+        assert_eq!(sample_choice(&dist(&[("a", f64::NAN)]), 0.5), None);
+        assert_eq!(sample_choice(&dist(&[("a", -1.0)]), 0.5), None);
     }
 }
