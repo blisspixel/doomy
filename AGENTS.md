@@ -67,6 +67,7 @@ If prose and code disagree, code wins; fix the prose in the same change. Keep pl
 | Sequencing, status, fun bar | `docs/ROADMAP.md` |
 | Bounded work items | `docs/plans/<slug>.md`, indexed in `docs/plans/README.md` |
 | Look, palette, tone | `docs/ART_STORY_BIBLE.md`, `docs/palette.json` |
+| World, factions, characters, voice | `docs/lore/`, indexed in `docs/lore/README.md`. Check the frozen-string list in `docs/lore/voice.md` before renaming anything: about 500 MB of generated audio has the old words in it |
 | Hosting and cloud | `infra/README.md`, `infra/docs/`, `infra/terraform/` |
 
 Before adding a second way to log, configure, serialize, retry, or talk to the server, search the tree and reuse the seam above. Env vars in use: `FRAGR_SERVER`, `FRAGR_SOLO`, `FRAGR_MAP`, `FRAGR_AGENT_NAME`, `FRAGR_TIP_CAPTURE_DIR`, `RUST_LOG`, `ELEVENLABS_API_KEY`, plus the `FRAGR_BIND`, `FRAGR_BOTS`, `FRAGR_MAP_ROTATE`, and `GODOT_BIN` knobs read by `tools/solo_scrap.sh`.
