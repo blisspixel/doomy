@@ -3,7 +3,7 @@
 **Working name:** fragr 
 **Owner GitHub:** blisspixel (Nick Seal) - personal only; stay out of work accounts 
 **Spend:** $0 assumed for this draft and for Slice 1. Hard cap $50 total if/when Chief/Nick approve spend. 
-**Status:** Living decision record. Slice 1 shipped; see `ROADMAP.md` for sequencing.
+**Status:** Living decision record. Sections 1 to 6 describe Slice 1 as it was designed (September 2026) and are kept as history; the decision log at the end is current and `ROADMAP.md` carries sequencing.
 
 > **Buildy cut (2026-09-17):** Rust remains Slice 1 authority (not Godot HLMP listen-server). Adopt fun DoD from research: spectator-default, same-match join/leave, target >=4 rule bots, killfeed + follow/free cam, MCP off the combat tick (control plane only), local $0 then public self-host under $50 with spend ACK (Tailscale private/dev smoke only). WS JSON for this slice; UDP/renet is the next net spike. Full research: held by Buildy; QUALITY HOLD/THROW applied.
 
@@ -272,3 +272,15 @@ Anything that costs money is **blocked** for Slice 1 and flagged here:
 | Spectators | Same snapshot stream, read-only role |
 | Bevy/lightyear | Deferred / not for Godot client path |
 | Spend | $0 for Slice 1 |
+
+## Decision log (after Slice 1)
+
+| Date | Decision | Choice |
+|------|----------|--------|
+| 2026-09-18 | Paid audio | ElevenLabs approved for developer-only generation through `tools/audiogen`; assets shipped under Apache 2.0 with a manifest |
+| 2026-09-18 | Playtest in CI | `tools/playtest` boots the server in-process and gates every PR on feel thresholds (#95) |
+| 2026-09-18 | Godot in CI | Headless import and parse of every script on every PR (#94) |
+| 2026-09-18 | Decision brain | A reference agent asks a decision model (Jev, natively or through OpenRouter) for its stance behind a hard budget gate; an agent is one participant however it thinks (#102) |
+| 2026-09-18 | Renderer for the look pass | Compatibility, with 4.7 nearest 3D scaling; Forward Plus stays only until stage 1 lands (`plans/look-pass-boomer.md`) |
+| 2026-09-18 | Map source of truth | TrenchBroom `.map` files parsed by a Rust tool into a server-owned manifest; the client renders through func_godot (`plans/campaign-continuance.md`) |
+| 2026-09-18 | Agent door revision | MCP 2026-07-28 is the target, the old handshake is compatibility only; team play through an MCP blackboard before any A2A (`plans/agent-door-2026.md`) |

@@ -2,7 +2,7 @@
 
 WebSocket JSON protocol between clients and the authoritative server.
 
-**Transport:** WebSocket on `ws://127.0.0.1:6767` (configurable)
+**Transport:** WebSocket JSON. The server binds `0.0.0.0:6767` by default; clients default to loopback (configurable).
 **Format:** JSON text messages
 **Tick rate:** ~20 Hz (50ms per tick)
 
@@ -499,7 +499,7 @@ MVP is the top scorer (same selection as `winner`). `mvp` / `mvp_frags` / `host_
 - **Warmup**: 2 seconds (40 ticks) with Contested Frequency Host countdown drama on Snapshot (`host_line` + `round_time_left`; Godot full-frame Warmup TV with GOES LIVE IN N)
 - **Frag limit**: Default 10 kills
 - **Time limit**: Default 180 seconds (3600 ticks)
-- **End delay**: 5 seconds between rounds
+- **End delay**: 8 seconds (160 ticks) between rounds
 - **Scoring**: Per-round kills, reset each round
 - **Persistence**: Bots remain active when humans leave
 

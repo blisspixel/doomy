@@ -68,13 +68,15 @@ UDP with custom protocol (e.g., `renet`, `laminar`, or hand-rolled) provides:
 | Custom UDP | Full control, tailored to fragr | More work, reinvent reliability layer |
 | GDExtension | Native Rust in Godot | Build complexity, cross-platform pain |
 
-**Recommendation (TBD after spike):** Try `renet` with GDScript `PacketPeerUDP` wrapper first. If painful, fall back to simple custom UDP with manual ack/sequencing.
+**Recommendation:** the spike of record is stage 7 of `plans/buttery-controls.md`: candidate A is a 12-byte sequence, ack, and ack-bits header over `PacketPeerUDP` and `tokio::net::UdpSocket`; candidate B is ENet; the decision is made against the pass thresholds in that plan. `renet` is a fallback, not the default. WebTransport is not available in Godot 4.7.
+
+Prediction and reconciliation do not wait for UDP: stages 1 to 3 of the buttery-controls plan land on WebSocket first.
 
 ## Timeline
 
-- **Slice 1 (now):** WebSocket JSON only
-- **Slice 2 (UDP spike):** Prototype UDP, measure latency improvement, decide on library
-- **Slice 3+:** Dual transport (WebSocket for spectators/agents, UDP for humans)
+- **Now:** WebSocket JSON for everyone.
+- **Buttery-controls stages 1 to 6:** client-owned yaw, prediction, interpolation, 60 Hz sim, lag compensation, still on WebSocket.
+- **Buttery-controls stage 7:** the measured UDP spike; on a pass, humans move to UDP while spectators and agents stay on WebSocket.
 
 ## References
 

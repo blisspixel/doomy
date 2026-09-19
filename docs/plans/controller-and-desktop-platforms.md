@@ -1,9 +1,8 @@
 # Controller support and desktop platforms (Win / Mac / Linux)
 
 **Repo:** https://github.com/blisspixel/fragr
-**Branch:** `cursor/controller-platforms`
 **Spend:** $0. No ElevenLabs, no GCP apply, no renet, no look_at/hit reopen.
-**Status:** in flight (NOW). Tip face: gamepad join + first-class desktop exports.
+**Status:** shipped (#88, v0.8.3). Gamepad join and first-class desktop exports.
 
 ## Goal
 
