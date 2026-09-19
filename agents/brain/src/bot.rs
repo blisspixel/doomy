@@ -188,6 +188,48 @@ fn lock(budget: &Mutex<Budget>) -> std::sync::MutexGuard<'_, Budget> {
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
+/// One draw in [0, 1) from a fighter's own stream. xorshift64star, in the repo
+/// rather than from a crate, for the same reason the simulation's stream is:
+/// the value sequence must not drift when a dependency updates.
+/// A non-zero seed from a fighter's name. xorshift is stuck at zero forever, so
+/// an empty name must not produce one.
+/// The word for a plan that goes into the fighter's memory.
+pub fn plan_word(plan: &Plan) -> &'static str {
+    plan.stance.name()
+}
+
+/// Append a decision, collapsing a run of the same one into a single entry so
+/// holding a stance for a while does not push an oscillation out of view.
+pub fn remember(memory: &mut std::collections::VecDeque<String>, decision: &str) {
+    if memory.back().map(String::as_str) == Some(decision) {
+        return;
+    }
+    memory.push_back(decision.to_string());
+    while memory.len() > crate::telemetry::RECENT_DECISIONS {
+        memory.pop_front();
+    }
+}
+
+pub fn seed_from_name(name: &str) -> u64 {
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for byte in name.as_bytes() {
+        hash ^= *byte as u64;
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    hash | 1
+}
+
+pub fn next_roll(state: &mut u64) -> f64 {
+    let mut x = *state;
+    x ^= x >> 12;
+    x ^= x << 25;
+    x ^= x >> 27;
+    *state = x;
+    let value = x.wrapping_mul(0x2545_F491_4F6C_DD1D);
+    // Top 53 bits: every f64 in [0, 1) that has an exact representation.
+    (value >> 11) as f64 / (1u64 << 53) as f64
+}
+
 #[allow(clippy::too_many_arguments)]
 fn spawn_decision(
     transport: Arc<dyn Transport>,
@@ -199,13 +241,16 @@ fn spawn_decision(
     state: Value,
     fallback: Plan,
     gate: Gate,
+    // Where in the model's distribution this decision lands, in [0, 1), from
+    // the fighter's own seeded stream so a run reproduces.
+    roll: f64,
     tx: oneshot::Sender<(Outcome, u64)>,
 ) -> JoinHandle<()> {
     tokio::task::spawn_blocking(move || {
         let started = std::time::Instant::now();
         let result = decision_request(provider, &model, &api_key, &state, &questions)
             .and_then(|request| decide(transport.as_ref(), &budget, provider, &model, &request))
-            .map(|decision| plan_from_answers(&decision.response.answers, &gate, &fallback));
+            .map(|decision| plan_from_answers(&decision.response.answers, &gate, &fallback, roll));
         let outcome = match result {
             Ok(plan) => Outcome::Decided(plan),
             Err(err @ Error::Budget(_)) => Outcome::Refused(
@@ -253,6 +298,12 @@ pub async fn run_bot(
     }
 
     let mut published_stance: Option<Stance> = None;
+    // This fighter's own stream, seeded off its name so two fighters in one
+    // match do not draw the same sequence and move in lockstep.
+    let mut roll_state: u64 = seed_from_name(&config.name);
+    // What it last decided, which travels with the next state because the
+    // model is stateless and cannot otherwise see its own oscillation.
+    let mut memory: std::collections::VecDeque<String> = std::collections::VecDeque::new();
     let mut plan = Plan::default();
     if let Some(wire) = display_behavior_wire(&mut published_stance, plan.stance) {
         if !send_text(&mut sink, wire).await {
@@ -382,9 +433,14 @@ pub async fn run_bot(
                     config.provider,
                     config.model.clone(),
                     config.api_key.clone().unwrap_or_default(),
-                    telemetry.state_object(),
+                    {
+                        let mut with_memory = telemetry.clone();
+                        with_memory.recent = memory.clone();
+                        with_memory.state_object()
+                    },
                     fallback_plan(&telemetry, Source::Failure),
                     config.gate,
+                    next_roll(&mut roll_state),
                     tx,
                 );
                 inflight = Some((rx, handle));
@@ -412,6 +468,7 @@ pub async fn run_bot(
                             Source::Remote => summary.decisions_remote += 1,
                             _ => summary.decisions_low_confidence += 1,
                         }
+                        remember(&mut memory, plan_word(&decided));
                         plan = decided;
                         if backoff_level > 0 {
                             backoff_level = 0;
@@ -904,5 +961,77 @@ mod tests {
         let _ = bot.await;
         let _ = shutdown.send(());
         assert!(saw, "spectator never saw Brain-1 stance chip");
+    }
+}
+
+#[cfg(test)]
+mod stream_tests {
+    use super::*;
+
+    #[test]
+    fn a_fighter_stream_is_in_range_and_reproduces() {
+        let mut a = seed_from_name("Static Kid");
+        let mut b = seed_from_name("Static Kid");
+        for _ in 0..200 {
+            let x = next_roll(&mut a);
+            assert!((0.0..1.0).contains(&x), "roll out of range: {x}");
+            assert_eq!(
+                x,
+                next_roll(&mut b),
+                "the same name must replay the same run"
+            );
+        }
+    }
+
+    #[test]
+    fn two_fighters_do_not_move_in_lockstep() {
+        let mut a = seed_from_name("Static Kid");
+        let mut b = seed_from_name("Aunt Linda");
+        let mut same = 0;
+        for _ in 0..100 {
+            if next_roll(&mut a) == next_roll(&mut b) {
+                same += 1;
+            }
+        }
+        assert_eq!(same, 0, "two names drew the same sequence");
+    }
+
+    #[test]
+    fn an_empty_name_still_gives_a_working_stream() {
+        // xorshift is stuck at zero forever, so the seed must never be zero.
+        let mut state = seed_from_name("");
+        assert_ne!(state, 0);
+        let first = next_roll(&mut state);
+        assert!((0.0..1.0).contains(&first));
+        assert_ne!(first, next_roll(&mut state));
+    }
+
+    #[test]
+    fn the_draw_spreads_across_the_range() {
+        let mut state = seed_from_name("spread");
+        let mut buckets = [0usize; 4];
+        for _ in 0..4000 {
+            let x = next_roll(&mut state);
+            buckets[(x * 4.0) as usize % 4] += 1;
+        }
+        for (i, count) in buckets.iter().enumerate() {
+            assert!(
+                *count > 800 && *count < 1200,
+                "quarter {i} got {count} of 4000"
+            );
+        }
+    }
+
+    #[test]
+    fn memory_collapses_a_run_and_keeps_the_newest() {
+        let mut memory = std::collections::VecDeque::new();
+        for decision in ["push", "push", "push", "hold", "push", "hold", "push"] {
+            remember(&mut memory, decision);
+        }
+        assert_eq!(
+            memory.iter().cloned().collect::<Vec<_>>(),
+            vec!["hold", "push", "hold", "push"],
+            "an oscillation must survive in the window, a long hold must not fill it"
+        );
     }
 }
