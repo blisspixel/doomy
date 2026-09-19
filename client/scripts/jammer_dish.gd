@@ -205,8 +205,8 @@ static func apply_tint(root: Node3D, live: bool, seized: bool) -> void:
 	if live:
 		primary = EMBER
 		accent = Color(0.95, 0.42, 0.12)
-		glow = 0.85
-		energy = 3.6
+		glow = 0.95
+		energy = 4.2
 		label_text = "SEIZE JAMMER"
 	elif seized:
 		primary = SEIZED_OK

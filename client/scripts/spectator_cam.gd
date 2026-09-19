@@ -20,6 +20,8 @@ var available_targets = []
 var auto_cycle_timer = 0.0
 var frag_follow_timer = 0.0
 var frag_follow_target_id = ""
+# tip_capture: freeze follow / frag yank while posing at dish origin.
+var tip_pose_lock = false
 var camera_shake_intensity = 0.0
 var camera_zoom_offset = 0.0
 
@@ -54,6 +56,10 @@ func _input(event):
 func _process(delta):
 	camera_shake_intensity = lerp(camera_shake_intensity, 0.0, delta * 10.0)
 	camera_zoom_offset = lerp(camera_zoom_offset, 0.0, delta * 5.0)
+
+	if tip_pose_lock:
+		mouse_motion = Vector2.ZERO
+		return
 
 	var mouse_captured = Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED
 	var pad_active = _gamepad_look_active() or _gamepad_move_active()

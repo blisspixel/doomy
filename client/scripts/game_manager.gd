@@ -572,9 +572,9 @@ func _sync_pickups(pickup_list):
 
 func _sync_jammer_dish(dish):
 	# Solo Broadcast jammer dish: chunky in-world silhouette while phase is jammer (and after seize).
-	# tip_capture may latch tip_force_jammer_dish so live hangar stills keep the bowl
-	# even when Snapshot jammer_dish is null (still in NODS phase).
-	if dish == null and tip_force_jammer_dish:
+	# tip_capture latches tip_force_jammer_dish so live hangar stills keep the ember bowl
+	# through NODS-phase nulls AND post-seize Snapshots (green JAMMER OK would kill orange).
+	if tip_force_jammer_dish:
 		dish = {
 			"live": true,
 			"seized": false,
