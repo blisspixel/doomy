@@ -30,11 +30,11 @@ Recaptured on tip after Solo Broadcast Episode 0 via `tools/capture_tip_screensh
 
 | File | Aspect | Purpose |
 |------|--------|---------|
-| `20_jammer_dish_follow_16x9.png` | 16:9 | Live tip proof: jammer dish at spectator follow (~12m), SEIZE JAMMER billboard |
-| `22_jammer_dish_overview_16x9.png` | 16:9 | Live tip proof: jammer dish at tip overview (~36m) |
-| `23_jammer_dish_seize_label_16x9.png` | 16:9 | Live tip proof: SEIZE JAMMER label read |
+| `20_jammer_dish_follow_16x9.png` | 16:9 | Live tip_capture hangar: jammer dish at follow (~12m), SEIZE JAMMER, LARAK LOT chip |
+| `22_jammer_dish_overview_16x9.png` | 16:9 | Live tip_capture hangar: jammer dish at overview (~36m) |
+| `23_jammer_dish_seize_label_16x9.png` | 16:9 | Live tip_capture hangar: SEIZE JAMMER label read under HUD |
 
-Regenerated via `tools/capture_jammer_dish_proof.sh` (and tip_capture jammer proof path). These stills are the stranger-eye bar for the unmissable dish claim; do not claim unmissable in a tag until Testy re-Casino.
+Regenerated via `tools/capture_tip_screenshots.sh` against `--solo-broadcast` (live hangar + HUD). Studio void `capture_jammer_dish_proof.sh` is harness-only; tip face is these hangar stills. Hangar Candy chrome strip is off on Larak Lot. No dish-claim tag until Testy re-Casino.
 
 ## Mood plates (archived)
 
