@@ -19,7 +19,23 @@ This is a playable vertical slice, not a finished game. The build order and what
 
 ## Screenshots
 
-Live tip captures from the current build (Godot 4.7.2-stable against a loopback `--solo-broadcast` server). Hangar dish in frame, guns that kill. Details and the regeneration script are in [`docs/screenshots/README.md`](docs/screenshots/README.md).
+Live captures from the current build, Godot 4.7.2-stable against a loopback server with bots. The first four come from the visual QA tour, which walks every player-facing state and regenerates them: `tools/qa_tour.sh`. The rest are tip captures; details and their regeneration script are in [`docs/screenshots/README.md`](docs/screenshots/README.md).
+
+Behind the gun: health and armour in the corner, the weapon in hand, the crosshair and nothing else in the middle.
+
+![First person](docs/screenshots/tour_first_person_16x9.png)
+
+A fight from the follow camera.
+
+![Combat](docs/screenshots/tour_combat_follow_16x9.png)
+
+The arena from above.
+
+![Arena overview](docs/screenshots/tour_arena_overview_16x9.png)
+
+Twelve consecutive frames from one trigger pull, which is the only way an effect that lasts seventy milliseconds can be looked at.
+
+![Firing strip](docs/screenshots/tour_shot_strip.png)
 
 ![Jammer dish in hangar](docs/screenshots/20_jammer_dish_follow_16x9.png)
 

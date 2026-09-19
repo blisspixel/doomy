@@ -22,6 +22,11 @@ signal host_spoke(seconds: float)
 @onready var streak_flash = $StreakFlash
 @onready var fp_weapon = $FpWeapon
 @onready var fp_muzzle = $FpMuzzle
+@onready var vitals = $Vitals
+@onready var health_value = $Vitals/HealthValue
+@onready var health_bar = $Vitals/HealthBar
+@onready var armor_value = $Vitals/ArmorValue
+@onready var armor_bar = $Vitals/ArmorBar
 @onready var chrome_strip = $ChromeStrip
 @onready var on_air_badge = $OnAirBadge
 @onready var contested_frequency_badge = $ContestedFrequencyBadge
@@ -84,6 +89,12 @@ var fp_muzzle_texture: Texture2D
 var fp_kick_amount = Vector2.ZERO
 var current_fp_weapon = ""
 const FP_MUZZLE_SECONDS: float = 0.07
+## Full width of the vitals bars, so a fill can be scaled against it.
+const HEALTH_BAR_WIDTH: float = 200.0
+const ARMOR_BAR_WIDTH: float = 100.0
+## What the server considers a full fighter.
+const PLAYER_MAX_HP: int = 100
+const PLAYER_MAX_ARMOR: int = 100
 var floating_damage_nodes = []
 
 # Full-frame Warmup Contested Frequency TV bumper (unmissable scrap open).
@@ -101,6 +112,8 @@ var warmup_tv_host_line = ""
 
 func _ready():
 	_ensure_map_chip_label()
+	if vitals:
+		vitals.visible = false
 	fp_muzzle_texture = load("res://assets/vfx/32/muzzle_flash.png")
 	if fp_muzzle:
 		fp_muzzle.texture = fp_muzzle_texture
@@ -195,7 +208,10 @@ func _refresh_map_chip_badge() -> void:
 	_ensure_map_chip_label()
 	if map_chip_label:
 		map_chip_label.text = map_label.to_upper()
-		map_chip_label.visible = map_label != ""
+		# The venue, in the corner the vitals now own. A player behind a gun
+		# knows which map they are on; a spectator tuning in does not, so the
+		# chip belongs to the spectator view and to the round bumper.
+		map_chip_label.visible = map_label != "" and client_mode == "SPECTATING"
 	# Hide brand Hangar Candy art so it cannot impersonate the map chip.
 	if hangar_candy_badge:
 		hangar_candy_badge.visible = false
@@ -235,6 +251,7 @@ func set_mode(mode: String):
 	client_mode = mode
 	_refresh_mode_label()
 	_refresh_telemetry_lines()
+	_refresh_map_chip_badge()
 
 ## Connection status, wall clock, and head count are for whoever is debugging
 ## the client, not for someone in a firefight. The round line already carries
@@ -1192,6 +1209,30 @@ func show_hit_marker(damage: int = 0, weapon_name: String = "") -> void:
 		_spawn_floating_damage(damage, weapon_name)
 	# Fire kick on confirm sells the shot.
 	_fp_fire_kick(weapon_name)
+
+## How close a player is to dying, which is the one thing the HUD never said.
+## A number for the exact figure and a bar for the glance, in the corner, read
+## without looking away from the crosshair.
+func set_vitals(hp: int, armor: int) -> void:
+	if not vitals:
+		return
+	vitals.visible = client_mode != "SPECTATING"
+	var hp_shown: int = maxi(hp, 0)
+	if health_value:
+		health_value.text = str(hp_shown)
+		# Low health is the one place the HUD is allowed to shout.
+		health_value.modulate = Color(1, 0.55, 0.55) if hp_shown <= 35 else Color.WHITE
+	if health_bar:
+		var hp_fill: float = clampf(float(hp_shown) / float(PLAYER_MAX_HP), 0.0, 1.0)
+		health_bar.size.x = HEALTH_BAR_WIDTH * hp_fill
+	var armor_shown: int = maxi(armor, 0)
+	if armor_value:
+		armor_value.text = str(armor_shown)
+		# Armour at zero is not worth the ink.
+		armor_value.modulate.a = 1.0 if armor_shown > 0 else 0.35
+	if armor_bar:
+		var armor_fill: float = clampf(float(armor_shown) / float(PLAYER_MAX_ARMOR), 0.0, 1.0)
+		armor_bar.size.x = ARMOR_BAR_WIDTH * armor_fill
 
 func show_fire_juice(weapon_name: String = "") -> void:
 	_fp_fire_kick(weapon_name if weapon_name != "" else current_fp_weapon)
