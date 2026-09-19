@@ -550,7 +550,14 @@ fn test_sim_arena_boundary_clamping() {
 
     state.tick(0.05);
 
-    assert!(state.players[idx].x <= 25.0);
+    // The bound is the arena's own half extent, not a number copied from it,
+    // so widening the map does not silently turn this assertion off.
+    let half = crate::sim::MapKind::ArenaDuel.half_extent();
+    assert!(
+        state.players[idx].x <= half,
+        "walked past the edge: {} > {half}",
+        state.players[idx].x
+    );
 }
 
 #[test]
@@ -5081,5 +5088,107 @@ fn the_scatter_gun_falls_off_with_distance() {
                 "{weapon:?} should not fall off"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod jump_tests {
+    use super::*;
+
+    fn jumping() -> Action {
+        Action {
+            jump: true,
+            ..Action::default()
+        }
+    }
+
+    /// A grounded fighter leaves the floor, rises, and comes back down to it.
+    #[test]
+    fn a_jump_goes_up_and_returns() {
+        let mut state = GameState::new();
+        let id = Uuid::new_v4();
+        state.add_player(id, "Jumper".to_string(), Role::Human);
+        state.start_round();
+        let floor = crate::sim::PLAYER_FLOOR_Y;
+
+        state.set_action(id, jumping());
+        state.tick(0.05);
+        let after_one = state.players[0].y;
+        assert!(
+            after_one > floor,
+            "one tick of jump should leave the floor, got {after_one}"
+        );
+
+        // Climb, then fall. Hold nothing: a jump is not a thrust.
+        state.set_action(id, Action::default());
+        let mut peak = after_one;
+        let mut ticks = 0;
+        while ticks < 200 {
+            state.tick(0.05);
+            peak = peak.max(state.players[0].y);
+            if state.players[0].y <= floor && ticks > 2 {
+                break;
+            }
+            ticks += 1;
+        }
+        assert!(
+            peak - floor > 0.8,
+            "a jump should clear something, peaked {:.2} above the floor",
+            peak - floor
+        );
+        assert!(
+            (state.players[0].y - floor).abs() < 1e-3,
+            "it has to come back down, ended at {}",
+            state.players[0].y
+        );
+        assert!(
+            ticks < 60,
+            "and it should not hang in the air for {ticks} ticks"
+        );
+    }
+
+    /// Holding jump in the air does not climb, which is what stops a held key
+    /// from being flight.
+    #[test]
+    fn holding_jump_does_not_fly() {
+        let mut state = GameState::new();
+        let id = Uuid::new_v4();
+        state.add_player(id, "Holder".to_string(), Role::Human);
+        state.start_round();
+        state.set_action(id, jumping());
+        let mut peak: f32 = 0.0;
+        for _ in 0..120 {
+            state.tick(0.05);
+            peak = peak.max(state.players[0].y);
+        }
+        assert!(
+            peak - crate::sim::PLAYER_FLOOR_Y < 2.0,
+            "held jump climbed to {:.2}, which is flight",
+            peak - crate::sim::PLAYER_FLOOR_Y
+        );
+    }
+
+    /// Dying mid-jump and respawning must not leave you falling.
+    #[test]
+    fn a_respawn_lands_you_standing() {
+        let mut state = GameState::new();
+        let id = Uuid::new_v4();
+        state.add_player(id, "Faller".to_string(), Role::Human);
+        state.start_round();
+        state.set_action(id, jumping());
+        state.tick(0.05);
+        state.tick(0.05);
+        assert!(
+            state.players[0].vy != 0.0,
+            "should be in the air to test this"
+        );
+        // Kill them mid-air and let the respawn clock run out.
+        state.players[0].hp = 0;
+        state.players[0].respawn_timer = Some(1);
+        state.set_action(id, Action::default());
+        state.tick(0.05);
+        state.tick(0.05);
+        assert_eq!(state.players[0].vy, 0.0, "respawned still falling");
+        assert_eq!(state.players[0].y, crate::sim::PLAYER_FLOOR_Y);
     }
 }

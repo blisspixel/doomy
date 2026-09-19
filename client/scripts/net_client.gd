@@ -83,8 +83,13 @@ func send_action(action: Dictionary):
 		"right": action.get("right", false),
 		"turn_left": action.get("turn_left", false),
 		"turn_right": action.get("turn_right", false),
-		"fire": action.get("fire", false)
+		"fire": action.get("fire", false),
+		"jump": action.get("jump", false)
 	}
+	# This rebuilds the action field by field rather than sending the dictionary
+	# it was given, which means a new field has to be added in two places. Jump
+	# was set by the input code and silently dropped here for exactly that
+	# reason. Anything added to the action must be added to this list too.
 	# Same Action path as keyboard; optional weapon_swap when cycling.
 	var swap = action.get("weapon_swap", null)
 	if swap != null and str(swap) != "":

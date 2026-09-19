@@ -2,6 +2,16 @@
 
 The canonical list of modes. The roadmap sequences them, the plans build them, this says what each one is.
 
+## The bar
+
+You can play this all day after work and have a blast barely thinking about it.
+
+That is the test every design decision has to pass, and it rules things out. **No puzzles.** Nothing where you stop moving to work something out, nothing you have to solve, no hunting a switch to learn which door it opened. Keys are a coloured door and a coloured card lying somewhere you will walk past, which is Doom's version and the most a key is ever allowed to be.
+
+Nothing gates fun behind understanding. The map teaches itself by being walked through. A weapon teaches itself by being fired once. If a mechanic needs explaining before it is enjoyable, it is the wrong mechanic, however clever.
+
+This is not a rejection of depth. Item timing is deep and takes no thought to enjoy. Reading which gun someone is holding from the sound is deep and costs nothing. Depth that rewards attention is the good kind. Depth that demands it before you are allowed to have fun is the kind this game does not have.
+
 ## The shape
 
 **Single player is Doom and GoldenEye.** Episodes of hand-built maps with keys, secrets, par times and an escalating enemy roster, and objectives that change with the difficulty you picked rather than enemies that simply take more shots.
@@ -16,9 +26,11 @@ The canonical list of modes. The roadmap sequences them, the plans build them, t
 
 The Doom spine. Eight maps to an episode, built to teach in order: movement, then the scatter, then keys, then the rail, then secrets, then turrets, then the auditor, then the boss. Every map has a par time and a secret count, and the map tells you what it is about in the first room rather than in a briefing.
 
-Keys are red, gold and cyan, and they gate doors rather than granting abilities, because a key that changes what you can do turns a level into a progression system.
+Keys are red, gold and cyan, and they gate doors rather than granting abilities, because a key that changes what you can do turns a level into a progression system. A key is never a puzzle: it lies somewhere you will walk past, and the door it opens is the same colour.
 
 The enemy roster in `docs/ENEMIES.md` is the difficulty curve. A map is hard because of which shapes it puts in which rooms, not because the numbers went up.
+
+Weapons arrive across an episode rather than all at once. You start with almost nothing, the ladder opens as you go, and the strong ones are late and hidden, which is how Doom and Duke Nukem paced a campaign and why a secret in those games was usually a weapon you were not supposed to have yet. In an arena the same weapons are all on the floor from the first second; the difference is availability, not balance.
 
 ### Objectives, from GoldenEye
 

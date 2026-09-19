@@ -14,8 +14,17 @@ use std::f32::consts::PI;
 use uuid::Uuid;
 
 const MOVE_SPEED: f32 = 5.0;
+/// The y a standing fighter reports. It is a reference point rather than the
+/// floor: the client hangs the body below it and the eye just above it.
+pub const PLAYER_FLOOR_Y: f32 = 1.5;
 const TURN_SPEED: f32 = 2.0;
-const ARENA_SIZE: f32 = 50.0;
+/// Playable width of the square, centred on the origin.
+///
+/// Fifty was a test chamber: eight fighters in one flat room, every fight at
+/// knife range, and the rail with nowhere to be a rail. A hundred is the
+/// bottom of the arena tier in `plans/map-scale.md`, which is the size a
+/// six-to-sixteen fighter Doom or Unreal map actually is.
+const ARENA_SIZE: f32 = 100.0;
 const PLAYER_RADIUS: f32 = 0.5;
 /// Extra forgiveness on aim, as radians of cone that widen with distance.
 /// Zero means a shot has to actually pass through a fighter. A gamepad may
@@ -656,6 +665,8 @@ pub struct Player {
     pub y: f32,
     pub z: f32,
     pub yaw: f32,
+    /// Vertical speed. Positive is upward, zero while standing.
+    pub vy: f32,
     pub hp: i32,
     /// Scrap armor; absorbs damage before HP (0 on spawn/respawn).
     pub armor: i32,
@@ -862,6 +873,7 @@ impl GameState {
             y: 1.5,
             z: sz,
             yaw,
+            vy: 0.0,
             hp: PLAYER_MAX_HP,
             armor: 0,
             pending_action: Action::default(),
@@ -1105,6 +1117,28 @@ impl GameState {
             let (rx, rz) = resolve_move(self.map, old_x, old_z, new_x, new_z);
             player.x = rx;
             player.z = rz;
+
+            // Vertical. The arena floor is flat, so nothing can block a jump
+            // and the only surface is the one everybody starts on. Constants
+            // come from the shared movement step so the two agree when the
+            // tick migration makes that step the only one.
+            let grounded = player.y <= PLAYER_FLOOR_Y && player.vy <= 0.0;
+            if grounded {
+                player.y = PLAYER_FLOOR_Y;
+                player.vy = 0.0;
+                if action.jump {
+                    player.vy = crate::movement::JUMP_SPEED;
+                }
+            } else {
+                player.vy -= crate::movement::GRAVITY * dt;
+            }
+            player.y += player.vy * dt;
+            if player.y <= PLAYER_FLOOR_Y {
+                player.y = PLAYER_FLOOR_Y;
+                if player.vy < 0.0 {
+                    player.vy = 0.0;
+                }
+            }
 
             if client_yaw.is_none() {
                 if action.turn_left {
@@ -1449,7 +1483,9 @@ impl GameState {
             let (sx, sz, yaw) = spawn_on_ring(self.map, angle);
 
             player.x = sx;
-            player.y = 1.5;
+            player.y = PLAYER_FLOOR_Y;
+            // A fighter that died mid-jump must not respawn still falling.
+            player.vy = 0.0;
             player.z = sz;
             player.yaw = yaw;
             player.hp = PLAYER_MAX_HP;
@@ -1807,6 +1843,7 @@ impl GameState {
             y: 2.2,
             z: 0.0,
             yaw: 0.0,
+            vy: 0.0,
             hp: BOSS_MAX_HP,
             armor: 50,
             pending_action: Action::default(),
@@ -2003,6 +2040,7 @@ impl GameState {
             y: 2.2,
             z: 0.0,
             yaw: 0.0,
+            vy: 0.0,
             hp: BOSS_MAX_HP,
             armor: 0,
             pending_action: Action::default(),

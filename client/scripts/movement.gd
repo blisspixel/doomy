@@ -11,14 +11,17 @@ const TOP_SPEED: float = 5.0
 const TAU_ACCEL: float = 0.06
 const TAU_DECEL: float = 0.04
 const DT_60HZ: float = 1.0 / 60.0
+const GROUND_Y: float = 0.0
+const GRAVITY: float = 22.0
+const JUMP_SPEED: float = 7.0
 
 
 static func make_state(x: float, z: float, yaw: float) -> Dictionary:
-	return {"x": x, "z": z, "vx": 0.0, "vz": 0.0, "yaw": yaw}
+	return {"x": x, "z": z, "y": GROUND_Y, "vx": 0.0, "vz": 0.0, "vy": 0.0, "yaw": yaw}
 
 
 static func make_input(forward: bool, back: bool, left: bool, right: bool, yaw: float, speed_scale: float = 1.0) -> Dictionary:
-	return {"forward": forward, "back": back, "left": left, "right": right, "yaw": yaw, "speed_scale": speed_scale}
+	return {"forward": forward, "back": back, "left": left, "right": right, "jump": false, "yaw": yaw, "speed_scale": speed_scale}
 
 
 static func solid_from_center(cx: float, cz: float, half_x: float, half_z: float) -> Dictionary:
@@ -101,6 +104,24 @@ static func step(state: Dictionary, input: Dictionary, dt: float, arena: Diction
 	vx = vx + (target_x - vx) * blend
 	vz = vz + (target_z - vz) * blend
 
+	# Vertical is independent of the walls: the arena is flat, so nothing can
+	# be blocked by standing on it. Mirrors movement.rs exactly.
+	var vy: float = float(state.get("vy", 0.0))
+	var y: float = float(state.get("y", GROUND_Y))
+	var on_ground: bool = y <= GROUND_Y and vy <= 0.0
+	if on_ground:
+		y = GROUND_Y
+		vy = 0.0
+		if bool(input.get("jump", false)):
+			vy = JUMP_SPEED
+	else:
+		vy -= GRAVITY * dt
+	y += vy * dt
+	if y <= GROUND_Y:
+		y = GROUND_Y
+		if vy < 0.0:
+			vy = 0.0
+
 	var old_x: float = float(state["x"])
 	var old_z: float = float(state["z"])
 	var clamped: Vector2 = arena_clamp(arena, old_x + vx * dt, old_z + vz * dt)
@@ -127,4 +148,4 @@ static func step(state: Dictionary, input: Dictionary, dt: float, arena: Diction
 		x = stay.x
 		z = stay.y
 
-	return {"x": x, "z": z, "vx": vx, "vz": vz, "yaw": yaw}
+	return {"x": x, "z": z, "y": y, "vx": vx, "vz": vz, "vy": vy, "yaw": yaw}

@@ -96,6 +96,7 @@ const ACT_ALLOWED_KEYS: &[&str] = &[
     "back",
     "left",
     "right",
+    "jump",
     "turn_left",
     "turn_right",
     "fire",
@@ -229,6 +230,7 @@ pub fn validate_act_arguments(arguments: &Value) -> Result<Action, String> {
         turn_left: bool_field("turn_left"),
         turn_right: bool_field("turn_right"),
         fire: bool_field("fire"),
+        jump: bool_field("jump"),
         weapon_swap,
         look_at,
         // MCP agents aim with look_at and the turn bits; they do not own a
@@ -519,6 +521,7 @@ fn tools_list_result() -> Value {
                         "turn_left": {"type": "boolean", "default": false, "description": "Turn left"},
                         "turn_right": {"type": "boolean", "default": false, "description": "Turn right"},
                         "fire": {"type": "boolean", "default": false, "description": "Fire weapon"},
+                        "jump": {"type": "boolean", "default": false, "description": "Jump. A grounded fighter leaves the floor; holding it does not fly"},
                         "weapon_swap": {"type": "string", "enum": ["flechette", "rail", "scatter"], "description": "Switch to weapon type"},
                         "look_at": {
                             "type": "object",

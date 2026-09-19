@@ -22,15 +22,39 @@ pub const TAU_ACCEL: f32 = 0.06;
 pub const TAU_DECEL: f32 = 0.04;
 /// The movement step length at the 60 Hz rate the tick migration adopts.
 pub const DT_60HZ: f32 = 1.0 / 60.0;
+/// Floor height. The arena is flat, so this is the only ground there is until
+/// the map tiers bring geometry with height in it.
+pub const GROUND_Y: f32 = 0.0;
+/// Downward acceleration in units per second squared. Chosen with the jump
+/// below so a hop clears about 1.1 units and lasts a little under half a
+/// second, which is the Quake-ish arc this game's speed wants rather than the
+/// floatier one a slower game can afford.
+pub const GRAVITY: f32 = 22.0;
+/// Upward speed applied on a jump, in units per second.
+pub const JUMP_SPEED: f32 = 7.0;
 
 /// Where a fighter is and how it moves. Yaw is radians in `[0, 2 pi)`.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct MoveState {
     pub x: f32,
     pub z: f32,
+    /// Height above the floor. Zero is standing on it.
+    #[serde(default)]
+    pub y: f32,
     pub vx: f32,
     pub vz: f32,
+    /// Vertical speed. Positive is upward.
+    #[serde(default)]
+    pub vy: f32,
     pub yaw: f32,
+}
+
+impl MoveState {
+    /// Whether this fighter is standing on the floor, which is the only thing
+    /// a jump is allowed to push off.
+    pub fn grounded(&self) -> bool {
+        self.y <= GROUND_Y && self.vy <= 0.0
+    }
 }
 
 /// One step's worth of intent. `speed_scale` is 1.0 normally and 0.5 under
@@ -45,6 +69,12 @@ pub struct MoveInput {
     pub left: bool,
     #[serde(default)]
     pub right: bool,
+    /// Held, not edge-triggered. A fighter leaves the ground on the first step
+    /// where this is set and it is standing, and holding it does not keep it
+    /// climbing, so a client that drops an input does not lose a jump it has
+    /// already started.
+    #[serde(default)]
+    pub jump: bool,
     pub yaw: f32,
     #[serde(default = "one")]
     pub speed_scale: f32,
@@ -61,6 +91,7 @@ impl Default for MoveInput {
             back: false,
             left: false,
             right: false,
+            jump: false,
             yaw: 0.0,
             speed_scale: 1.0,
         }
@@ -186,6 +217,28 @@ pub fn step(state: MoveState, input: &MoveInput, dt: f32, arena: &Arena) -> Move
     let old_z = state.z;
     let (nx, nz) = arena.clamp(old_x + vx * dt, old_z + vz * dt);
 
+    // Vertical is independent of the walls: the arena is flat, so nothing can
+    // be blocked by standing on it. This changes when the map tiers land.
+    let mut vy = state.vy;
+    let mut y = state.y;
+    let on_ground = state.y <= GROUND_Y && state.vy <= 0.0;
+    if on_ground {
+        y = GROUND_Y;
+        vy = 0.0;
+        if input.jump {
+            vy = JUMP_SPEED;
+        }
+    } else {
+        vy -= GRAVITY * dt;
+    }
+    y += vy * dt;
+    if y <= GROUND_Y {
+        y = GROUND_Y;
+        if vy < 0.0 {
+            vy = 0.0;
+        }
+    }
+
     let (x, z) = if !arena.blocked(nx, nz) {
         (nx, nz)
     } else if !arena.blocked(nx, old_z) {
@@ -200,7 +253,15 @@ pub fn step(state: MoveState, input: &MoveInput, dt: f32, arena: &Arena) -> Move
         arena.clamp(old_x, old_z)
     };
 
-    MoveState { x, z, vx, vz, yaw }
+    MoveState {
+        x,
+        z,
+        y,
+        vx,
+        vz,
+        vy,
+        yaw,
+    }
 }
 
 /// One golden case: an arena, a start, inputs, and the state expected after
@@ -252,8 +313,10 @@ fn at(x: f32, z: f32, yaw: f32) -> MoveState {
     MoveState {
         x,
         z,
+        y: GROUND_Y,
         vx: 0.0,
         vz: 0.0,
+        vy: 0.0,
         yaw,
     }
 }
@@ -268,6 +331,7 @@ fn keys(forward: bool, back: bool, left: bool, right: bool, yaw: f32) -> MoveInp
         back,
         left,
         right,
+        jump: false,
         yaw,
         speed_scale: 1.0,
     }
@@ -362,6 +426,15 @@ pub fn golden_cases(dt: f32) -> GoldenFile {
         });
     }
     push("long_wander_1000", at(2.0, 2.0, 0.0), long, 100);
+    // One tick of jump held, then nothing, so the arc is gravity's and not the
+    // key's. Every checkpoint pins a height, which is what holds the GDScript
+    // mirror to the same curve.
+    let mut hop = Vec::with_capacity(40);
+    let mut first = keys(true, false, false, false, 0.0);
+    first.jump = true;
+    hop.push(first);
+    hop.extend(hold(keys(true, false, false, false, 0.0), 39));
+    push("jump_arc", at(0.0, 0.0, 0.0), hop, 4);
 
     GoldenFile {
         version: 1,
@@ -561,6 +634,7 @@ mod tests {
             "yaw_wrap",
             "compliance_slow",
             "long_wander_1000",
+            "jump_arc",
         ] {
             assert!(names.contains(&needed), "missing golden case {needed}");
         }
@@ -570,6 +644,16 @@ mod tests {
             .find(|c| c.name == "long_wander_1000")
             .unwrap();
         assert_eq!(long.expected.len(), 10, "one checkpoint per hundred steps");
+        let hop = file.cases.iter().find(|c| c.name == "jump_arc").unwrap();
+        let peak = hop.expected.iter().fold(f32::MIN, |a, s| a.max(s.y));
+        assert!(
+            peak > 0.8,
+            "the jump case has to leave the ground, peaked {peak}"
+        );
+        assert!(
+            hop.expected.last().unwrap().y.abs() < 1e-3,
+            "and it has to come back down"
+        );
         let wrap = file.cases.iter().find(|c| c.name == "yaw_wrap").unwrap();
         for s in &wrap.expected {
             assert!((0.0..2.0 * PI).contains(&s.yaw));

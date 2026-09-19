@@ -9,7 +9,11 @@ extends Node3D
 ## was 6.6 cm per 360, about six times faster than a Counter-Strike default.
 const DEGREES_PER_COUNT := 0.022
 @export var mouse_sensitivity := 1.5
-@export var stick_look_sensitivity = 2.2
+## Radians per second of turn at full deflection. 2.8 is about a hundred and
+## sixty degrees a second, which is roughly Doom's walking turn, and it is the
+## rate a keyboard gets because a key is either down or it is not. A stick gets
+## everything below it as well.
+@export var stick_look_sensitivity = 2.8
 @export var stick_turn_scale = 18.0
 @export var stick_deadzone = 0.25
 @export var auto_cycle_interval = 6.0
@@ -39,7 +43,14 @@ var fp_pitch = 0.0
 ## bits stay for agents and for anything that does not send a yaw.
 var fp_yaw = 0.0
 var turn_accum = 0.0
-const FP_EYE_HEIGHT = 1.55
+## Eye height above the fighter's feet.
+const FP_EYE_ABOVE_FEET = 1.6
+## The server's y for a standing fighter. Its position is a reference point,
+## not the floor, so the eye offset from it is the difference of the two. When
+## the fighters were put back on the floor this was missed, and the camera sat
+## at three metres looking down on a world built for one and a half.
+const FP_SERVER_REFERENCE_Y = 1.5
+const FP_EYE_HEIGHT = FP_EYE_ABOVE_FEET - FP_SERVER_REFERENCE_Y
 const FP_FORWARD_NUDGE = 0.15
 const TURN_ACCUM_THRESHOLD = 2.5
 
@@ -50,11 +61,8 @@ func _input(event):
 	if event is InputEventMouseMotion:
 		mouse_motion = event.relative
 
-	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
-			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-		else:
-			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	# Escape belongs to the pause menu now. The mouse is released and recaptured
+	# by whatever opens over the match, so two things no longer fight for it.
 
 func _process(delta):
 	camera_shake_intensity = lerp(camera_shake_intensity, 0.0, delta * 10.0)
@@ -290,7 +298,7 @@ func _process_fp(delta):
 	var eye = fp_target.global_position + Vector3(0, FP_EYE_HEIGHT, 0)
 	# The eye looks where the client aims, not where the last snapshot said.
 	var yaw = fp_yaw
-	eye += Vector3(sin(yaw), 0, cos(yaw)) * FP_FORWARD_NUDGE
+	eye += ServerYaw.forward(yaw) * FP_FORWARD_NUDGE
 
 	if camera_shake_intensity > 0:
 		eye += Vector3(
@@ -300,7 +308,10 @@ func _process_fp(delta):
 		)
 
 	position = position.lerp(eye, min(1.0, 18.0 * delta))
-	rotation.y = yaw
+	# The server's yaw is not a Godot rotation. Assigning it straight to
+	# rotation.y pointed the camera ninety degrees away from where the server
+	# was moving the fighter, which is why holding forward read as strafing.
+	rotation.y = ServerYaw.camera_rotation_y(yaw)
 	rotation.x = fp_pitch
 
 ## The absolute facing to send with this input, in the server's convention.
