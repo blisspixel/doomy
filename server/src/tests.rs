@@ -11,7 +11,7 @@ use crate::session::GameSession;
 #[cfg(test)]
 use crate::sim::{
     BotBehavior, BotController, EpisodePhase, GameState, MapKind, MatchConfig, RoundState,
-    BOSS_MAX_HP, HEALTH_PICKUP_RESPAWN_TICKS, PICKUP_RESPAWN_TICKS,
+    BOSS_MAX_HP, EP0_JAMMER_RADIUS, HEALTH_PICKUP_RESPAWN_TICKS, PICKUP_RESPAWN_TICKS,
 };
 
 #[cfg(test)]
@@ -4655,6 +4655,88 @@ fn jammer_dish_appears_on_snapshot_in_jammer_phase() {
         .expect("jammer dish seized marker");
     assert!(!seized.live);
     assert!(seized.seized);
+}
+
+#[test]
+fn try_seize_jammer_matches_visible_pad_not_tiny_hub() {
+    // Playtest calib1 soft-lock: meatbag at ~4.6m on the dish ring while radius was 3.0.
+    // Soft touch must cover the visible pad; health pad at z=8 stays outside.
+    assert!(
+        EP0_JAMMER_RADIUS >= 6.0,
+        "pad soft-touch too tight: {}",
+        EP0_JAMMER_RADIUS
+    );
+    assert!(
+        EP0_JAMMER_RADIUS < 8.0,
+        "pad soft-touch must not swallow north health: {}",
+        EP0_JAMMER_RADIUS
+    );
+
+    let mut session = GameSession::new();
+    session.spawn_bots(2);
+    session.enable_solo_broadcast_ep0();
+    session.state.start_round();
+    let human = Uuid::new_v4();
+    session
+        .state
+        .add_player(human, "CalibFox".to_string(), Role::Human);
+    let victim = session
+        .state
+        .players
+        .iter()
+        .find(|p| p.name.starts_with("NODS-"))
+        .map(|p| p.id)
+        .expect("NODS");
+    while session.state.solo_broadcast.nods_cleared < session.state.solo_broadcast.nods_goal {
+        session.state.note_nods_frag(human, victim);
+    }
+    assert_eq!(session.state.solo_broadcast.phase, EpisodePhase::Jammer);
+
+    if let Some(p) = session.state.players.iter_mut().find(|p| p.id == human) {
+        // On-pad stance from the stalled playtest dump (z≈4.6).
+        p.x = 0.13;
+        p.z = 4.62;
+        p.respawn_timer = None;
+    }
+    session.state.try_seize_jammer();
+    assert_eq!(
+        session.state.solo_broadcast.phase,
+        EpisodePhase::Auditor,
+        "meatbag on visible pad must seize"
+    );
+    assert!(session.state.solo_broadcast.jammer_seized);
+
+    // Fresh jammer phase: outside pad must not seize.
+    let mut session = GameSession::new();
+    session.spawn_bots(2);
+    session.enable_solo_broadcast_ep0();
+    session.state.start_round();
+    let human = Uuid::new_v4();
+    session
+        .state
+        .add_player(human, "CalibFox".to_string(), Role::Human);
+    let victim = session
+        .state
+        .players
+        .iter()
+        .find(|p| p.name.starts_with("NODS-"))
+        .map(|p| p.id)
+        .expect("NODS");
+    while session.state.solo_broadcast.nods_cleared < session.state.solo_broadcast.nods_goal {
+        session.state.note_nods_frag(human, victim);
+    }
+    if let Some(p) = session.state.players.iter_mut().find(|p| p.id == human) {
+        p.x = 0.0;
+        p.z = 8.0; // north health pad
+        p.respawn_timer = None;
+    }
+    session.state.try_seize_jammer();
+    assert_eq!(
+        session.state.solo_broadcast.phase,
+        EpisodePhase::Jammer,
+        "outside pad must not seize"
+    );
+    assert!(!session.state.solo_broadcast.jammer_seized);
 }
 
 #[test]

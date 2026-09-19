@@ -58,7 +58,9 @@ pub const ARMOR_PAD_AMOUNT: i32 = 25;
 /// Solo Broadcast Episode 0: NODS frags the meatbag must clear.
 pub const EP0_NODS_GOAL: u32 = 5;
 /// Soft-touch radius for the jammer dish (arena center).
-pub const EP0_JAMMER_RADIUS: f32 = 3.0;
+/// Matches client ground ring (`RING_RADIUS` 6.2) plus player radius slack so
+/// standing on the visible pad seizes; a 3.0 hub soft-locked first Calibration.
+pub const EP0_JAMMER_RADIUS: f32 = 6.5;
 
 /// Axis-aligned scrap solid in XZ (Godot props mirrored for authoritative cover).
 #[derive(Debug, Clone, Copy)]
