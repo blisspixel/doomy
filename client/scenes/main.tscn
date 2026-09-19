@@ -386,6 +386,25 @@ expand_mode = 1
 stretch_mode = 5
 visible = false
 
+[node name="FpMuzzle" type="TextureRect" parent="HUD"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -220.0
+offset_right = -10.0
+offset_bottom = -80.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+texture_filter = 0
+expand_mode = 1
+stretch_mode = 5
+pivot_offset = Vector2(70, 70)
+visible = false
+
 [node name="WarmupTv" type="Control" parent="HUD"]
 anchors_preset = 15
 anchor_right = 1.0

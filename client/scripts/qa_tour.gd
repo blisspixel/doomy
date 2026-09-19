@@ -25,6 +25,7 @@ var _results: Array = []
 var _clock_ms: int = 0
 var _joined: bool = false
 var _strip_for_state: String = ""
+var _probe_frames: int = 0
 ## Frames between the trigger and the first strip frame. The shot is resolved by
 ## the server, so the flash arrives a round trip later, not on the next frame.
 const STRIP_LEAD_FRAMES: int = 2
@@ -87,6 +88,7 @@ func _run() -> void:
 			_strip_for_state = strip_name
 		else:
 			_strip_for_state = ""
+			_probe_frames = 0
 
 		_pose_camera(state.get("camera", "none"))
 		await RenderingServer.frame_post_draw
@@ -120,6 +122,7 @@ func _run() -> void:
 			"file": file_name,
 			"world_file": world_name,
 			"strip_file": _strip_for_state,
+			"probe_visible_frames": _probe_frames,
 			"width": shot.get_width(),
 			"height": shot.get_height(),
 			"hud_coverage": snappedf(measured.get("hud_coverage", 0.0), 0.0001),
@@ -201,6 +204,14 @@ func _measure() -> Dictionary:
 ## Pull the trigger and keep every frame of what follows, tiled into one image.
 func _capture_strip(state: Dictionary, frames: int, file_name: String) -> void:
 	var trigger: String = state.get("trigger", "")
+	# A named node to watch while the strip runs. An effect that lasts a frame
+	# or two is easy to miss by eye and easy to believe is absent, so the tour
+	# counts the frames it was actually up instead of leaving it to the eye.
+	var probe_name: String = state.get("probe", "")
+	var probe: Node = get_root().find_child(probe_name, true, false) if probe_name != "" else null
+	_probe_frames = 0
+	if probe_name != "" and probe == null:
+		push_warning("qa_tour: no node named " + probe_name + " to watch")
 	if trigger == "fire":
 		Input.action_press("fire")
 	for _i in range(STRIP_LEAD_FRAMES):
@@ -208,6 +219,8 @@ func _capture_strip(state: Dictionary, frames: int, file_name: String) -> void:
 	var shots: Array[Image] = []
 	for _i in range(frames):
 		await RenderingServer.frame_post_draw
+		if probe != null and bool(probe.get("visible")):
+			_probe_frames += 1
 		var img: Image = _grab()
 		if img != null:
 			img.convert(Image.FORMAT_RGBA8)
@@ -232,7 +245,12 @@ func _capture_strip(state: Dictionary, frames: int, file_name: String) -> void:
 	if err != OK:
 		push_error("qa_tour: strip failed (%s)" % str(err))
 		return
-	print("qa_tour: %s -> %s (%d frames)" % [state.get("name", ""), file_name, shots.size()])
+	if probe_name != "":
+		print("qa_tour: %s -> %s (%d frames, %s up for %d)" % [
+			state.get("name", ""), file_name, shots.size(), probe_name, _probe_frames,
+		])
+	else:
+		print("qa_tour: %s -> %s (%d frames)" % [state.get("name", ""), file_name, shots.size()])
 
 func _find_hud() -> Node:
 	return get_root().find_child("HUD", true, false)
