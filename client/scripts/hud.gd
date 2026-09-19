@@ -1,5 +1,7 @@
 extends CanvasLayer
 
+const StanceChipScript = preload("res://scripts/stance_chip.gd")
+
 ## Fired whenever the Host takes the air so the radio can duck underneath.
 signal host_spoke(seconds: float)
 
@@ -263,27 +265,7 @@ func update_scoreboard():
 	scoreboard.text = text if len(sorted_scores) > 0 else "SCRAP LEAGUE\n" + league_mode_name.to_upper() + "\n(waiting for scrap)"
 
 func _short_behavior(behavior: String) -> String:
-	match behavior:
-		"Aggressive":
-			return "AGG"
-		"Defensive":
-			return "DEF"
-		"Flanker":
-			return "FLK"
-		"Balanced":
-			return "BAL"
-		"Compliance":
-			return "CMP"
-		"push_enemy":
-			return "PSH"
-		"fall_back_heal":
-			return "HL"
-		"hold_angle":
-			return "HLD"
-		"kite_distance":
-			return "KIT"
-		_:
-			return behavior.substr(0, 3).to_upper()
+	return StanceChipScript.short(behavior)
 
 func sync_scores_from_players(player_list: Array):
 	var next_scores = {}
@@ -864,31 +846,32 @@ func set_followed_weapon(weapon_name: String, player_name: String = "", behavior
 
 	followed_player_name = player_name
 
-	if weapon_name == "" or not weapon_textures.has(weapon_name):
+	var weapon_desc = ""
+	var has_weapon = weapon_name != "" and weapon_textures.has(weapon_name)
+	if has_weapon:
+		match weapon_name:
+			"Flechette":
+				weapon_desc = "FLECHETTE (mid)"
+			"Rail":
+				weapon_desc = "RAIL (long)"
+			"Scatter":
+				weapon_desc = "SCATTER (close)"
+
+	# Stance stays loud even when the followed pawn has no known weapon yet.
+	if player_name == "" and not has_weapon:
 		weapon_label.text = ""
+		weapon_label.remove_theme_color_override("font_color")
 		weapon_icon.visible = false
 		return
 
-	var weapon_desc = ""
-	match weapon_name:
-		"Flechette":
-			weapon_desc = "FLECHETTE (mid)"
-		"Rail":
-			weapon_desc = "RAIL (long)"
-		"Scatter":
-			weapon_desc = "SCATTER (close)"
-
-	var display_text = weapon_desc
-	if player_name != "":
-		var role_chip = ""
-		if behavior != "":
-			role_chip = " [" + _short_behavior(behavior) + "]"
-		display_text = "FOLLOWING: " + player_name + role_chip + "\n" + weapon_desc
-
-	weapon_label.text = display_text
-	weapon_icon.texture = weapon_textures[weapon_name]
-	weapon_icon.modulate = Color(1.15, 1.1, 1.05, 1)
-	weapon_icon.visible = true
+	weapon_label.text = StanceChipScript.follow_line(player_name, behavior, weapon_desc)
+	weapon_label.add_theme_color_override("font_color", StanceChipScript.accent_color(behavior != ""))
+	if has_weapon:
+		weapon_icon.texture = weapon_textures[weapon_name]
+		weapon_icon.modulate = Color(1.15, 1.1, 1.05, 1)
+		weapon_icon.visible = true
+	else:
+		weapon_icon.visible = false
 
 func _process(delta):
 	if warmup_tv_linger_timer > 0:

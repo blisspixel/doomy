@@ -1,5 +1,7 @@
 extends Node3D
 
+const StanceChipScript = preload("res://scripts/stance_chip.gd")
+
 var player_id: String = ""
 var player_name: String = ""
 var hp: int = 100
@@ -187,22 +189,6 @@ func update_state(state: Dictionary):
 		behavior = ""
 	
 	if label:
-		var behavior_chip = ""
-		if behavior != "":
-			var short = behavior
-			match behavior:
-				"Aggressive":
-					short = "AGG"
-				"Defensive":
-					short = "DEF"
-				"Flanker":
-					short = "FLK"
-				"Balanced":
-					short = "BAL"
-				"Compliance":
-					short = "CMP"
-			behavior_chip = " [" + short + "]"
-		
 		var hp_display = str(hp) + " HP"
 		if hp < 30:
 			hp_display = "!" + hp_display + "!"
@@ -212,7 +198,12 @@ func update_state(state: Dictionary):
 		if score > 0:
 			score_chip = " +" + str(score)
 		
-		label.text = player_name + score_chip + " [" + hp_display + "]" + behavior_chip
+		# Stance beside callsign so follow / overview reads it without Tab.
+		label.text = StanceChipScript.nameplate(player_name, behavior, hp_display, score_chip)
+		if behavior != "":
+			label.modulate = StanceChipScript.accent_color(true)
+		else:
+			label.modulate = player_color
 	
 	if muzzle and state.get("just_fired", false):
 		var weapon = state.get("weapon", "")
