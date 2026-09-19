@@ -641,7 +641,9 @@ pub fn reflex_action(bot_id: Uuid, snapshot: &Snapshot, arena: &Arena) -> Action
     // does not fill with pointless swaps.
     let wanted = weapon_for_distance(dist);
     let weapon_swap = (weapon_from_wire(&me.weapon) != Some(wanted)).then_some(wanted);
-    // Do not shoot the wall in front of the enemy.
+    // Do not shoot the wall in front of the enemy. Behind cover, keep closing
+    // rather than standing there: an agent that cannot see its target should
+    // move to clear the corner, which is also what stops it looking stuck.
     let clear = arena.line_of_sight((me.x, me.z), (target_x, target_z));
     Action {
         look_at: Some(LookAt {
@@ -649,7 +651,12 @@ pub fn reflex_action(bot_id: Uuid, snapshot: &Snapshot, arena: &Arena) -> Action
             x: None,
             z: None,
         }),
-        forward: dist > CLOSE_RANGE,
+        forward: dist > CLOSE_RANGE || !clear,
+        // Walking straight into a pillar is how an agent gets pinned. While it
+        // cannot see its target it also slides, alternating every second, so a
+        // corner is something it goes around rather than into.
+        left: !clear && snapshot.tick % 40 < 20,
+        right: !clear && snapshot.tick % 40 >= 20,
         fire: clear && dist < FIRE_RANGE,
         weapon_swap,
         ..Action::default()
@@ -770,18 +777,21 @@ pub fn planner_action(bot_id: Uuid, snapshot: &Snapshot, arena: &Arena) -> Actio
     // rather than standing still, which is the whole difference from a reflex
     // agent that only ever charges.
     let (comfortable, ideal) = preferred_band(wanted);
-    let holding = dist >= comfortable && dist <= ideal;
+    let clear = arena.line_of_sight((me.x, me.z), (enemy.x, enemy.z));
+    // With cover in the way the band does not matter: step out and look.
+    let holding = clear && dist >= comfortable && dist <= ideal;
     Action {
         look_at: Some(LookAt {
             player_id: Some(enemy.id),
             x: None,
             z: None,
         }),
-        forward: dist > ideal,
-        back: dist < comfortable,
-        left: holding && snapshot.tick % 40 < 20,
-        right: holding && snapshot.tick % 40 >= 20,
-        fire: arena.line_of_sight((me.x, me.z), (enemy.x, enemy.z)) && dist < wanted.range_units(),
+        forward: dist > ideal || !clear,
+        back: clear && dist < comfortable,
+        // Always strafing while it cannot see is what clears a corner.
+        left: (holding || !clear) && snapshot.tick % 40 < 20,
+        right: (holding || !clear) && snapshot.tick % 40 >= 20,
+        fire: clear && dist < wanted.range_units(),
         weapon_swap,
         ..Action::default()
     }
@@ -1947,10 +1957,20 @@ mod line_of_sight_tests {
         );
         assert!(planner_action(me, &snap, &clear).fire);
         assert!(!planner_action(me, &snap, &blocked).fire);
-        // Holding fire does not mean standing still: the agent still aims and
-        // moves, so it can clear the corner.
+        // Holding fire must not mean standing still. An agent that cannot see
+        // its target moves to clear the corner, which is both better play and
+        // the reason the harness does not flag it as stuck.
         let action = reflex_action(me, &snap, &blocked);
-        assert!(action.look_at.is_some());
         assert_eq!(action.look_at.as_ref().unwrap().player_id, Some(foe));
+        assert!(action.forward, "blind: close in rather than stand");
+        let action = planner_action(me, &snap, &blocked);
+        assert!(
+            action.forward || action.left || action.right,
+            "blind: move to find a line, got {action:?}"
+        );
+        // And once the line is clear it settles back into its band.
+        let holding = planner_action(me, &snap, &clear);
+        assert!(!holding.forward, "ten units is the flechette band");
+        assert!(holding.left || holding.right);
     }
 }

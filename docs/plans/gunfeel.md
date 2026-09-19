@@ -89,10 +89,12 @@ The open question this left was firing discipline, and it has now been answered.
 
 | | Firing blind | Checking the line |
 |---|---|---|
-| Accuracy | 15 to 17% | 55 to 65% |
-| Shots per kill | 22 to 25 | 5.0 to 6.2 |
-| Shots fired per run | 650 to 1570 | 262 to 294 |
-| Time to kill p50 | 0.90 to 2.05 s | 0.90 to 2.10 s |
+| Accuracy | 15 to 17% | 54 to 64% |
+| Shots per kill | 22 to 25 | 5.3 to 6.9 |
+| Shots fired per run | 650 to 1570 | 234 to 348 |
+| Time to kill p50 | 0.90 to 2.05 s | 1.05 to 1.65 s |
+
+Giving agents the map changed their movement as well as their trigger, and the first attempt made them worse at one thing: an agent that could not see its target stood still, which the harness correctly flagged as stuck. Holding fire cannot mean standing there. Both policies now keep moving while blind, sliding left and right in turn so a pillar is something they go around rather than walk into, and the stuck threshold passes on every seed.
 
 The weapon table is vindicated by the second column rather than the first. A kill needs three to four clean hits; at sixty percent accuracy that is about five point eight shots, and the measurement says five to six. Time to kill did not move, which is the control: the guns did not change, only what the agents chose to shoot at.
 
