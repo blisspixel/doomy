@@ -246,13 +246,27 @@ func _capture_midjoin_host_flash(out_dir: String) -> void:
 
 
 
+# Ember / rust orange floors for live hangar jammer stills (Soft Prison orange≈0.01 = empty).
+const JAMMER_ORANGE_FLOOR_FOLLOW: float = 0.05
+const JAMMER_ORANGE_FLOOR_OVERVIEW: float = 0.03
+const JAMMER_ORANGE_FLOOR_LABEL: float = 0.05
+
+
 func _force_live_jammer_dish(gm: Node) -> void:
-	# Latch so nods-phase Snapshot nulls cannot hide the forced live dish mid-capture.
+	# Latch so Snapshot nulls and post-seize green cannot wipe ember tip face mid-capture.
 	if "tip_force_jammer_dish" in gm:
 		gm.tip_force_jammer_dish = true
 	var hud: Node = gm.get_node_or_null("HUD")
 	if hud != null and hud.has_method("set_map_name"):
 		hud.set_map_name("Larak Lot")
+	if hud != null and hud.has_method("set_episode_chrome"):
+		hud.set_episode_chrome(
+			"ep0",
+			"Solo Broadcast: Calibration",
+			"Clear NODS. Seize jammer dish. Drop the Auditor.",
+			"SEIZE JAMMER",
+			"jammer"
+		)
 	if not gm.has_method("_sync_jammer_dish"):
 		return
 	var dish := {
@@ -265,8 +279,38 @@ func _force_live_jammer_dish(gm: Node) -> void:
 	gm.call("_sync_jammer_dish", dish)
 
 
+func _lock_tip_camera_pose() -> void:
+	var gm: Node = _find_game_manager()
+	if gm == null:
+		return
+	var cam_root: Node = gm.get_node_or_null("SpectatorCamera")
+	if cam_root == null:
+		return
+	if "tip_pose_lock" in cam_root:
+		cam_root.tip_pose_lock = true
+	if "follow_mode" in cam_root:
+		cam_root.follow_mode = false
+	if "frag_follow_timer" in cam_root:
+		cam_root.frag_follow_timer = 0.0
+	if "frag_follow_target_id" in cam_root:
+		cam_root.frag_follow_target_id = ""
+	if "fp_mode" in cam_root:
+		cam_root.fp_mode = false
+
+
+func _unlock_tip_camera_pose() -> void:
+	var gm: Node = _find_game_manager()
+	if gm == null:
+		return
+	var cam_root: Node = gm.get_node_or_null("SpectatorCamera")
+	if cam_root == null:
+		return
+	if "tip_pose_lock" in cam_root:
+		cam_root.tip_pose_lock = false
+
+
 func _capture_jammer_dish_proof(out_dir: String) -> void:
-	# Live hangar tip face: force dish + aim so stills include the bowl under
+	# Live hangar tip face: force jammer-live dish + aim so stills include the bowl under
 	# racks / killfeed / HUD (studio black-void proof alone is not tip face).
 	var gm: Node = _find_game_manager()
 	if gm == null:
@@ -276,8 +320,9 @@ func _capture_jammer_dish_proof(out_dir: String) -> void:
 		push_warning("tip_capture: GameManager missing _sync_jammer_dish; skip jammer dish proof")
 		return
 
+	_lock_tip_camera_pose()
 	_force_live_jammer_dish(gm)
-	# Let one Snapshot cycle land; latch must keep the dish visible.
+	# Let one Snapshot cycle land; latch must keep ember live through seize.
 	await create_timer(0.45).timeout
 	_force_live_jammer_dish(gm)
 
@@ -287,15 +332,15 @@ func _capture_jammer_dish_proof(out_dir: String) -> void:
 	_force_live_jammer_dish(gm)
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
-	_save_viewport_png(out_dir, "20_jammer_dish_follow_16x9.png")
+	_save_jammer_viewport_png(out_dir, "20_jammer_dish_follow_16x9.png", JAMMER_ORANGE_FLOOR_FOLLOW)
 
 	# Overview still (~36m corner), dish centered in frame.
-	_pose_overview_camera()
+	_pose_jammer_overview_camera()
 	await create_timer(0.25).timeout
 	_force_live_jammer_dish(gm)
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
-	_save_viewport_png(out_dir, "22_jammer_dish_overview_16x9.png")
+	_save_jammer_viewport_png(out_dir, "22_jammer_dish_overview_16x9.png", JAMMER_ORANGE_FLOOR_OVERVIEW)
 
 	# Closer label-read still so SEIZE JAMMER is unmistakable in hangar light.
 	_pose_jammer_label_camera()
@@ -303,8 +348,9 @@ func _capture_jammer_dish_proof(out_dir: String) -> void:
 	_force_live_jammer_dish(gm)
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
-	_save_viewport_png(out_dir, "23_jammer_dish_seize_label_16x9.png")
+	_save_jammer_viewport_png(out_dir, "23_jammer_dish_seize_label_16x9.png", JAMMER_ORANGE_FLOOR_LABEL)
 
+	_unlock_tip_camera_pose()
 	_restore_follow_camera()
 
 
@@ -325,7 +371,70 @@ func _save_viewport_png(out_dir: String, shot_name: String) -> void:
 	print("tip_capture: wrote ", path, " size=", img.get_width(), "x", img.get_height())
 
 
+func _save_jammer_viewport_png(out_dir: String, shot_name: String, orange_floor: float) -> void:
+	var img: Image = get_root().get_viewport().get_texture().get_image()
+	if img == null:
+		push_error("tip_capture: viewport image was null for " + shot_name)
+		quit(1)
+		return
+	if _looks_like_pink_placeholder(img):
+		push_warning("tip_capture: pink-ish frame for " + shot_name + "; saving anyway for inspection")
+	var orange_ratio: float = _ember_orange_ratio(img)
+	if orange_ratio < orange_floor:
+		push_error(
+			"tip_capture: jammer still %s orange ratio %.4f below floor %.4f (empty hangar / wrong aim / seized wipe)"
+			% [shot_name, orange_ratio, orange_floor]
+		)
+		# Still write for inspection, then fail the capture run.
+		var fail_path: String = out_dir.path_join(shot_name)
+		img.save_png(fail_path)
+		quit(1)
+		return
+	var path: String = out_dir.path_join(shot_name)
+	var err: Error = img.save_png(path)
+	if err != OK:
+		push_error("tip_capture: save_png failed (%s) -> %s" % [str(err), path])
+		quit(1)
+		return
+	print(
+		"tip_capture: wrote ",
+		path,
+		" size=",
+		img.get_width(),
+		"x",
+		img.get_height(),
+		" orange=",
+		"%.4f" % orange_ratio
+	)
+
+
+func _ember_orange_ratio(img: Image) -> float:
+	# Sampled ember / rust footprint. Soft Prison empty hangar read ≈0.01.
+	var w: int = img.get_width()
+	var h: int = img.get_height()
+	if w < 4 or h < 4:
+		return 0.0
+	var orange: int = 0
+	var sampled: int = 0
+	var step: int = 2
+	var y: int = 0
+	while y < h:
+		var x: int = 0
+		while x < w:
+			var c: Color = img.get_pixel(x, y)
+			sampled += 1
+			# Ember dish: high R, mid G, low B (unshaded live tint).
+			if c.r > 0.55 and c.g > 0.15 and c.g < 0.78 and c.b < 0.47 and c.r > c.g and c.r > c.b + 0.12:
+				orange += 1
+			x += step
+		y += step
+	if sampled <= 0:
+		return 0.0
+	return float(orange) / float(sampled)
+
+
 func _pose_jammer_follow_camera() -> void:
+	_lock_tip_camera_pose()
 	var gm: Node = _find_game_manager()
 	if gm == null:
 		return
@@ -334,14 +443,28 @@ func _pose_jammer_follow_camera() -> void:
 		return
 	if cam_root is Node3D:
 		var n3: Node3D = cam_root
-		# ~12m follow: eye-height, looking at dish origin.
+		# ~12m follow: eye-height, looking at dish origin (not racks).
 		n3.global_position = Vector3(0.0, 3.2, 12.0)
 		n3.look_at(Vector3(0.0, 3.5, 0.0), Vector3.UP)
-		if "follow_mode" in n3:
-			n3.follow_mode = false
+
+
+func _pose_jammer_overview_camera() -> void:
+	_lock_tip_camera_pose()
+	var gm: Node = _find_game_manager()
+	if gm == null:
+		return
+	var cam_root: Node = gm.get_node_or_null("SpectatorCamera")
+	if cam_root == null:
+		return
+	if cam_root is Node3D:
+		var n3: Node3D = cam_root
+		# High corner overview aimed at dish origin.
+		n3.global_position = Vector3(0.0, 22.0, 28.0)
+		n3.look_at(Vector3(0.0, 3.5, 0.0), Vector3.UP)
 
 
 func _pose_jammer_label_camera() -> void:
+	_lock_tip_camera_pose()
 	var gm: Node = _find_game_manager()
 	if gm == null:
 		return
@@ -353,8 +476,6 @@ func _pose_jammer_label_camera() -> void:
 		# Mid distance, slightly above, aimed at the SEIZE JAMMER banner.
 		n3.global_position = Vector3(4.0, 6.5, 10.0)
 		n3.look_at(Vector3(0.0, 8.5, 0.0), Vector3.UP)
-		if "follow_mode" in n3:
-			n3.follow_mode = false
 
 
 
@@ -392,6 +513,8 @@ func _restore_follow_camera() -> void:
 	var cam_root: Node = gm.get_node_or_null("SpectatorCamera")
 	if cam_root == null:
 		return
+	if "tip_pose_lock" in cam_root:
+		cam_root.tip_pose_lock = false
 	if "follow_mode" in cam_root:
 		cam_root.follow_mode = true
 
@@ -479,6 +602,7 @@ func _capture_human_join_fp(out_dir: String) -> void:
 	_aim_local_fp_at_jammer(gm)
 	await create_timer(0.45).timeout
 	_force_live_jammer_dish(gm)
+	_aim_local_fp_at_jammer(gm)
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
 

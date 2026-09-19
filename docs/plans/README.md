@@ -23,6 +23,7 @@ Status words: **planned**, **in flight**, **shipped** (merged to `main`, PR numb
 | [`jammer-dish-silhouette.md`](./jammer-dish-silhouette.md) | **shipped** (#116) | Unmissable Godot jammer dish silhouette in-camera for Solo Broadcast phase two. |
 | [`jammer-dish-unmissable.md`](./jammer-dish-unmissable.md) | **shipped** (#123) | Studio dish unmissable + footprint harness; live tip_capture gap owned by live-tip-dish-map-chip. |
 | [`live-tip-dish-map-chip.md`](./live-tip-dish-map-chip.md) | **shipped** (#125) | Live tip_capture hangar dish + kill Hangar Candy dual map chip on Larak Lot. |
+| [`tip-capture-dish-gate.md`](./tip-capture-dish-gate.md) | **in flight** | Live tip_capture hangar dish gate: tip_force survives seize, pose lock, orange pixel CI. |
 | [`tip-stills-hangar-guns.md`](./tip-stills-hangar-guns.md) | **in flight** | README tip face: v0.13.0 hangar dish + guns that kill (not Episode 0 lead). |
 | [`host-per-nods-tick.md`](./host-per-nods-tick.md) | **shipped** (#120) | Soft juice: Host / HUD beat on every Solo Broadcast NODS clear, not only the first. |
 | [`spectator-stance-chips.md`](./spectator-stance-chips.md) | **shipped** (#119) | Loud Tab-less stance chips on Warmup TV, follow HUD, and nameplates. |

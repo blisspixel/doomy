@@ -2,7 +2,7 @@
 
 ## Current status: live tip captures + archived mood plates
 
-Tip embeds show the **v0.13.0 hangar / guns** face: jammer dish in the live hangar (SEIZE JAMMER, LARAK LOT chip, Hangar Candy chrome strip off), weapons and frags that kill, Join FP scrap juice, Contested Frequency spectator HUD. Captured with Godot 4.7.2-stable under Xvfb + opengl3 against a loopback `fragr-server --bots 4 --solo-broadcast` via `tools/capture_tip_screenshots.sh` on tip after #125.
+Tip embeds show the **v0.13.0 hangar / guns** face: jammer dish in the live hangar (SEIZE JAMMER, LARAK LOT chip, Hangar Candy chrome strip off), weapons and frags that kill, Join FP scrap juice, Contested Frequency spectator HUD. Captured with Godot 4.7.2-stable under Xvfb + opengl3 against a loopback `fragr-server --bots 4 --solo-broadcast` via `tools/capture_tip_screenshots.sh`. Live jammer stills must clear the orange footprint gate (`tools/gate_tip_jammer_orange.py`); no dish-claim tag until Testy re-Casino.
 
 Archived mood / concept plates remain under `mood/` for vision direction only. Do not treat mood plates as tip gameplay proof.
 
@@ -26,11 +26,11 @@ README screenshots MUST match the current playable UI. Stale mood stubs labeled 
 | `11_tip_warmup_tv_bumper_16x9.png` | 16:9 | Live tip: Warmup Contested Frequency TV bumper (Larak Lot face) |
 | `12_tip_calibration_larak_16x9.png` | 16:9 | Live tip: Solo Broadcast Calibration chrome on Larak Lot (secondary; not README lead) |
 
-Recaptured on tip `cc4eff9` (#125 live tip_capture hangar dish + Hangar Candy dual chip gone; #124 guns that kill) via `tools/capture_tip_screenshots.sh`. README tip gallery leads with dish + weapons.
+Recaptured on tip after tip-capture-dish-gate (tip_force survives seize, pose lock, orange gate) via `tools/capture_tip_screenshots.sh`. README tip gallery leads with dish + weapons.
 
 ## Jammer dish proof (stranger eyes)
 
-Studio void `capture_jammer_dish_proof.sh` is harness-only. Tip face is the live hangar stills above (20 / 22 / 23). Hangar Candy chrome strip is off on Larak Lot. No dish-claim tag until Testy re-Casino.
+Studio void `capture_jammer_dish_proof.sh` is harness-only. Tip face is the live hangar stills above (20 / 22 / 23), gated on ember orange footprint so empty re-runs fail. Hangar Candy chrome strip is off on Larak Lot. No dish-claim tag until Testy re-Casino.
 
 ## Mood plates (archived)
 
