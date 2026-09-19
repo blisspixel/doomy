@@ -213,6 +213,12 @@ func _apply_map_from_snapshot(snapshot: Dictionary) -> void:
 	var map_id = int(snapshot.get("map_id", 1))
 	if map_id < 1:
 		map_id = 1
+	# Always prefer Snapshot map_name for HUD / playlist face (Solo Broadcast
+	# publishes "Larak Lot" on map 1). Do not keep a stale Hangar Candy chip
+	# when layout geometry is unchanged across snapshots.
+	var map_name = str(snapshot.get("map_name", "")).strip_edges()
+	if map_name != "" and hud and hud.has_method("set_map_name"):
+		hud.set_map_name(map_name)
 	if map_id == current_map_id and arena.get_node_or_null("Layout") != null:
 		return
 	current_map_id = map_id
@@ -231,12 +237,10 @@ func _apply_map_from_snapshot(snapshot: Dictionary) -> void:
 	layout.name = "Layout"
 	arena.add_child(layout)
 	arena.move_child(layout, 0)
-	var map_name = str(snapshot.get("map_name", "Arena Duel"))
+	if map_name == "":
+		map_name = str(snapshot.get("map_name", "Arena Duel"))
 	if hud and hud.has_method("set_map_name"):
 		hud.set_map_name(map_name)
-	elif hud:
-		# Fallback: fold map into status once.
-		pass
 
 func _on_connected():
 	hud.set_status("Connected to server")
@@ -277,6 +281,9 @@ func _on_snapshot_received(data):
 	var host_line = str(data.get("host_line", ""))
 	
 	hud.set_league_identity(mode_name, playlist)
+	var snap_map = str(data.get("map_name", "")).strip_edges()
+	if snap_map != "" and hud.has_method("set_map_name"):
+		hud.set_map_name(snap_map)
 	if pressure == null:
 		hud.set_pressure("")
 	else:
