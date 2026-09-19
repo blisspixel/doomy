@@ -62,20 +62,24 @@ Head 8 × 5 directions × 4 key poses = 160 frames. Torso the same shape, 120 fr
 
 ## 2. Enemies
 
-Not players. Survival and campaign.
+Not players. Survival and campaign. The canonical roster, with what each type does and how it is answered, is [`docs/ENEMIES.md`](./ENEMIES.md); this section is only the frames.
 
 | Enemy | Status | Frames | Note |
 |---|---|---|---|
-| Compliance Drone | have (placeholder) | 115 | The existing boss beat |
-| Sweeper | need | 115 | The basic Survival horde body, cheap and numerous |
+| Compliance Drone | have (placeholder) | 115 | Existing boss, demoted to elite when the roster lands |
+| Clerk | need | 92 | Small, upright, clipboard. The tutorial enemy |
+| Sweeper | need | 115 | The basic body, cheap and numerous |
 | Sweeper, ranged | need | 115 | Same silhouette, different colour and fire pose |
-| Sweeper, heavy | need | 115 | The one that changes how a wave plays |
+| Sweeper, heavy | need | 115 | Same silhouette again, wider and slower |
 | Crawler | need | 92 | Low to the ground, no fire state |
+| Jammer | need | 60 | Squat and stationary. Idle, fire, damaged, destroyed |
+| Enforcer | need | 115 | Heavy, armoured, a wind-up before the charge |
 | Turret | need | 24 | Static: idle, fire, damaged, destroyed |
-| Auditor | need | 115 | The named antagonist from the lore |
-| Field boss | need | 160 | One per campaign act, larger canvas at 128 px |
+| Redactor | need | 115 | Invisible until it fires, so the fire frames carry it |
+| Auditor | need | 115 | Floats, clipboard shield, resurrects Clerks |
+| Continuance Walker | need | 160 | Episode boss, larger canvas at 128 px |
 
-Eight enemies, about 850 frames, plus three more bosses as the campaign grows.
+Twelve entries, about 1130 frames. The Sweeper family shares one body across three variants, distinguished by colour and by how they move, because a family you can read at a glance is worth more than three unrelated shapes.
 
 ---
 
@@ -237,7 +241,7 @@ Eleven families, about 67 props.
 | Group | Frames, roughly |
 |---|---|
 | Fighters and customization | 1135 |
-| Enemies | 850 |
+| Enemies | 1130 |
 | Weapons and melee | 220 |
 | Effects | 90 |
 | Tiles | 106 |

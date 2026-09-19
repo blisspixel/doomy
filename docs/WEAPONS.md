@@ -10,6 +10,8 @@ Balance numbers live here and nowhere else. `plans/gunfeel.md` explains how they
 
 Everything else in this file is found on the floor, kept until you die, and lost when you do. That is Doom's rule rather than Quake's, and it is the rule the pickup economy is built on: a starter weapon you always have is a starter weapon nobody ever leaves, and walking to a gun has to be a decision or the map is just scenery.
 
+Nobody is a class. There are no loadouts and no roles: if you are sniping it is because you walked to where the rail was. The enemies are the opposite, and deliberately so. A Continuance unit has one shape, one behaviour and one attack, and it never varies, so you learn a silhouette once and know it forever. That roster is [`docs/ENEMIES.md`](./ENEMIES.md).
+
 ## The ladder
 
 | # | Weapon | Role | Damage | Cooldown | Bare kill | Ammunition | Where |
