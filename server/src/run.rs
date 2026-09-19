@@ -90,6 +90,8 @@ pub async fn run_server(
             _ = tick_interval.tick() => {
                 let messages = session.tick_messages(TICK.as_secs_f32());
                 broadcast_to_clients(&clients, &messages).await;
+                let unicasts = session.take_unicasts();
+                send_unicasts_to_players(&clients, &session.client_to_player, &unicasts).await;
             }
 
             Some(cmd) = game_rx.recv() => {

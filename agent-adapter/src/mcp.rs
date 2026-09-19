@@ -226,6 +226,10 @@ pub fn validate_act_arguments(arguments: &Value) -> Result<Action, String> {
         fire: bool_field("fire"),
         weapon_swap,
         look_at,
+        // MCP agents aim with look_at and the turn bits; they do not own a
+        // facing and do not predict, so neither field is set here.
+        yaw: None,
+        seq: None,
     })
 }
 
@@ -853,6 +857,8 @@ pub fn ingest_server_text(state: &mut ToolState, text: &str) {
                 state.last_snapshot = Some(snapshot_value);
             }
         }
+        // Acks go only to predicting clients; the adapter ignores them.
+        Ok(protocol::ServerMessage::Ack { .. }) => {}
         Ok(protocol::ServerMessage::Event(event)) => {
             if let Ok(event_value) = serde_json::to_value(event) {
                 push_recent_event(state, event_value);

@@ -339,6 +339,16 @@ pub enum ServerMessage {
     },
     Snapshot(Snapshot),
     Event(GameEvent),
+    /// Unicast acknowledgement of the newest input applied to this client's
+    /// fighter, with the authoritative state it produced. Sent every tick to a
+    /// client that numbers its inputs; the basis for client-side prediction.
+    Ack {
+        seq: u32,
+        tick: u64,
+        x: f32,
+        z: f32,
+        yaw: f32,
+    },
     /// Unicast control-plane rejection (e.g. speak rate limit). Not broadcast.
     Error {
         code: String,
@@ -402,6 +412,17 @@ pub struct Action {
     /// Authoritative aim: yaw snaps toward player_id (preferred) or world x/z.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub look_at: Option<LookAt>,
+    /// Client-owned absolute facing in radians. When present the server takes
+    /// it as the fighter's yaw for this input instead of turning at a fixed
+    /// rate from the turn bits, so the look axis never round-trips the network.
+    /// Non-finite values are ignored. Agents may send it or keep the bits.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub yaw: Option<f32>,
+    /// Input sequence number. The server acknowledges the newest sequence it
+    /// applied so a predicting client can reconcile. Absent for clients that
+    /// do not predict.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seq: Option<u32>,
 }
 
 /// Per-tick fire outcome for observe (hit-confirm without vision).
