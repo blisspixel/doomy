@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `feat/live-tip-dish-map-chip`
 **Spend:** $0. Loopback. No Cloud Agent. No second dish-claim tag.
-**Status:** ready for PR
+**Status:** shipped (#125).
 **Tip base:** main `cee91d6` / `v0.13.0` (#123 dish + #124 guns). Casino on #123: studio dish_proof CLEARS; live tip_capture / FP hangar still miss.
 
 ## Goal
