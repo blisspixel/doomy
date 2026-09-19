@@ -286,6 +286,7 @@ impl GameSession {
         }
 
         self.state.tick(dt);
+        self.pending_unicasts.extend(self.state.input_acks());
 
         let mut out = Vec::new();
         out.push(ServerMessage::Snapshot(self.state.snapshot()));

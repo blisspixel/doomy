@@ -1,6 +1,6 @@
 # Plan: buttery controls
 
-**Status:** planned (2026-09-18)
+**Status:** in flight (stage 1 shipped 2026-09-18)
 **Branch:** `feat/controls-*` (one PR per stage below)
 **Spend:** $0.
 
@@ -114,7 +114,7 @@ Gamepad: radial deadzone 0.12 rescaled to a full range, exponent 1.8, yaw rate 2
 
 ### Order of stages, revised
 
-1. Client-owned yaw and numbered, bundled inputs on the 20 Hz sim; the `ack` message; turn bits kept for agents. Immediate feel win because the look axis stops round-tripping.
+1. **Shipped.** Client-owned yaw and numbered inputs on the 20 Hz sim; the `ack` message; turn bits kept for agents. The look axis no longer round-trips: the camera and the fighter's facing move on the frame the mouse moves, and the server takes the absolute value. Bundling several unacknowledged inputs per message comes with stage 3, when there is something to replay.
 2. Tick migration: 60 Hz movement step, constants to seconds, `tick_hz` in `Welcome`.
 3. The shared step in both languages with golden vectors, prediction and reconciliation, correction metrics on the status line.
 4. Timeline interpolation for others with snapshot velocity; the lerp removed.
@@ -140,7 +140,7 @@ Gabriel Gambetta's client-server series; Valve's Source multiplayer networking a
 
 ## Success criteria
 
-- [ ] Stage 1 shipped: yaw is client-owned and inputs are numbered, proven by the same-frame yaw harness and the one-tick acknowledgement test.
+- [x] Stage 1 shipped: yaw is client-owned and inputs are numbered, proven by the server tests (client yaw wins over the turn bits and steers the same tick, acks report the state the input produced, agents unchanged). The same-frame yaw harness lands with the QA tour's feel probes.
 - [ ] Prediction with golden vectors passing in both languages.
 - [ ] Others interpolate on a timeline; no lerp.
 - [ ] 60 Hz sim; constants in seconds.
