@@ -217,10 +217,11 @@ func _refresh_map_chip_badge() -> void:
 		hangar_candy_badge.visible = false
 	# chrome_strip_hud.png bakes Hangar Candy as a third top chip. During Solo
 	# Broadcast (Larak Lot) that reads as a second map name beside MapChipLabel.
-	# Keep OnAir + ContestedFrequency badges; strip off when map is Larak Lot.
+	# The strip is also spectator furniture, so it never comes back while a
+	# person is playing; this used to re-show it after the chrome decided not to.
 	if chrome_strip:
 		var solo_larak = map_label.strip_edges().to_lower() == "larak lot"
-		chrome_strip.visible = not solo_larak
+		chrome_strip.visible = not solo_larak and client_mode == "SPECTATING"
 
 
 func set_status(text: String):
@@ -252,6 +253,7 @@ func set_mode(mode: String):
 	_refresh_mode_label()
 	_refresh_telemetry_lines()
 	_refresh_map_chip_badge()
+	_update_broadcast_chrome(round_chrome_state)
 
 ## Connection status, wall clock, and head count are for whoever is debugging
 ## the client, not for someone in a firefight. The round line already carries
@@ -533,7 +535,13 @@ func _update_broadcast_chrome(state: String) -> void:
 	var ended = state == "Ended"
 	# Do not re-show the Hangar Candy strip during Solo Broadcast / Larak Lot.
 	var solo_larak = map_label.strip_edges().to_lower() == "larak lot"
-	var strip_shown = chrome_strip != null and not solo_larak
+	# The station is a thread through the world, not the world. Watching a
+	# broadcast is the point of the spectator view and the round bumper, so
+	# the strip lives there. A person behind a gun gets the world, and the
+	# highest-contrast thing on their screen should not be a network ident
+	# parked where the killfeed belongs.
+	var spectating = client_mode == "SPECTATING"
+	var strip_shown = chrome_strip != null and not solo_larak and spectating
 	if chrome_strip:
 		chrome_strip.visible = strip_shown
 		var a = 0.92 if live else (0.88 if warm else 0.7)
@@ -543,12 +551,12 @@ func _update_broadcast_chrome(state: String) -> void:
 	# on screen twice, which the first visual QA tour caught. They are the
 	# fallback for when the strip is not up, not a second copy of it.
 	if on_air_badge:
-		on_air_badge.visible = live and not strip_shown
+		on_air_badge.visible = live and not strip_shown and spectating
 		if on_air_badge.visible:
 			on_air_badge.modulate = Color(1, 1, 1, 0.95)
 	if contested_frequency_badge:
 		# Warm on Warmup / Host face; quieter while live so ON AIR owns the scrap.
-		contested_frequency_badge.visible = not strip_shown
+		contested_frequency_badge.visible = not strip_shown and spectating
 		var ca = 0.95 if warm else (0.72 if live else 0.8)
 		contested_frequency_badge.modulate = Color(0.95, 0.95, 0.98, ca)
 	# Map chip is Snapshot map_name (see _refresh_map_chip_badge). Never re-show
@@ -996,9 +1004,18 @@ func set_followed_weapon(weapon_name: String, player_name: String = "", behavior
 			weapon_icon_bg.visible = false
 		return
 
-	weapon_label.text = StanceChipScript.follow_line(player_name, behavior, weapon_desc)
+	# "FOLLOWING: Human Player" is what a player was told about themselves.
+	# The line is for a spectator watching someone else.
+	if client_mode != "SPECTATING":
+		weapon_label.text = weapon_desc
+	else:
+		weapon_label.text = StanceChipScript.follow_line(player_name, behavior, weapon_desc)
 	weapon_label.add_theme_color_override("font_color", StanceChipScript.accent_color(behavior != ""))
-	if has_weapon:
+	# A player already has the gun in their hands, drawn large in the corner
+	# this icon sits in. Two pictures of the same weapon, one of them in a
+	# dark box, is one too many. The icon is how a spectator knows what the
+	# fighter they are watching is holding.
+	if has_weapon and client_mode == "SPECTATING":
 		weapon_icon.texture = weapon_textures[weapon_name]
 		weapon_icon.modulate = Color(1.15, 1.1, 1.05, 1)
 		weapon_icon.visible = true
