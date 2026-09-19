@@ -58,7 +58,9 @@ pub const ARMOR_PAD_AMOUNT: i32 = 25;
 /// Solo Broadcast Episode 0: NODS frags the meatbag must clear.
 pub const EP0_NODS_GOAL: u32 = 5;
 /// Soft-touch radius for the jammer dish (arena center).
-pub const EP0_JAMMER_RADIUS: f32 = 3.0;
+/// Matches client ground ring (`RING_RADIUS` 6.2) plus player radius slack so
+/// standing on the visible pad seizes; a 3.0 hub soft-locked first Calibration.
+pub const EP0_JAMMER_RADIUS: f32 = 6.5;
 
 /// Axis-aligned scrap solid in XZ (Godot props mirrored for authoritative cover).
 #[derive(Debug, Clone, Copy)]
@@ -141,6 +143,25 @@ impl MapKind {
     }
 
     /// Scrap chokes matching Godot arena scenes.
+    /// The same solids as `obstacles`, in the shared wire shape, for clients
+    /// and agents that need to reason about cover.
+    pub fn solids(self) -> Vec<crate::movement::Solid> {
+        self.obstacles()
+            .into_iter()
+            .map(|o| crate::movement::Solid {
+                min_x: o.min_x,
+                max_x: o.max_x,
+                min_z: o.min_z,
+                max_z: o.max_z,
+            })
+            .collect()
+    }
+
+    /// Half width of the playable square, centred on the origin.
+    pub fn half_extent(self) -> f32 {
+        ARENA_SIZE / 2.0
+    }
+
     pub(crate) fn obstacles(self) -> Vec<Aabb2> {
         match self {
             Self::ArenaDuel => vec![
@@ -904,6 +925,16 @@ impl GameState {
         }
         player.display_behavior = Some(trimmed);
         true
+    }
+
+    /// The arena's shape as a message.
+    pub fn map_info(&self) -> ServerMessage {
+        ServerMessage::MapInfo {
+            map_id: self.map.id(),
+            map_name: self.map.name().to_string(),
+            half_extent: self.map.half_extent(),
+            solids: self.map.solids(),
+        }
     }
 
     /// One Ack per fighter whose client numbers its inputs. Built after a

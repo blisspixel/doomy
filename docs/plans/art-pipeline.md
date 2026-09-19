@@ -45,6 +45,63 @@ Copyright reality: prompt-only frames are not protectable under current guidance
 - One provider embeds a pixel-level watermark that may or may not survive pixelation; that is fine, since nothing is being hidden.
 - If the game is ever listed on a store that requires disclosure of generated art, the manifest is the disclosure.
 
+## Why generated art looks cheap, and the contract that fixes it (2026-09-19)
+
+Two causes, both fixable, neither about prompting harder.
+
+**Visual entropy.** Generators output 24-bit colour. Dropping a sprite with thousands of colours into a world built from a locked palette reads as foreign immediately, and mixing two generators adds sub-pixel differences in anti-aliasing that never reconcile. Assets do not get to choose their own colours; the palette is the game's, and everything is forced into it.
+
+**Baked illumination.** A generator bakes ambient occlusion, speculars and rim light into the pixels. A sprite lit from the left, standing in a room lit from the right by a muzzle flash, is instantly fake. Worse, it cannot react: the flash goes off and the fighter does not change.
+
+The fix is to stop treating generated images as finished assets. They are raw material; the engine does the rendering.
+
+### The rendering contract
+
+Every shipped sprite and texture, whatever produced it:
+
+- **Albedo only.** Prompts ask for flat, unlit, neutral colour, and negative prompts push against shadow, specular and ambient occlusion. Light comes from the engine.
+- **A normal map beside it.** Sprites are normal-mapped billboards, as Prodeus and Selaco do, so the fighter's own muzzle flash lights the fighter in front of them. The scene already has an `OmniLight3D` on the muzzle and it currently does nothing, because the body sprite is unshaded.
+- **One palette, in perceptual space.** Quantisation happens in CIE L\*a\*b\*, not RGB, because nearest-neighbour in RGB goes muddy in exactly the mid tones a dim scrap arena is made of.
+- **Ordered dithering, never error diffusion.** Floyd-Steinberg scatters isolated pixels that crawl when a sprite animates. Bayer or Atkinson clusters them and keeps the chunky structure that reads as 1993.
+- **Point filtering, no mipmaps.** Bilinear and mipmapping blur exactly what makes the look. This is an import setting, and it has to hold for every asset, not most of them.
+- **Affine texture mapping is optional,** and a per-map or per-setting choice rather than a default, since the wobble is a strong flavour.
+
+### Where the normal map comes from
+
+- A 2D sprite gets a height map from a depth-estimation pass, and the height map becomes a tangent-space normal by a gradient, which is arithmetic and belongs in `pixelforge`.
+- A 3D source, if one is ever used, renders albedo, normal and depth from the eight compass angles in one pass.
+- Depth estimation itself is an external model, like the generators. It is not repository tooling and no Python enters the repository; the generated maps are committed, the generator is not.
+
+### Which tool for which job
+
+The research above found services that emit palette-locked small canvases directly, which avoids the entropy problem at the source rather than repairing it afterwards. That remains the path for anything that ships as a sprite. General image and video models, Higgsfield and Astra among them, are for concept sheets, for reference the pixel services work from, and for the one job the pixel services cannot do: the high-frequency source a depth pass turns into a normal map.
+
+So: pixel services for the frames, general models for the concepts and the depth source, and the contract above applied to everything regardless of origin.
+
+### Before any of it is bought
+
+Three things to confirm in writing, because none of them can be assumed from a marketing page:
+
+1. **Output terms.** Commercial use, redistribution under Apache 2.0, and no claim over the assets. A service that trains on outputs or forbids stripping metadata is excluded, as two already are.
+2. **Export.** Batch export at a usable resolution, and whether the account tier limits it.
+3. **Cost per usable frame,** not per generation. A generator that needs eight attempts per keeper costs eight times its sticker price.
+
+The budget ceiling for the whole art effort is 300 dollars. The estimate above for the first full asset set through the pixel services is 15 to 40 dollars, so the ceiling is comfortable and the risk is not money but licence terms. Each tool run takes a `--max-spend-usd` cap and appends to the ledger under `.agents/spend/`, the same gate the brain uses. Approval is still not given.
+
+### Tried and rejected: just turning shading on (2026-09-19)
+
+The cheap version of this is to set `shaded = true` on the fighter sprite and let Godot's lights do the rest. It was tried and it is worse. The arena's key light, fill and ember pits tint the fighters a muddy brown and drop them a long way in value, so they blend into a floor made of the same browns and stop reading as targets at a distance. Integration was bought with readability, which is the wrong trade in a shooter where finding the enemy is the game.
+
+The lesson for the shader: lighting a sprite needs a floor under it. A fighter must never fall below a minimum value however dark the room, and the light should mostly ride on top as tint and rim rather than multiply the whole sprite down. `Sprite3D` cannot express that, which is why the rung below is a shader on a quad and not a property change.
+
+### The rung that costs nothing and should come first
+
+Normal-mapped billboards are engine work, not art work. A `Sprite3D` shader that reads an albedo and a normal map, and falls back to a normal derived from the silhouette when no map exists, makes the sprites already in the repository react to the lights already in the scene. That is the muzzle flash lighting the fighter in front of you, for free, before a single asset is bought.
+
+## What to generate
+
+The itemised list, by group, with counts, sizes and the order to generate in, is [`docs/ART-ASSET-LIST.md`](../ART-ASSET-LIST.md). About 2550 frames in total, with effects and interface first at roughly 130 frames between them, because those are the two groups where the game currently has nothing rather than something rough.
+
 ## Spend gate
 
 Estimate for the first full set, with two retries: concept sheets 3 dollars, twelve characters with eight views and four states about 24 dollars, three weapons 2 dollars, forty icons 1 dollar, thirty tiles about 6 dollars; about 39 dollars worst case, about 15 if first attempts land, about 28 with icons and tiles done locally on a GPU. Each tool run takes a `--max-spend-usd` cap and appends to a ledger under `.agents/spend/`, the same gate the brain uses. Nothing runs until the approval line is written into this file.
@@ -53,7 +110,8 @@ Approval: not yet given.
 
 ## Rungs
 
-1. `tools/pixelforge` with tests on synthetic images (downscale, snap, outline, pack, strip, manifest); palette validation against the art bible; the tour renders the contact sheet.
+0. **Normal-mapped billboards in the engine.** A `Sprite3D` shader reading albedo and normal, falling back to a silhouette-derived normal, plus a point-filter and mipmap audit across every import. Costs nothing and makes the current sprites react to the muzzle flash that already exists.
+1. `tools/pixelforge` with tests on synthetic images (downscale, Lab-space palette snap with ordered dithering, height-to-normal conversion, outline, pack, strip, manifest); palette validation against the art bible; the tour renders the contact sheet.
 2. Local free path proven: one fighter through an Apache 2.0 model plus LoRA and the tool, so the pipeline works at zero cost even if it looks rough.
 3. Concept sheets and the two fighters through PixelLab after approval; the look pass stage 3 consumes them.
 4. Weapons and icons; look pass stages 4 and 5.

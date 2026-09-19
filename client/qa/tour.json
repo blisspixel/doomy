@@ -1,0 +1,77 @@
+{
+  "comment": "States the visual QA tour walks, in the order a player meets them. Adding a state is a JSON entry, not a new function. 'at_seconds' is wall time since the client connected; the tour walks the list in order and never goes backwards. 'camera' picks a pose: follow, overview, or first_person. 'note' is what the critic should be looking at, and is copied into the manifest beside the still.",
+  "width": 1280,
+  "height": 720,
+  "states": [
+    {
+      "name": "boot_menu",
+      "scene": "res://scenes/boot_menu.tscn",
+      "at_seconds": 1.5,
+      "camera": "none",
+      "note": "First thing anyone sees. Option text legible, nothing clipped, the focused option obvious without reading it."
+    },
+    {
+      "name": "warmup_spectator",
+      "scene": "res://scenes/main.tscn",
+      "at_seconds": 4.0,
+      "camera": "overview",
+      "note": "Warmup bumper and roster. Does the chrome tell you the round has not started without a sentence of text."
+    },
+    {
+      "name": "arena_overview",
+      "at_seconds": 6.0,
+      "camera": "overview",
+      "note": "The map read from above. Cover legible, lanes readable, no flat untextured ground."
+    },
+    {
+      "name": "combat_follow",
+      "at_seconds": 9.0,
+      "camera": "follow",
+      "note": "A fight in progress. Muzzle flash, tracer, hit feedback. This is the effects bar: does a shot look like it hit something."
+    },
+    {
+      "name": "hud_first_person",
+      "at_seconds": 15.0,
+      "camera": "first_person",
+      "note": "HUD density. Count the words on screen. Weapon identifiable by silhouette, health and armour readable as shape not sentence.",
+      "join": "human"
+    },
+    {
+      "name": "hud_with_pickup",
+      "at_seconds": 18.0,
+      "camera": "first_person",
+      "note": "A pickup prompt in view. Does the prompt add one icon or one more block of text.",
+      "join": "human"
+    },
+    {
+      "name": "shot_effects",
+      "at_seconds": 20.0,
+      "camera": "first_person",
+      "join": "human",
+      "trigger": "fire",
+      "strip_frames": 12,
+      "note": "Eight consecutive frames from pulling the trigger. Muzzle flash, tracer, impact, hit feedback. A still at a fixed second never catches a sixty millisecond effect, so this is the only place effects can be judged.",
+      "probe": "FpMuzzle"
+    },
+    {
+      "name": "shot_effects_third_person",
+      "at_seconds": 22.0,
+      "camera": "follow",
+      "trigger": "fire",
+      "strip_frames": 12,
+      "note": "The same trigger pull watched from outside. The muzzle flash lives on the fighter's pawn, so this is where it shows; compare with the first-person strip above."
+    },
+    {
+      "name": "compliance_pressure",
+      "at_seconds": 25.0,
+      "camera": "follow",
+      "note": "The compliance beat. Pressure should read as colour and motion, not a banner."
+    },
+    {
+      "name": "killfeed_scoreboard",
+      "at_seconds": 28.0,
+      "camera": "follow",
+      "note": "Killfeed and score. The one place text is allowed. Check it is not competing with the crosshair."
+    }
+  ]
+}

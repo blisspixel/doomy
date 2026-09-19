@@ -1,12 +1,22 @@
 # Plan: visual QA tour and feel probes
 
-**Status:** planned (2026-09-18)
+**Status:** rung 1 landed (2026-09-19). The tour runs, captures, measures, and has already found things.
 **Branch:** `feat/qa-tour`
 **Spend:** $0.
 
 ## Goal
 
 Polish needs eyes on every state, every time. A tour script drives the client through every player-facing state and every map, captures a dated set of stills and short metrics, and hands them to the agent developer for critique. The critique becomes concrete plan items. The same run feeds `docs/screenshots/` when the tip changes. Feel is covered by probes that print numbers (same-frame aim, time to first shot, acceleration curve), not by opinion alone.
+
+## What the first run found (2026-09-19)
+
+Three faults before a single still was judged, which is the argument for the tour existing.
+
+- The client had never been imported in a fresh worktree, so every scene referencing a texture failed to parse and the tour photographed an empty grey room with a working HUD floating over it. The tour now imports the project first and reports `world_blank` per state, measured on the frame with the HUD hidden, because a HUD panel alone is enough texture to make a blank frame look busy.
+- The first-person states were photographs of the spectator camera, the one view a player never sees. The tour now joins the match as a person for those states.
+- The first HUD coverage numbers ran as high as 72 percent. That was world motion between the two frames, not chrome. The tour pauses the game before measuring, and the honest figure is about a fifth of the screen in every state.
+
+The critique itself is in `plans/hud-quiet.md`, with the measurements that back it.
 
 ## Non-goals
 

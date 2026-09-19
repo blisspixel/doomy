@@ -5,7 +5,7 @@ class_name JammerDishBuilder
 ## bone / gunmetal / rust / ember. No neon flood.
 ## Sized and lit so stranger eyes cannot miss it at spectator
 ## follow (~12m) and tip overview (~36m). Soft-touch seize radius
-## stays 3.0m on the server; visual mass is intentionally larger.
+## matches server EP0_JAMMER_RADIUS (6.5m); visual mass stays chunky for tips.
 
 # Horizontal dish bowl. Gate tests use these floors.
 const DISH_RADIUS: float = 5.5
@@ -205,8 +205,8 @@ static func apply_tint(root: Node3D, live: bool, seized: bool) -> void:
 	if live:
 		primary = EMBER
 		accent = Color(0.95, 0.42, 0.12)
-		glow = 0.85
-		energy = 3.6
+		glow = 0.95
+		energy = 4.2
 		label_text = "SEIZE JAMMER"
 	elif seized:
 		primary = SEIZED_OK

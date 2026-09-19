@@ -22,7 +22,11 @@ Status words: **planned**, **in flight**, **shipped** (merged to `main`, PR numb
 | [`ep0-nods-progress-fix.md`](./ep0-nods-progress-fix.md) | **shipped** (#111) | Calibration NODS credit for meatbags, jammer dish silhouette, map_name honesty. |
 | [`jammer-dish-silhouette.md`](./jammer-dish-silhouette.md) | **shipped** (#116) | Unmissable Godot jammer dish silhouette in-camera for Solo Broadcast phase two. |
 | [`jammer-dish-unmissable.md`](./jammer-dish-unmissable.md) | **shipped** (#123) | Studio dish unmissable + footprint harness; live tip_capture gap owned by live-tip-dish-map-chip. |
-| [`live-tip-dish-map-chip.md`](./live-tip-dish-map-chip.md) | **ready for PR** | Live tip_capture hangar dish + kill Hangar Candy dual map chip on Larak Lot. |
+| [`live-tip-dish-map-chip.md`](./live-tip-dish-map-chip.md) | **shipped** (#125) | Live tip_capture hangar dish + kill Hangar Candy dual map chip on Larak Lot. |
+| [`tip-capture-dish-gate.md`](./tip-capture-dish-gate.md) | **shipped** (#129) | Live tip_capture hangar dish gate: tip_force survives seize, pose lock, orange pixel CI. |
+| [`first-calib-seize-stall.md`](./first-calib-seize-stall.md) | **shipped** (#131) | Soft first Calibration jammer seize: pad radius matches eyes so meatbag does not soft-lock. |
+| [`tip-capture-dish-pose.md`](./tip-capture-dish-pose.md) | **in flight** | Tip pose lock held transform + chunky dish look-at so orange gate PASSES on stranger re-run. |
+| [`tip-stills-hangar-guns.md`](./tip-stills-hangar-guns.md) | **in flight** | README tip face: v0.13.0 hangar dish + guns that kill (not Episode 0 lead). |
 | [`host-per-nods-tick.md`](./host-per-nods-tick.md) | **shipped** (#120) | Soft juice: Host / HUD beat on every Solo Broadcast NODS clear, not only the first. |
 | [`spectator-stance-chips.md`](./spectator-stance-chips.md) | **shipped** (#119) | Loud Tab-less stance chips on Warmup TV, follow HUD, and nameplates. |
 | [`art-pipeline.md`](./art-pipeline.md) | **planned** | Sprites, weapons, icons, and tiles through two pixel-art-native services plus a Rust post-processor and touch-up; provenance recorded; spend gated. |
@@ -30,8 +34,12 @@ Status words: **planned**, **in flight**, **shipped** (merged to `main`, PR numb
 | [`localization.md`](./localization.md) | **planned** | Keys for every string, the basics plus regional, community-signed, and lore locales, fonts and layout, a tour per locale. |
 | [`benchmark-and-stats.md`](./benchmark-and-stats.md) | **planned** | Benchmark mode with phase histograms and budget headroom, plus the deep analysis layer: distributions, intervals, TrueSkill, a nerd overlay, and a full export. |
 | [`massive-arenas.md`](./massive-arenas.md) | **planned** | Seeded sim, spatial grid, interest sets, delta snapshots, binary wire, tick budget, and the measured scale ladder to hundreds of fighters. |
-| [`visual-qa-tour.md`](./visual-qa-tour.md) | **planned** | Manifest-driven tour of every player-facing state with stills, a contact sheet, and feel probes for the agent developer to critique. |
+| [`visual-qa-tour.md`](./visual-qa-tour.md) | **rung 1 landed** | Manifest-driven tour of every player-facing state with stills, a contact sheet, and feel probes for the agent developer to critique. |
+| [`map-scale.md`](./map-scale.md) | **spec** | Maps that are maps: a size ladder from pit to field, height in the shared movement step, and the Doom, Unreal, Halo and 1942 references each tier answers to. |
+| [`hud-rebuild.md`](./hud-rebuild.md) | **spec** | Replace the HUD rather than trim it. Health, armour and ammo on screen, the broadcast strip out of gameplay, one font and one grid, judged against modern boomer shooters. |
+| [`hud-quiet.md`](./hud-quiet.md) | **in progress** | Get the words off the screen. Measured HUD coverage per state, clipped panels, duplicate badges, and nameplates that hide the fighter behind them. |
 | [`gunfeel.md`](./gunfeel.md) | **in flight** (aim defaults shipped) | What the weapons and the aim do: the parameter set from the classics, dispersion separated from aim assist, feedback timings, the dodge. |
+| [`ttk-feel-harness-proof.md`](./ttk-feel-harness-proof.md) | **in flight** | Sticky flechette/rail/scatter TTK asserted from playtest `--assert` (#124 proof). |
 | [`buttery-controls.md`](./buttery-controls.md) | **planned** | Client-owned yaw, prediction and reconciliation, timeline interpolation, 60 Hz sim, lag compensation, gamepad curves, transport spike, all with pass numbers. |
 | [`public-server-hardening.md`](./public-server-hardening.md) | **planned** | Frame caps, accept limits, HMAC join tickets, name rules, Caddy TLS, status endpoint and benchmark mode. |
 | [`agent-door-2026.md`](./agent-door-2026.md) | **planned** | MCP 2026-07-28 compliance with legacy clients kept, the rmcp decision, a team blackboard before A2A. |
