@@ -1,5 +1,7 @@
 extends CanvasLayer
 
+const StanceChipScript = preload("res://scripts/stance_chip.gd")
+
 ## Fired whenever the Host takes the air so the radio can duck underneath.
 signal host_spoke(seconds: float)
 
@@ -22,6 +24,7 @@ signal host_spoke(seconds: float)
 @onready var on_air_badge = $OnAirBadge
 @onready var contested_frequency_badge = $ContestedFrequencyBadge
 @onready var hangar_candy_badge = $HangarCandyBadge
+var map_chip_label: Label = null
 @onready var warmup_tv = $WarmupTv
 var crosshair_hbar = null
 var crosshair_vbar = null
@@ -87,6 +90,7 @@ var warmup_tv_secs = 0
 var warmup_tv_host_line = ""
 
 func _ready():
+	_ensure_map_chip_label()
 	weapon_textures["Flechette"] = load("res://assets/weapons/32/flechette.png")
 	weapon_textures["Rail"] = load("res://assets/weapons/32/rail.png")
 	weapon_textures["Scatter"] = load("res://assets/weapons/32/scatter.png")
@@ -143,6 +147,44 @@ func _bind_warmup_tv() -> void:
 	warmup_tv_active = false
 	warmup_tv_linger_timer = 0.0
 
+
+func _ensure_map_chip_label() -> void:
+	# Bottom-left map chip must show Snapshot map_name (Larak Lot), never the
+	# static Hangar Candy brand texture strangers read as the map name.
+	if map_chip_label != null and is_instance_valid(map_chip_label):
+		return
+	map_chip_label = Label.new()
+	map_chip_label.name = "MapChipLabel"
+	map_chip_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	map_chip_label.add_theme_font_size_override("font_size", 18)
+	map_chip_label.add_theme_color_override("font_color", Color(0.96, 0.90, 0.72, 0.95))
+	map_chip_label.add_theme_color_override("font_outline_color", Color(0.05, 0.04, 0.03, 1))
+	map_chip_label.add_theme_constant_override("outline_size", 4)
+	map_chip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	map_chip_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	map_chip_label.anchor_top = 1.0
+	map_chip_label.anchor_bottom = 1.0
+	map_chip_label.anchor_left = 0.0
+	map_chip_label.anchor_right = 0.0
+	map_chip_label.offset_left = 16.0
+	map_chip_label.offset_top = -72.0
+	map_chip_label.offset_right = 280.0
+	map_chip_label.offset_bottom = -16.0
+	map_chip_label.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	add_child(map_chip_label)
+	_refresh_map_chip_badge()
+
+
+func _refresh_map_chip_badge() -> void:
+	_ensure_map_chip_label()
+	if map_chip_label:
+		map_chip_label.text = map_label.to_upper()
+		map_chip_label.visible = map_label != ""
+	# Hide brand Hangar Candy art so it cannot impersonate the map chip.
+	if hangar_candy_badge:
+		hangar_candy_badge.visible = false
+
+
 func set_status(text: String):
 	if status_label:
 		status_label.text = "Status: " + text
@@ -158,6 +200,7 @@ func set_league_identity(mode_name: String, playlist: String):
 func set_map_name(name: String):
 	if name != "":
 		map_label = name
+	_refresh_map_chip_badge()
 	_refresh_mode_label()
 
 func set_pressure(pressure: String):
@@ -263,27 +306,7 @@ func update_scoreboard():
 	scoreboard.text = text if len(sorted_scores) > 0 else "SCRAP LEAGUE\n" + league_mode_name.to_upper() + "\n(waiting for scrap)"
 
 func _short_behavior(behavior: String) -> String:
-	match behavior:
-		"Aggressive":
-			return "AGG"
-		"Defensive":
-			return "DEF"
-		"Flanker":
-			return "FLK"
-		"Balanced":
-			return "BAL"
-		"Compliance":
-			return "CMP"
-		"push_enemy":
-			return "PSH"
-		"fall_back_heal":
-			return "HL"
-		"hold_angle":
-			return "HLD"
-		"kite_distance":
-			return "KIT"
-		_:
-			return behavior.substr(0, 3).to_upper()
+	return StanceChipScript.short(behavior)
 
 func sync_scores_from_players(player_list: Array):
 	var next_scores = {}
@@ -444,10 +467,11 @@ func _update_broadcast_chrome(state: String) -> void:
 		contested_frequency_badge.visible = true
 		var ca = 0.95 if warm else (0.72 if live else 0.8)
 		contested_frequency_badge.modulate = Color(0.95, 0.95, 0.98, ca)
+	# Map chip is Snapshot map_name (see _refresh_map_chip_badge). Never re-show
+	# the Hangar Candy brand texture as if it were the map name.
 	if hangar_candy_badge:
-		hangar_candy_badge.visible = true
-		var ha = 0.85 if (warm or ended) else 0.75
-		hangar_candy_badge.modulate = Color(1, 1, 1, ha)
+		hangar_candy_badge.visible = false
+	_refresh_map_chip_badge()
 
 func flash_broadcast_chrome(kind: String = "host") -> void:
 	# Brief badge lift on Host / Warmup bumper without neon wash.
@@ -457,7 +481,9 @@ func flash_broadcast_chrome(kind: String = "host") -> void:
 		if on_air_badge:
 			on_air_badge.visible = true
 	elif kind == "hangar":
-		badge = hangar_candy_badge
+		# Pulse the Snapshot map chip, not the retired Hangar Candy brand art.
+		_refresh_map_chip_badge()
+		badge = map_chip_label
 	if badge == null:
 		return
 	var base_a = badge.modulate.a
@@ -864,31 +890,32 @@ func set_followed_weapon(weapon_name: String, player_name: String = "", behavior
 
 	followed_player_name = player_name
 
-	if weapon_name == "" or not weapon_textures.has(weapon_name):
+	var weapon_desc = ""
+	var has_weapon = weapon_name != "" and weapon_textures.has(weapon_name)
+	if has_weapon:
+		match weapon_name:
+			"Flechette":
+				weapon_desc = "FLECHETTE (mid)"
+			"Rail":
+				weapon_desc = "RAIL (long)"
+			"Scatter":
+				weapon_desc = "SCATTER (close)"
+
+	# Stance stays loud even when the followed pawn has no known weapon yet.
+	if player_name == "" and not has_weapon:
 		weapon_label.text = ""
+		weapon_label.remove_theme_color_override("font_color")
 		weapon_icon.visible = false
 		return
 
-	var weapon_desc = ""
-	match weapon_name:
-		"Flechette":
-			weapon_desc = "FLECHETTE (mid)"
-		"Rail":
-			weapon_desc = "RAIL (long)"
-		"Scatter":
-			weapon_desc = "SCATTER (close)"
-
-	var display_text = weapon_desc
-	if player_name != "":
-		var role_chip = ""
-		if behavior != "":
-			role_chip = " [" + _short_behavior(behavior) + "]"
-		display_text = "FOLLOWING: " + player_name + role_chip + "\n" + weapon_desc
-
-	weapon_label.text = display_text
-	weapon_icon.texture = weapon_textures[weapon_name]
-	weapon_icon.modulate = Color(1.15, 1.1, 1.05, 1)
-	weapon_icon.visible = true
+	weapon_label.text = StanceChipScript.follow_line(player_name, behavior, weapon_desc)
+	weapon_label.add_theme_color_override("font_color", StanceChipScript.accent_color(behavior != ""))
+	if has_weapon:
+		weapon_icon.texture = weapon_textures[weapon_name]
+		weapon_icon.modulate = Color(1.15, 1.1, 1.05, 1)
+		weapon_icon.visible = true
+	else:
+		weapon_icon.visible = false
 
 func _process(delta):
 	if warmup_tv_linger_timer > 0:

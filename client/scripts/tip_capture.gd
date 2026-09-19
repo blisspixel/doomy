@@ -69,6 +69,10 @@ func _run_capture() -> void:
 			return
 		print("tip_capture: wrote ", path, " size=", img.get_width(), "x", img.get_height())
 
+	# Jammer dish proof: force live dish + aimed follow / overview (Warmup-TV pattern).
+	# Casino #116 stills 20-22 were empty because FP never looked at origin.
+	await _capture_jammer_dish_proof(out_dir)
+
 	# Mid-join Host flash proof: disconnect after Active, reconnect, capture bumper once.
 	await _capture_midjoin_host_flash(out_dir)
 	await _capture_human_join_fp(out_dir)
@@ -239,6 +243,100 @@ func _capture_midjoin_host_flash(out_dir: String) -> void:
 		return
 	print("tip_capture: wrote ", path, " size=", img.get_width(), "x", img.get_height())
 
+
+
+
+func _capture_jammer_dish_proof(out_dir: String) -> void:
+	# Force-spawn a live jammer dish and aim the spectator camera at it so proof
+	# stills cannot miss the silhouette the way Casino FP scrapes did.
+	var gm: Node = _find_game_manager()
+	if gm == null:
+		push_warning("tip_capture: GameManager missing; skip jammer dish proof")
+		return
+	if not gm.has_method("_sync_jammer_dish"):
+		push_warning("tip_capture: GameManager missing _sync_jammer_dish; skip jammer dish proof")
+		return
+
+	var dish := {
+		"live": true,
+		"seized": false,
+		"x": 0.0,
+		"y": 0.35,
+		"z": 0.0,
+	}
+	gm.call("_sync_jammer_dish", dish)
+
+	# Follow-distance still (~12m), looking straight at the dish.
+	_pose_jammer_follow_camera()
+	await create_timer(0.35).timeout
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+	_save_viewport_png(out_dir, "20_jammer_dish_follow_16x9.png")
+
+	# Overview still (~36m corner), dish centered in frame.
+	_pose_overview_camera()
+	await create_timer(0.25).timeout
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+	_save_viewport_png(out_dir, "22_jammer_dish_overview_16x9.png")
+
+	# Closer label-read still so SEIZE JAMMER is unmistakable.
+	_pose_jammer_label_camera()
+	await create_timer(0.25).timeout
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+	_save_viewport_png(out_dir, "23_jammer_dish_seize_label_16x9.png")
+
+	_restore_follow_camera()
+
+
+func _save_viewport_png(out_dir: String, shot_name: String) -> void:
+	var img: Image = get_root().get_viewport().get_texture().get_image()
+	if img == null:
+		push_error("tip_capture: viewport image was null for " + shot_name)
+		quit(1)
+		return
+	if _looks_like_pink_placeholder(img):
+		push_warning("tip_capture: pink-ish frame for " + shot_name + "; saving anyway for inspection")
+	var path: String = out_dir.path_join(shot_name)
+	var err: Error = img.save_png(path)
+	if err != OK:
+		push_error("tip_capture: save_png failed (%s) -> %s" % [str(err), path])
+		quit(1)
+		return
+	print("tip_capture: wrote ", path, " size=", img.get_width(), "x", img.get_height())
+
+
+func _pose_jammer_follow_camera() -> void:
+	var gm: Node = _find_game_manager()
+	if gm == null:
+		return
+	var cam_root: Node = gm.get_node_or_null("SpectatorCamera")
+	if cam_root == null:
+		return
+	if cam_root is Node3D:
+		var n3: Node3D = cam_root
+		# ~12m follow: eye-height, looking at dish origin.
+		n3.global_position = Vector3(0.0, 3.2, 12.0)
+		n3.look_at(Vector3(0.0, 3.5, 0.0), Vector3.UP)
+		if "follow_mode" in n3:
+			n3.follow_mode = false
+
+
+func _pose_jammer_label_camera() -> void:
+	var gm: Node = _find_game_manager()
+	if gm == null:
+		return
+	var cam_root: Node = gm.get_node_or_null("SpectatorCamera")
+	if cam_root == null:
+		return
+	if cam_root is Node3D:
+		var n3: Node3D = cam_root
+		# Mid distance, slightly above, aimed at the SEIZE JAMMER banner.
+		n3.global_position = Vector3(4.0, 6.5, 10.0)
+		n3.look_at(Vector3(0.0, 8.5, 0.0), Vector3.UP)
+		if "follow_mode" in n3:
+			n3.follow_mode = false
 
 
 func _restore_follow_camera() -> void:

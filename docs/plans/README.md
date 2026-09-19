@@ -21,7 +21,9 @@ Status words: **planned**, **in flight**, **shipped** (merged to `main`, PR numb
 | [`tip-stills-ep0.md`](./tip-stills-ep0.md) | **shipped** (#110) | Recapture tip stills + README Solo Broadcast face after Episode 0. |
 | [`ep0-nods-progress-fix.md`](./ep0-nods-progress-fix.md) | **shipped** (#111) | Calibration NODS credit for meatbags, jammer dish silhouette, map_name honesty. |
 | [`jammer-dish-silhouette.md`](./jammer-dish-silhouette.md) | **shipped** (#116) | Unmissable Godot jammer dish silhouette in-camera for Solo Broadcast phase two. |
+| [`jammer-dish-unmissable.md`](./jammer-dish-unmissable.md) | **ready for PR** | Make jammer dish actually unmissable to stranger eyes; footprint harness + aimed proof stills. |
 | [`host-per-nods-tick.md`](./host-per-nods-tick.md) | **shipped** (#120) | Soft juice: Host / HUD beat on every Solo Broadcast NODS clear, not only the first. |
+| [`spectator-stance-chips.md`](./spectator-stance-chips.md) | **shipped** (#119) | Loud Tab-less stance chips on Warmup TV, follow HUD, and nameplates. |
 | [`art-pipeline.md`](./art-pipeline.md) | **planned** | Sprites, weapons, icons, and tiles through two pixel-art-native services plus a Rust post-processor and touch-up; provenance recorded; spend gated. |
 | [`fair-play.md`](./fair-play.md) | **planned** | Anti-cheat that keeps it fun: validated inputs, lanes for humans and agents, a behaviour profiler, replays as evidence, no kernel drivers. |
 | [`localization.md`](./localization.md) | **planned** | Keys for every string, the basics plus regional, community-signed, and lore locales, fonts and layout, a tour per locale. |
