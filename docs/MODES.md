@@ -66,6 +66,12 @@ Cheap twists on rules that already exist, in the spirit of the couch multiplayer
 
 These are worth building before team modes with squads or objective control on larger maps, because they cost almost nothing and they are where a lot of the fun actually is.
 
+## Every life starts empty
+
+Whichever mode you are in, you begin with your fists. The pistol is on the floor beside the spawn, about two seconds away, and picking it up is the first thing you do every life rather than something you already have.
+
+In an episode that is the classic opening: the first room hands you a gun and it is a moment. In a scrap it is a window, a few seconds each life where you are holding nothing, which is the only reason a punch kill is possible and the only reason finding a knife means anything.
+
 ## What holds it together
 
 The same arena, the same weapons found on the same floor, and the same enemy roster whichever mode you are in. A player who learns the crawler in an episode knows the crawler in the Sweep. A player who learns where the rail spawns in a scrap knows where it spawns in co-op.

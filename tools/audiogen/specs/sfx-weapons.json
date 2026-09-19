@@ -3,6 +3,46 @@
   "items": [
     {
       "kind": "sfx",
+      "name": "fire_fists",
+      "title": "Fists swing",
+      "prompt": "a bare-knuckle swing through air, cloth and a short breath, nothing metal, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "cycle_fists",
+      "title": "Fists reset",
+      "prompt": "hands resetting to guard, one soft cloth shift, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "raise_fists",
+      "title": "Fists raise",
+      "prompt": "hands coming up empty, knuckles cracking once, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_flesh_fists",
+      "title": "Fists hit flesh",
+      "prompt": "a bare fist landing on a body, flat heavy connect, no metal in it, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_hard_fists",
+      "title": "Fists hit hard",
+      "prompt": "a bare fist hitting a wall, dull thud and a wince, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
       "name": "fire_shiv",
       "title": "Shiv fire",
       "prompt": "quick cloth-and-steel knife swing, short air scrape, cheap and light, retro arcade shooter, dry and punchy, no reverb, mono",
