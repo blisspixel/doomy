@@ -1,17 +1,36 @@
 {
-  "ink": [10,10,12,255],
-  "bone": [232,226,214,255],
-  "outline_purple": [58,42,72,255],
-  "gunmetal_dark": [58,56,54,255],
-  "gunmetal": [90,85,79,255],
-  "gunmetal_light": [140,132,122,255],
-  "rust": [122,58,34,255],
-  "blood": [110,18,24,255],
-  "ember": [196,90,32,255],
-  "ember_hot": [220,140,60,255],
-  "cyan_muted": [74,138,146,255],
-  "cyan_light": [140,190,198,255],
-  "magenta_muted": [138,58,88,255],
-  "magenta_light": [180,100,130,255],
-  "on_air": [139,30,30,255]
+  "_comment": [
+    "The palette every sprite in fragr is quantised to, referenced by",
+    "docs/ART-GENERATION-SPEC.md and applied by tools/spritegen.",
+    "",
+    "It is grouped by what each ramp is for, because the factions are told",
+    "apart by colour before they are told apart by shape. See docs/ART-COLOR.md",
+    "for the rule of grey: most of the world sits in the neutral ramps so that",
+    "the small amount of rust orange and alert red carries all the meaning.",
+    "",
+    "Each ramp is four steps or fewer. A sprite at this size cannot spend more",
+    "than four values on one material without the steps becoming invisible."
+  ],
+
+  "shadow": ["#0b0c0e", "#16181c", "#23262b"],
+  "gunmetal": ["#34383f", "#474d55", "#5d646d", "#7a828c"],
+  "bone": ["#8d866f", "#b8b09a", "#d6cfbc", "#efe9d8"],
+
+  "rust": ["#5a2610", "#8a3f19", "#b85c24", "#e08b3f"],
+  "continuance_green": ["#232a24", "#36402f", "#4b5741", "#657056"],
+  "alert": ["#5e1717", "#932525", "#c74040"],
+
+  "cold": ["#20384a", "#33637a", "#5098b0", "#83c6d8"],
+  "agi": ["#9a9a93", "#c4c4bd", "#e8e8e2"],
+
+  "colours": [
+    "#0b0c0e", "#16181c", "#23262b",
+    "#34383f", "#474d55", "#5d646d", "#7a828c",
+    "#8d866f", "#b8b09a", "#d6cfbc", "#efe9d8",
+    "#5a2610", "#8a3f19", "#b85c24", "#e08b3f",
+    "#232a24", "#36402f", "#4b5741", "#657056",
+    "#5e1717", "#932525", "#c74040",
+    "#20384a", "#33637a", "#5098b0", "#83c6d8",
+    "#9a9a93", "#c4c4bd", "#e8e8e2"
+  ]
 }
