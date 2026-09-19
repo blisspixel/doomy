@@ -44,14 +44,31 @@
       "join": "human"
     },
     {
+      "name": "shot_effects",
+      "at_seconds": 20.0,
+      "camera": "first_person",
+      "join": "human",
+      "trigger": "fire",
+      "strip_frames": 8,
+      "note": "Eight consecutive frames from pulling the trigger. Muzzle flash, tracer, impact, hit feedback. A still at a fixed second never catches a sixty millisecond effect, so this is the only place effects can be judged."
+    },
+    {
+      "name": "shot_effects_third_person",
+      "at_seconds": 22.0,
+      "camera": "follow",
+      "trigger": "fire",
+      "strip_frames": 8,
+      "note": "The same trigger pull watched from outside. The muzzle flash lives on the fighter's pawn, so this is where it shows; compare with the first-person strip above."
+    },
+    {
       "name": "compliance_pressure",
-      "at_seconds": 21.0,
+      "at_seconds": 25.0,
       "camera": "follow",
       "note": "The compliance beat. Pressure should read as colour and motion, not a banner."
     },
     {
       "name": "killfeed_scoreboard",
-      "at_seconds": 24.0,
+      "at_seconds": 28.0,
       "camera": "follow",
       "note": "Killfeed and score. The one place text is allowed. Check it is not competing with the crosshair."
     }

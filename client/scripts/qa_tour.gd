@@ -17,12 +17,17 @@ extends SceneTree
 const MANIFEST_PATH: String = "res://qa/tour.json"
 const THUMB_WIDTH: int = 320
 const CONTACT_COLUMNS: int = 4
+const STRIP_TILE_WIDTH: int = 320
 const DIFF_EPSILON: float = 0.02
 
 var _out_dir: String = ""
 var _results: Array = []
 var _clock_ms: int = 0
 var _joined: bool = false
+var _strip_for_state: String = ""
+## Frames between the trigger and the first strip frame. The shot is resolved by
+## the server, so the flash arrives a round trip later, not on the next frame.
+const STRIP_LEAD_FRAMES: int = 2
 
 func _initialize() -> void:
 	call_deferred("_run")
@@ -71,6 +76,18 @@ func _run() -> void:
 		if state.get("join", "") == "human" and not _joined:
 			await _join_as_human()
 
+		# An effect that lasts sixty milliseconds is never in a still taken at a
+		# fixed second. A state can instead pull the trigger and keep a strip of
+		# consecutive frames, which is the only way the muzzle flash, the tracer
+		# and the impact can be judged at all.
+		var strip_frames: int = int(state.get("strip_frames", 0))
+		if strip_frames > 0:
+			var strip_name: String = "%02d_%s_strip.png" % [_results.size() + 1, state_name]
+			await _capture_strip(state, strip_frames, strip_name)
+			_strip_for_state = strip_name
+		else:
+			_strip_for_state = ""
+
 		_pose_camera(state.get("camera", "none"))
 		await RenderingServer.frame_post_draw
 		await RenderingServer.frame_post_draw
@@ -102,6 +119,7 @@ func _run() -> void:
 			"state": state_name,
 			"file": file_name,
 			"world_file": world_name,
+			"strip_file": _strip_for_state,
 			"width": shot.get_width(),
 			"height": shot.get_height(),
 			"hud_coverage": snappedf(measured.get("hud_coverage", 0.0), 0.0001),
@@ -179,6 +197,42 @@ func _measure() -> Dictionary:
 	if total > 0:
 		out["hud_coverage"] = float(differing) / float(total)
 	return out
+
+## Pull the trigger and keep every frame of what follows, tiled into one image.
+func _capture_strip(state: Dictionary, frames: int, file_name: String) -> void:
+	var trigger: String = state.get("trigger", "")
+	if trigger == "fire":
+		Input.action_press("fire")
+	for _i in range(STRIP_LEAD_FRAMES):
+		await RenderingServer.frame_post_draw
+	var shots: Array[Image] = []
+	for _i in range(frames):
+		await RenderingServer.frame_post_draw
+		var img: Image = _grab()
+		if img != null:
+			img.convert(Image.FORMAT_RGBA8)
+			shots.append(img)
+	if trigger == "fire":
+		Input.action_release("fire")
+	if shots.is_empty():
+		return
+	var tile_width: int = STRIP_TILE_WIDTH
+	var tile_height: int = int(round(
+		float(tile_width) * float(shots[0].get_height()) / float(shots[0].get_width())
+	))
+	var sheet: Image = Image.create(
+		tile_width * shots.size(), tile_height, false, Image.FORMAT_RGBA8
+	)
+	sheet.fill(Color(0.06, 0.06, 0.07, 1.0))
+	for i in range(shots.size()):
+		var tile: Image = shots[i]
+		tile.resize(tile_width, tile_height, Image.INTERPOLATE_BILINEAR)
+		sheet.blit_rect(tile, Rect2i(Vector2i.ZERO, tile.get_size()), Vector2i(i * tile_width, 0))
+	var err: Error = sheet.save_png(_out_dir.path_join(file_name))
+	if err != OK:
+		push_error("qa_tour: strip failed (%s)" % str(err))
+		return
+	print("qa_tour: %s -> %s (%d frames)" % [state.get("name", ""), file_name, shots.size()])
 
 func _find_hud() -> Node:
 	return get_root().find_child("HUD", true, false)
