@@ -100,6 +100,81 @@ Triggers are polygons with once or repeat semantics and an action list: spawn a 
 
 Telemetry adds visible monsters by type, range bucket, and whether awake; keys held; a locked door seen; an objective hint (`find_key`, `open_door`, `reach_exit`, `clear_boss`). The brain gets one more question, an objective choice; the reflex layer keeps shooting.
 
+## Framework detail (decision-complete)
+
+The campaign is content on top of two frameworks: maps as data and monsters as tables. Both are specified here so the content work (24 maps, ten types) is authoring, not engineering.
+
+### Map manifest (`server/maps/<name>.json`, version 1)
+
+```json
+{
+  "version": 1,
+  "name": "larak-lot",
+  "bounds": [-40.0, -40.0, 40.0, 40.0],
+  "solids": [
+    {"box": [-3.0, -1.0, 3.0, 1.0]},
+    {"poly": [[0.0, 0.0], [4.0, 0.0], [4.0, 2.5], [1.0, 3.0]]}
+  ],
+  "spawns": [{"x": 0.0, "z": -30.0, "yaw": 1.57, "team": "player", "skill": 7}],
+  "monsters": [{"type": "clerk", "x": 10.0, "z": 5.0, "yaw": 3.14, "skill": 6, "ambush": true, "group": "lot-east"}],
+  "items": [{"kind": "health", "amount": 25, "x": 2.0, "z": 2.0, "skill": 7}, {"kind": "weapon", "weapon": "rail", "x": 8.0, "z": -8.0, "skill": 7}, {"kind": "key", "color": "red", "x": 20.0, "z": 20.0, "skill": 7}],
+  "doors": [{"id": "gate-a", "poly": [[10.0, 0.0], [12.0, 0.0], [12.0, 6.0], [10.0, 6.0]], "key": "red", "open_s": 6.0, "stay_open": false}],
+  "triggers": [{"id": "t1", "poly": [[...]], "once": true, "on_enter": [{"spawn_group": "lot-east"}, {"open_door": "gate-a"}, {"host": "closet-open"}]}],
+  "secrets": [{"id": "s1", "poly": [[...]]}],
+  "exit": {"poly": [[...]], "next": "area-kitchen"}
+}
+```
+
+- `solids` are convex polygons in the XZ plane (boxes are the fast path). Collision: a fighter or monster of radius r is blocked when its centre is inside a solid inflated by r; for boxes that is today's `Aabb2::expand`; for polygons it is the point-in-convex test against each edge offset outward by r, with rounded corners approximated by the edge offsets (a 0.5 unit corner error is invisible at this scale). Hitscan and sight use the same solids with the existing ray-versus-box slab test and a ray-versus-edge test for polygons.
+- `skill` is a three-bit mask, easy 1, normal 2, hard 4, as Doom does it, so designers hand-place rosters per tier; the fourth tier (nightmare) uses the hard rosters with the fast flag.
+- Everything is validated on load: bounds contain everything, at least one player spawn, exit present unless the map is an arena, door keys exist as items or are reachable from a previous map (checked by the episode manifest), trigger targets resolve, no two solids overlap a spawn.
+
+### The map tool (`tools/mapc`, Rust)
+
+`fragr-mapc build maps/larak-lot.map --out server/maps/larak-lot.json` parses a TrenchBroom Valve 220 `.map` with the `quake-map` crate, keeps brushes whose entity is worldspawn or a `func_*` solid, intersects each brush's planes to a convex hull, projects the hull onto XZ at the player's height band (the slab between floor 0 and eye height 1.6; brushes entirely above or below are decoration), emits a box when the projection is axis-aligned and a polygon otherwise, and maps point entities by classname: `info_player_start` to spawns, `monster_<type>` to monsters (spawnflags carry skill and ambush bits, TrenchBroom's `angle` to yaw), `item_health`, `item_armor`, `weapon_<name>`, `item_key_<color>`, `func_door` (targetname and key), `trigger_once` and `trigger_multiple` (target list), `trigger_secret`, `trigger_exit` (next map). A `.fgd` file in `tools/mapc/fragr.fgd` gives TrenchBroom the entity definitions. `fragr-mapc check` runs the validator. The client renders the same `.map` through func_godot with the look-pass atlas; geometry has one source.
+
+### Monster tables
+
+Monsters are server entities on the same tick as bots. A type is a row:
+
+| Field | Meaning |
+|---|---|
+| `name` | `clerk`, `enforcer`, `jammer`, `turret`, `auditor`, `redactor`, `walker`, `swarm`, `drone`, `walker_boss` |
+| `hp`, `radius`, `speed` | units per second; turrets 0 |
+| `pain_chance` | 0 to 1, as Doom's value over 256 |
+| `reaction_s` | delay before the first attack after waking (0.25 s baseline, 0 on damage) |
+| `sight_arc_deg`, `sight_range` | forward cone for waking on sight |
+| `sound_range` | units a fired weapon or a hit alerts through, not through closed doors |
+| `melee` | optional `{range, damage, cooldown_s}` |
+| `attack` | optional `{kind: hitscan or projectile, damage, cooldown_s, spread_deg, projectile: {speed, radius, homing: bool}}` |
+| `attack_bias` | how attack probability rises as distance falls: chance per tick `= clamp((bias - dist) / bias, 0.05, 1.0) * base` (Doom's distance check in one number) |
+| `infight_hold_s` | how long a grudge against another monster lasts (Doom's 100 tics is about 3 s) |
+| `special` | `resurrect` (auditor), `invisible_until_fire` (redactor), `stomp_knockback` (walker), `jam_radio` (jammer) |
+| `fast` | speed and cooldown multipliers under the nightmare tier |
+
+States per monster: `Idle`, `Alert(target, since)`, `Chase(target)`, `Attack(target, wind_up_until)`, `Pain(until)`, `Dead(since)`. Rules, all in seconds:
+
+1. Idle: wake on sight (target inside the arc and range with a clear ray) or on sound (an alert event within `sound_range` whose path crosses no closed door), unless `ambush`, which wakes on sight only.
+2. Chase: each step pick one of eight compass directions toward the target, diagonals first, re-pick on a block or every random 0.4 to 1.2 s (the seeded RNG); melee if in range; else attack when the cooldown is ready and the distance roll passes; after an attack, one step of movement before the next attack.
+3. Pain: on damage roll `pain_chance`; success interrupts the current state for the pain duration (0.3 s) and resets reaction time to 0 ("awake now").
+4. Infighting: damage from a monster of another type retargets the victim to the attacker for `infight_hold_s`; same type never retargets; auditors are never targeted and always retarget. Hitscan grunts can hit each other; projectiles skip their own type.
+5. Projectiles are server entities with position, velocity, radius, owner, and damage; they hit the first fighter or monster on their path (grid candidates) or a solid, and vanish.
+6. Dead monsters leave a corpse marker in the snapshot for the client's death animation and are removed after 10 s; auditors resurrect corpses within 8 units at full hp.
+
+Each type's row is a test: a deterministic sim test spawns the type against a stationary player and asserts wake, chase, attack timing, and pain behaviour to the tick.
+
+### Encounters, keys, secrets, exit
+
+Triggers are polygons with once or repeat semantics and an action list: spawn a group (closets and teleport traps), open or close a door, play a Host line, alert monsters in a radius. Doors are solids that open on a key (removed from the solids while open) and close after `open_s` unless `stay_open`. Secrets count when first entered and print on the results card. The exit polygon ends the map when a player enters it with no boss alive: results card (time, frags, secrets found, deaths, par time), then the next map from the episode manifest.
+
+### Episode manifest and saves
+
+`server/maps/episodes.json`: episodes as ordered map lists with par times and a boss flag per map. The server keeps `campaign.json` in its data directory: episode, map index, skill, carried weapons, hp and armor at exit, best time per map. `--campaign-continue` loads it; a fresh `--campaign e1` resets. The client mirrors best scores in `user://scores.cfg` for the boot menu.
+
+### Agents in the campaign
+
+Telemetry adds visible monsters by type, range bucket, and whether awake; keys held; a locked door seen; an objective hint (`find_key`, `open_door`, `reach_exit`, `clear_boss`). The brain gets one more question, an objective choice; the reflex layer keeps shooting.
+
 ## Research notes (2026-09-18)
 
 - **Doom's monster spec, from the released source.** Each type has spawn, see, pain, melee, missile, death, gib, and raise states; the AI is `A_Look` and `A_Chase`. `A_Look` wakes on a sector sound target unless the monster is flagged ambush, else on sight in a forward arc. `A_Chase` each tic: count down reaction time (eight tics for every type, zeroed on damage), count down the infight threshold, melee if in range, else fire if `P_CheckMissileRange` passes (closer means likelier, being hit provokes, capped at 200 of 256), and after a shot set just-attacked so the next tic moves. Movement picks one of eight directions, diagonals first, and re-picks on a block or every random 0 to 15 steps. Pain chance out of 256 by type: zombie 200, shotgun guy 170, imp 200, demon 180, lost soul 256, cacodemon 128, knight and baron 50, revenant 100, mancubus 80, chaingunner 170, arachnotron 128, pain elemental 128, arch-vile 10, spider 40, cyberdemon 20. Sound floods through two-sided lines, one sound-block line costs a step, closed doors stop it. Infighting: retarget on damage when the threshold is zero (then hold the grudge for 100 tics), same species never hurt each other with projectiles, hitscan is not exempt, the arch-vile is never targeted. Our rung 2 roster implements these as a table per type plus the threshold rule.

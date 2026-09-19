@@ -1,3 +1,4 @@
+pub mod movement;
 pub mod net;
 pub mod protocol;
 pub mod run;
