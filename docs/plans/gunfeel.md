@@ -125,7 +125,7 @@ Input-to-photon latency needs a camera or a light sensor and stays a manual meas
 ## Success criteria
 
 - [x] Default sensitivity within the 30 to 50 centimetres per 360 band at 800 counts per inch, stored in portable units.
-- [ ] Time to kill inside the target band, measured by the harness before and after.
+- [ ] Time to kill inside the target band, measured by the harness before and after. Table sticky assert: [`ttk-feel-harness-proof.md`](./ttk-feel-harness-proof.md).
 - [ ] Each weapon's kill distances peak in its own band. All three are used now, but the rail is still only two to four percent of shots because long fights are rare.
 - [x] Dispersion and aim assist are separate. A shot now has to pass within a fighter's radius; `AIM_ASSIST_RADIANS` is a single knob, zero for everyone, waiting for the gamepad work to give it a reason.
 - [ ] Every feedback timing implemented and visible in a tour still.

@@ -37,6 +37,81 @@ const CLOSE_RANGE: f32 = 3.0;
 const SCATTER_RANGE: f32 = 6.0;
 const RAIL_RANGE: f32 = 18.0;
 
+/// Bare time-to-kill band the weapon table must stay inside (#124 / gunfeel).
+/// Sticky means CI fails if the table drifts out of band, not if a short
+/// playtest sample wobbles.
+pub const STICKY_TTK_MIN_S: f64 = 0.5;
+pub const STICKY_TTK_MAX_S: f64 = 1.2;
+/// Unarmoured fighter HP the sticky table assumes (matches sim spawn HP).
+pub const STICKY_FIGHTER_HP: i32 = 100;
+
+/// One weapon's clean-hit time to kill, derived from the live table.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct StickyWeaponTtk {
+    pub weapon: WeaponType,
+    pub hits_to_kill: u32,
+    pub seconds: f64,
+}
+
+/// Flechette, rail, and scatter clean-hit TTK from `WeaponType` damage and
+/// cooldown. Point-blank for the scatter gun so falloff does not hide a table
+/// regression. This is the #124 claim made CI-assertable from the harness.
+pub fn sticky_weapon_ttk_table() -> [StickyWeaponTtk; 3] {
+    [WeaponType::Flechette, WeaponType::Rail, WeaponType::Scatter].map(|weapon| {
+        let damage = weapon.damage_at(0.0).max(1);
+        let hits = ((STICKY_FIGHTER_HP + damage - 1) / damage) as u32;
+        let seconds =
+            (hits.saturating_sub(1) as f64) * (weapon.cooldown_ticks() as f64) / TICKS_PER_SECOND;
+        StickyWeaponTtk {
+            weapon,
+            hits_to_kill: hits,
+            seconds,
+        }
+    })
+}
+
+/// Problems when any sticky weapon leaves the target band or the expected
+/// hit count. Empty means the table still kills in about a second, three ways.
+pub fn check_sticky_ttk_table() -> Vec<String> {
+    let expected = [
+        (WeaponType::Flechette, 4u32, 0.6),
+        (WeaponType::Rail, 2, 1.0),
+        (WeaponType::Scatter, 3, 0.9),
+    ];
+    let mut problems = Vec::new();
+    for (row, (weapon, hits, seconds)) in sticky_weapon_ttk_table().into_iter().zip(expected) {
+        if row.weapon != weapon {
+            problems.push(format!(
+                "sticky TTK row order drifted: got {:?}, expected {:?}",
+                row.weapon, weapon
+            ));
+            continue;
+        }
+        if row.hits_to_kill != hits {
+            problems.push(format!(
+                "{} sticky hits-to-kill {} (want {hits})",
+                weapon.name(),
+                row.hits_to_kill
+            ));
+        }
+        if (row.seconds - seconds).abs() > 0.001 {
+            problems.push(format!(
+                "{} sticky TTK {:.3} s (want {seconds:.1} s)",
+                weapon.name(),
+                row.seconds
+            ));
+        }
+        if !(STICKY_TTK_MIN_S..=STICKY_TTK_MAX_S).contains(&row.seconds) {
+            problems.push(format!(
+                "{} sticky TTK {:.3} s outside {STICKY_TTK_MIN_S}..{STICKY_TTK_MAX_S} s band",
+                weapon.name(),
+                row.seconds
+            ));
+        }
+    }
+    problems
+}
+
 /// The weapon a fighter should be holding at this distance.
 pub fn weapon_for_distance(dist: f32) -> WeaponType {
     if dist < SCATTER_RANGE {
@@ -203,6 +278,8 @@ pub struct WeaponReport {
     pub accuracy_hi: f64,
     pub damage: i64,
     pub kills: u64,
+    /// Seconds from first damage to death for kills this weapon finished.
+    pub time_to_kill_s: Quantiles,
     /// Distance at which its shots landed.
     pub hit_distance: Quantiles,
     /// Distance at which it killed. The weapon triangle works when these peak
@@ -234,6 +311,7 @@ pub struct WeaponTally {
     pub hits: u64,
     pub damage: i64,
     pub kills: u64,
+    pub time_to_kill_s: Vec<f64>,
     pub hit_distances: Vec<f64>,
     pub kill_distances: Vec<f64>,
 }
@@ -400,9 +478,12 @@ impl Observation {
                     .or_insert(self.last_tick);
             }
             GameEvent::Frag { killer, victim, .. } => {
-                if let Some(start) = self.engagement_start.remove(victim) {
+                let ttk_s = self.engagement_start.remove(victim).map(|start| {
                     let ticks = self.last_tick.saturating_sub(start);
-                    self.time_to_kill_s.push(ticks as f64 / TICKS_PER_SECOND);
+                    ticks as f64 / TICKS_PER_SECOND
+                });
+                if let Some(seconds) = ttk_s {
+                    self.time_to_kill_s.push(seconds);
                 }
                 let killer_track = self.tracks.get(killer);
                 let killer_pos = killer_track.and_then(|t| t.last_pos);
@@ -415,7 +496,15 @@ impl Observation {
                         let tally = self.weapons.entry(weapon).or_default();
                         tally.kills += 1;
                         tally.kill_distances.push(distance);
+                        if let Some(seconds) = ttk_s {
+                            tally.time_to_kill_s.push(seconds);
+                        }
                     }
+                } else if let (Some(weapon), Some(seconds)) = (killer_weapon, ttk_s) {
+                    // Timed kill without positions still counts toward per-weapon TTK.
+                    let tally = self.weapons.entry(weapon).or_default();
+                    tally.kills += 1;
+                    tally.time_to_kill_s.push(seconds);
                 }
             }
             // A fighter who respawned is not still in their last engagement.
@@ -456,6 +545,7 @@ impl Observation {
                     accuracy_hi: hi,
                     damage: tally.damage,
                     kills: tally.kills,
+                    time_to_kill_s: Quantiles::from_values(&tally.time_to_kill_s),
                     hit_distance: Quantiles::from_values(&tally.hit_distances),
                     kill_distance: Quantiles::from_values(&tally.kill_distances),
                 },
@@ -655,9 +745,10 @@ pub fn compute_report(obs: &Observation, agents: usize) -> Report {
     }
 }
 
-/// Frustration signals that block a merge. Empty means the run is acceptable.
+/// Frustration signals and sticky weapon-table TTK that block a merge.
+/// Empty means the run is acceptable and the #124 table still holds.
 pub fn check_thresholds(report: &Report) -> Vec<String> {
-    let mut problems = Vec::new();
+    let mut problems = check_sticky_ttk_table();
     if report.rounds_completed == 0 {
         problems.push("no round completed".to_string());
     }
@@ -1797,6 +1888,12 @@ mod combat_tests {
         let flechette = &report.by_weapon["flechette"];
         assert_eq!(flechette.kills, 1);
         assert!((flechette.kill_distance.p50 - 6.0).abs() < 1e-4);
+        assert_eq!(flechette.time_to_kill_s.count, 1);
+        assert!(
+            (flechette.time_to_kill_s.p50 - 1.0).abs() < 1e-6,
+            "per-weapon sticky TTK must match the global kill timer: {:?}",
+            flechette.time_to_kill_s
+        );
         assert_eq!(
             report.kill_distance_buckets[1], 1,
             "six units falls in the second bucket"
@@ -1850,7 +1947,57 @@ mod combat_tests {
 }
 
 #[cfg(test)]
+mod sticky_ttk_tests {
+    use super::*;
+
+    #[test]
+    fn sticky_table_ttk_flechette_rail_scatter() {
+        let rows = sticky_weapon_ttk_table();
+        assert_eq!(rows[0].weapon, WeaponType::Flechette);
+        assert_eq!(rows[0].hits_to_kill, 4);
+        assert!((rows[0].seconds - 0.6).abs() < 0.001);
+        assert_eq!(rows[1].weapon, WeaponType::Rail);
+        assert_eq!(rows[1].hits_to_kill, 2);
+        assert!((rows[1].seconds - 1.0).abs() < 0.001);
+        assert_eq!(rows[2].weapon, WeaponType::Scatter);
+        assert_eq!(rows[2].hits_to_kill, 3);
+        assert!((rows[2].seconds - 0.9).abs() < 0.001);
+        for row in rows {
+            assert!(
+                (STICKY_TTK_MIN_S..=STICKY_TTK_MAX_S).contains(&row.seconds),
+                "{:?} {:.3} s left the sticky band",
+                row.weapon,
+                row.seconds
+            );
+        }
+        assert!(
+            check_sticky_ttk_table().is_empty(),
+            "{:?}",
+            check_sticky_ttk_table()
+        );
+    }
+
+    #[test]
+    fn assert_path_includes_sticky_ttk_with_frustration_checks() {
+        let report = Report {
+            agents: 4,
+            rounds_completed: 1,
+            frags: 20,
+            frags_per_minute: 4.0,
+            spawn_deaths: 1,
+            ..Report::default()
+        };
+        assert!(
+            check_thresholds(&report).is_empty(),
+            "sticky table plus a clean run must pass --assert: {:?}",
+            check_thresholds(&report)
+        );
+    }
+}
+
+#[cfg(test)]
 mod weapon_choice_tests {
+
     use super::*;
 
     #[test]
