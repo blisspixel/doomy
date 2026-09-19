@@ -37,6 +37,11 @@ var crosshair_hbar = null
 var crosshair_vbar = null
 var crosshair_dot = null
 var crosshair_ring = null
+## Dark rectangles sitting behind each crosshair part. A cream crosshair over a
+## tan floor is invisible, which is how a one pixel plus disappeared exactly
+## where a player was aiming.
+var crosshair_edges: Dictionary = {}
+const CROSSHAIR_EDGE_PAD: float = 2.0
 var hit_marker = null
 var damage_numbers = null
 
@@ -125,6 +130,12 @@ func _ready():
 	crosshair_vbar = get_node_or_null("Crosshair/VBar")
 	crosshair_dot = get_node_or_null("Crosshair/Dot")
 	crosshair_ring = get_node_or_null("Crosshair/RingBorder")
+	crosshair_edges = {
+		crosshair_hbar: get_node_or_null("Crosshair/HBarEdge"),
+		crosshair_vbar: get_node_or_null("Crosshair/VBarEdge"),
+		crosshair_dot: get_node_or_null("Crosshair/DotEdge"),
+		crosshair_ring: get_node_or_null("Crosshair/RingEdge"),
+	}
 	hit_marker = get_node_or_null("HitMarker")
 	damage_numbers = get_node_or_null("DamageNumbers")
 
@@ -1151,6 +1162,21 @@ func set_fp_weapon(weapon_name: String) -> void:
 		_apply_crosshair_for_weapon(weapon_name)
 	fp_weapon.visible = true
 
+## Keep every crosshair edge matching the part it sits behind: same visibility,
+## same rectangle grown by a couple of pixels on each side.
+func _sync_crosshair_edges() -> void:
+	for part in crosshair_edges:
+		var edge = crosshair_edges[part]
+		if part == null or edge == null:
+			continue
+		edge.visible = part.visible
+		if not edge.visible:
+			continue
+		edge.offset_left = part.offset_left - CROSSHAIR_EDGE_PAD
+		edge.offset_top = part.offset_top - CROSSHAIR_EDGE_PAD
+		edge.offset_right = part.offset_right + CROSSHAIR_EDGE_PAD
+		edge.offset_bottom = part.offset_bottom + CROSSHAIR_EDGE_PAD
+
 func _apply_crosshair_for_weapon(weapon_name: String) -> void:
 	if not crosshair or not fp_juice_enabled:
 		return
@@ -1199,15 +1225,18 @@ func _apply_crosshair_for_weapon(weapon_name: String) -> void:
 				crosshair_ring.color = Color(0.78, 0.55, 0.32, 0.22)
 		_:
 			if crosshair_hbar:
-				crosshair_hbar.offset_left = -10.0
-				crosshair_hbar.offset_right = 10.0
-				crosshair_hbar.offset_top = -1.0
-				crosshair_hbar.offset_bottom = 1.0
+				crosshair_hbar.offset_left = -11.0
+				crosshair_hbar.offset_right = 11.0
+				crosshair_hbar.offset_top = -1.5
+				crosshair_hbar.offset_bottom = 1.5
 			if crosshair_vbar:
-				crosshair_vbar.offset_top = -10.0
-				crosshair_vbar.offset_bottom = 10.0
-				crosshair_vbar.offset_left = -1.0
-				crosshair_vbar.offset_right = 1.0
+				crosshair_vbar.offset_top = -11.0
+				crosshair_vbar.offset_bottom = 11.0
+				crosshair_vbar.offset_left = -1.5
+				crosshair_vbar.offset_right = 1.5
+	# Whatever shape this weapon chose, put a dark edge behind it. A cream
+	# crosshair over a tan floor is a crosshair nobody can see.
+	_sync_crosshair_edges()
 
 func show_hit_marker(damage: int = 0, weapon_name: String = "") -> void:
 	# Light grit confirm when local / followed player scores a hit.
