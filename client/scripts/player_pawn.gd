@@ -22,6 +22,12 @@ const INTERP_SPEED: float = 10.0
 # distance / REF (capped) so far spectators still read Cyanex/Kragge silhouettes.
 const FAR_CAM_REF_DIST: float = 12.0
 const FAR_CAM_MAX_SCALE: float = 3.5
+## Below this distance a nameplate shrinks with the distance, so its size on
+## screen stops growing. A Label3D has a fixed size in the world, which means a
+## fighter two metres away wears a name tall enough to hide the room behind it.
+const NAMEPLATE_NEAR_DIST: float = 9.0
+## How small a close nameplate may get, so it does not vanish at point blank.
+const NAMEPLATE_MIN_SCALE: float = 0.22
 const HIT_SCALE_BOOST: float = 1.12
 
 var _far_cam_scale: float = 1.0
@@ -322,6 +328,13 @@ static func compute_far_cam_scale(distance: float) -> float:
 		return 1.0
 	return minf(distance / FAR_CAM_REF_DIST, FAR_CAM_MAX_SCALE)
 
+## Nameplate scale: capped on screen up close, and sharing the far camera's
+## growth beyond the reference distance so a distant fighter is still labelled.
+static func compute_nameplate_scale(distance: float) -> float:
+	if distance < NAMEPLATE_NEAR_DIST:
+		return maxf(distance / NAMEPLATE_NEAR_DIST, NAMEPLATE_MIN_SCALE)
+	return compute_far_cam_scale(distance)
+
 func _update_far_cam_scale() -> void:
 	var cam: Camera3D = get_viewport().get_camera_3d() if get_viewport() else null
 	var dist: float = FAR_CAM_REF_DIST
@@ -330,7 +343,7 @@ func _update_far_cam_scale() -> void:
 	_far_cam_scale = compute_far_cam_scale(dist)
 	_apply_body_scale(hit_flash_timer > 0)
 	if label:
-		label.scale = Vector3.ONE * _far_cam_scale
+		label.scale = Vector3.ONE * compute_nameplate_scale(dist)
 
 func _apply_body_scale(hit: bool) -> void:
 	if not body:

@@ -90,7 +90,7 @@ pub struct EnemyView {
 }
 
 /// One fighter's situation on one tick.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct Telemetry {
     pub tick: u64,
     pub name: String,
@@ -110,6 +110,30 @@ pub struct Telemetry {
     pub armor_pad: Option<f32>,
     /// Nearest available pad per weapon name, sorted by name.
     pub weapon_pads: BTreeMap<String, f32>,
+    /// What this fighter last decided to do, oldest first. A decision model is
+    /// stateless: it sees one situation and nothing of what it just did. With
+    /// no memory it oscillates, picking push and hold on alternate ticks
+    /// forever, because each tick looks the same to it. Telling it its own
+    /// recent choices is what breaks the loop.
+    pub recent: VecDeque<String>,
+}
+
+/// How many past decisions travel with the state. Enough to see an
+/// oscillation, few enough that the state stays small.
+pub const RECENT_DECISIONS: usize = 4;
+
+impl Telemetry {
+    /// Record what the fighter decided, keeping only the newest few.
+    pub fn remember(&mut self, decision: &str) {
+        if self.recent.back().map(String::as_str) == Some(decision) {
+            // A run of the same decision is one fact, not four.
+            return;
+        }
+        self.recent.push_back(decision.to_string());
+        while self.recent.len() > RECENT_DECISIONS {
+            self.recent.pop_front();
+        }
+    }
 }
 
 /// Coarse HP band; the brain does not need the number.
@@ -186,6 +210,9 @@ pub fn observe(me: Uuid, snapshot: &Snapshot, hits: &mut RecentHits) -> Option<T
     }
     let recent_damage = hits.damage_within(snapshot.tick, UNDER_FIRE_TICKS);
     Some(Telemetry {
+        // Filled in by the caller, which is the only place that remembers
+        // anything from one tick to the next.
+        recent: VecDeque::new(),
         tick: snapshot.tick,
         name: mine.name.clone(),
         hp: mine.hp,
@@ -263,6 +290,7 @@ impl Telemetry {
                 "armor": pad_bucket(self.armor_pad),
             },
             "clock": self.clock_bucket(),
+            "recent_decisions": self.recent.iter().collect::<Vec<_>>(),
         })
     }
 
@@ -562,6 +590,7 @@ ROUND state=active time_left=90 fighters=2\n";
                 "enemy": {"present": true, "range": "mid", "health": "low", "weapon": "rail"},
                 "pads": {"health": "near", "armor": "none"},
                 "clock": "ending_soon",
+                "recent_decisions": [],
             })
         );
         let text = state.to_string();
@@ -582,5 +611,50 @@ ROUND state=active time_left=90 fighters=2\n";
         let t = observe(me, &unknown, &mut hits).unwrap();
         assert_eq!(t.state_object()["clock"], "unknown");
         assert_eq!(t.state_object()["self"]["score"], "ahead");
+    }
+}
+
+#[cfg(test)]
+mod memory_tests {
+    use super::*;
+
+    #[test]
+    fn a_fighter_remembers_the_last_few_things_it_chose() {
+        let mut t = Telemetry::default();
+        for decision in ["push", "hold", "retreat", "push", "hold"] {
+            t.remember(decision);
+        }
+        assert_eq!(
+            t.recent.iter().cloned().collect::<Vec<_>>(),
+            vec!["hold", "retreat", "push", "hold"],
+            "oldest first, capped at RECENT_DECISIONS"
+        );
+    }
+
+    #[test]
+    fn holding_the_same_stance_is_one_fact_not_four() {
+        let mut t = Telemetry::default();
+        for _ in 0..10 {
+            t.remember("hold");
+        }
+        t.remember("push");
+        assert_eq!(
+            t.recent.iter().cloned().collect::<Vec<_>>(),
+            vec!["hold", "push"],
+            "a run of one decision must not push the oscillation out of view"
+        );
+    }
+
+    #[test]
+    fn the_memory_reaches_the_state_the_model_sees() {
+        let mut t = Telemetry::default();
+        t.remember("push");
+        t.remember("retreat");
+        let state = t.state_object();
+        assert_eq!(
+            state["recent_decisions"],
+            serde_json::json!(["push", "retreat"]),
+            "a stateless model cannot see its own oscillation unless it is told"
+        );
     }
 }

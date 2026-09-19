@@ -48,6 +48,10 @@ pub struct ToolState {
     pub default_name: String,
     /// Name used for the current joined session.
     pub session_name: Option<String>,
+    /// The arena's shape, from the server's MapInfo: bounds and the solids
+    /// that block movement and shots. An agent needs it to tell a clear shot
+    /// from a wall. Sent once on join, and again when the map changes.
+    pub map: Option<Value>,
 }
 
 impl Default for ToolState {
@@ -60,6 +64,7 @@ impl Default for ToolState {
             connected: false,
             default_name: "MCP Agent".to_string(),
             session_name: None,
+            map: None,
         }
     }
 }
@@ -367,6 +372,9 @@ pub fn build_observe_result(state: &ToolState) -> Value {
                     "self_player_id".to_string(),
                     serde_json::json!(state.player_id.map(|id| id.to_string())),
                 );
+                if let Some(map) = state.map.as_ref() {
+                    obj.insert("map".to_string(), map.clone());
+                }
             }
             observation
         }
@@ -859,6 +867,19 @@ pub fn ingest_server_text(state: &mut ToolState, text: &str) {
         }
         // Acks go only to predicting clients; the adapter ignores them.
         Ok(protocol::ServerMessage::Ack { .. }) => {}
+        Ok(protocol::ServerMessage::MapInfo {
+            map_id,
+            map_name,
+            half_extent,
+            solids,
+        }) => {
+            state.map = Some(serde_json::json!({
+                "map_id": map_id,
+                "map_name": map_name,
+                "half_extent": half_extent,
+                "solids": solids,
+            }));
+        }
         Ok(protocol::ServerMessage::Event(event)) => {
             if let Ok(event_value) = serde_json::to_value(event) {
                 push_recent_event(state, event_value);

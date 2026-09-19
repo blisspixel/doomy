@@ -38,6 +38,29 @@ func _initialize() -> void:
 		push_error("test_far_cam_scale: overview scale too small: %s" % str(overview))
 		ok = false
 
+	# A nameplate must not grow without limit as the camera closes on it. A
+	# Label3D has a fixed world size, so at two metres it was tall enough to
+	# hide the room behind the fighter wearing it.
+	if not pawn.has_method("compute_nameplate_scale"):
+		push_error("test_far_cam_scale: player_pawn missing compute_nameplate_scale")
+		ok = false
+	else:
+		var near_screen: float = float(pawn.call("compute_nameplate_scale", 2.0)) / 2.0
+		var mid_screen: float = float(pawn.call("compute_nameplate_scale", 6.0)) / 6.0
+		if absf(near_screen - mid_screen) > 0.01:
+			push_error("test_far_cam_scale: nameplate screen size not capped up close")
+			ok = false
+		if float(pawn.call("compute_nameplate_scale", 0.05)) < 0.2:
+			push_error("test_far_cam_scale: nameplate vanished at point blank")
+			ok = false
+		var far_here: float = float(pawn.call("compute_nameplate_scale", 30.0))
+		var far_curve: float = float(pawn.call("compute_far_cam_scale", 30.0))
+		if absf(far_here - far_curve) > 0.001:
+			push_error("test_far_cam_scale: distant nameplate should follow the far curve")
+			ok = false
+		if ok:
+			print("ok   nameplate scale capped near, follows far curve")
+
 	pawn.free()
 
 	if ok:

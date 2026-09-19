@@ -385,6 +385,18 @@ pub enum ServerMessage {
         #[serde(default = "default_playlist")]
         playlist: String,
     },
+    /// The arena's shape: the bounds and the solids that block movement and
+    /// shots. Sent once to a fighter when it joins and again to everyone when
+    /// the map changes, never per tick, because it does not change per tick.
+    /// Agents need it to tell a clear shot from a wall; the Godot client has
+    /// the same geometry in its scene.
+    MapInfo {
+        map_id: u32,
+        map_name: String,
+        /// Half width of the square arena, centred on the origin.
+        half_extent: f32,
+        solids: Vec<crate::movement::Solid>,
+    },
     Snapshot(Snapshot),
     Event(GameEvent),
     /// Unicast acknowledgement of the newest input applied to this client's
