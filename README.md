@@ -19,7 +19,7 @@ This is a playable vertical slice, not a finished game. The build order and what
 
 ## Screenshots
 
-Live captures from the current build, Godot 4.7.2-stable against a loopback server with bots. The first four come from the visual QA tour, which walks every player-facing state and regenerates them: `tools/qa_tour.sh`. The rest are tip captures; details and their regeneration script are in [`docs/screenshots/README.md`](docs/screenshots/README.md).
+Live captures from the current build, Godot 4.7.2-stable against a loopback server with bots. The first four come from the visual QA tour, which walks every player-facing state. Run `tools/qa_tour.sh --publish` after any change a player would see and they are refreshed in place. The rest are tip captures; details and their regeneration script are in [`docs/screenshots/README.md`](docs/screenshots/README.md).
 
 Behind the gun: health and armour in the corner, the weapon in hand, the crosshair and nothing else in the middle.
 

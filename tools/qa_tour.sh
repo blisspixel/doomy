@@ -6,12 +6,19 @@
 # console binary directly. On Linux it wraps the run in Xvfb, because bare
 # --headless has no framebuffer and every still comes back empty.
 #
-# Usage: tools/qa_tour.sh [output directory]
+# Usage: tools/qa_tour.sh [--publish] [output directory]
+#   --publish also copies the approved stills into docs/screenshots/, which is
+#   what the README shows. Run it after any change a player would see.
 # Default output: .agents/qa/<stamp>/ (gitignored), with a `latest` copy.
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 STAMP="$(date -u +%Y%m%d-%H%M%S)"
+PUBLISH=0
+if [ "${1:-}" = "--publish" ]; then
+  PUBLISH=1
+  shift
+fi
 OUT_DIR="${1:-$ROOT/.agents/qa/$STAMP}"
 SERVER_PORT="${FRAGR_PORT:-6767}"
 SERVER_URL="${FRAGR_SERVER:-127.0.0.1:$SERVER_PORT}"
@@ -110,5 +117,28 @@ fi
 rm -rf "$ROOT/.agents/qa/latest"
 mkdir -p "$ROOT/.agents/qa/latest"
 cp "$OUT_DIR"/*.png "$OUT_DIR"/manifest.json "$ROOT/.agents/qa/latest/" 2>/dev/null
+
+# Screenshots in the README go stale the moment the HUD changes, and a stale
+# screenshot is worse than none because it claims to be the current build.
+# `--publish` copies the approved subset into docs/screenshots/ so refreshing
+# them is one command rather than a thing someone remembers to do.
+if [ "${PUBLISH:-0}" = "1" ]; then
+  published=0
+  while IFS='|' read -r src dest; do
+    [ -z "$src" ] && continue
+    if [ -f "$OUT_DIR/$src" ]; then
+      cp "$OUT_DIR/$src" "$ROOT/docs/screenshots/$dest"
+      published=$((published + 1))
+    else
+      echo "qa_tour: cannot publish $src; it was not captured" >&2
+    fi
+  done <<'SHOTS'
+05_hud_first_person.png|tour_first_person_16x9.png
+04_combat_follow.png|tour_combat_follow_16x9.png
+03_arena_overview.png|tour_arena_overview_16x9.png
+07_shot_effects_strip.png|tour_shot_strip.png
+SHOTS
+  echo "qa_tour: published $published stills into docs/screenshots/"
+fi
 
 echo "qa_tour: done. Contact sheet: $OUT_DIR/contact.png"
