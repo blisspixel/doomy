@@ -5,7 +5,7 @@
 //! in the numbers that make a round feel alive.
 
 use fragr_server::protocol::{
-    Action, ClientMessage, GameEvent, LookAt, Role, ServerMessage, Snapshot,
+    Action, ClientMessage, GameEvent, LookAt, Role, ServerMessage, Snapshot, WeaponType,
 };
 use fragr_server::run::{run_server, ServerOptions, TICK};
 use fragr_server::sim::{MapKind, MatchConfig};
@@ -26,6 +26,33 @@ pub const SPAWN_DEATH_WINDOW_TICKS: u64 = 40;
 /// Reflex agents fire inside this range and walk toward targets beyond three units.
 const FIRE_RANGE: f32 = 20.0;
 const CLOSE_RANGE: f32 = 3.0;
+/// Hold the shotgun inside this distance, the railgun beyond the next one,
+/// and the needle gun between. The first combat report showed the reflex
+/// agents never swapping, which left two of the three weapons unmeasured and
+/// the weapon triangle an assertion rather than a finding.
+const SCATTER_RANGE: f32 = 10.0;
+const RAIL_RANGE: f32 = 30.0;
+
+/// The weapon a fighter should be holding at this distance.
+pub fn weapon_for_distance(dist: f32) -> WeaponType {
+    if dist < SCATTER_RANGE {
+        WeaponType::Scatter
+    } else if dist > RAIL_RANGE {
+        WeaponType::Rail
+    } else {
+        WeaponType::Flechette
+    }
+}
+
+/// Parse a wire weapon name; unknown names keep whatever is held.
+fn weapon_from_wire(name: &str) -> Option<WeaponType> {
+    match name.to_ascii_lowercase().as_str() {
+        "flechette" => Some(WeaponType::Flechette),
+        "rail" => Some(WeaponType::Rail),
+        "scatter" => Some(WeaponType::Scatter),
+        _ => None,
+    }
+}
 /// Movement smaller than this between snapshots counts as idle.
 const IDLE_EPSILON: f32 = 0.01;
 
@@ -603,6 +630,10 @@ pub fn reflex_action(bot_id: Uuid, snapshot: &Snapshot) -> Action {
     let Some((dist, target)) = nearest else {
         return Action::default();
     };
+    // Swap only when the right weapon is not already in hand, so the report
+    // does not fill with pointless swaps.
+    let wanted = weapon_for_distance(dist);
+    let weapon_swap = (weapon_from_wire(&me.weapon) != Some(wanted)).then_some(wanted);
     Action {
         look_at: Some(LookAt {
             player_id: Some(target),
@@ -611,6 +642,7 @@ pub fn reflex_action(bot_id: Uuid, snapshot: &Snapshot) -> Action {
         }),
         forward: dist > CLOSE_RANGE,
         fire: dist < FIRE_RANGE,
+        weapon_swap,
         ..Action::default()
     }
 }
@@ -1256,5 +1288,22 @@ mod combat_tests {
         assert_eq!(report.time_to_kill_s.count, 0);
         assert!(report.by_weapon.is_empty());
         assert_eq!(report.kill_distance_buckets.len(), DISTANCE_BUCKETS);
+    }
+}
+
+#[cfg(test)]
+mod weapon_choice_tests {
+    use super::*;
+
+    #[test]
+    fn the_weapon_follows_the_range() {
+        assert_eq!(weapon_for_distance(0.0), WeaponType::Scatter);
+        assert_eq!(weapon_for_distance(9.9), WeaponType::Scatter);
+        assert_eq!(weapon_for_distance(10.0), WeaponType::Flechette);
+        assert_eq!(weapon_for_distance(30.0), WeaponType::Flechette);
+        assert_eq!(weapon_for_distance(30.1), WeaponType::Rail);
+        assert_eq!(weapon_from_wire("Rail"), Some(WeaponType::Rail));
+        assert_eq!(weapon_from_wire("scatter"), Some(WeaponType::Scatter));
+        assert_eq!(weapon_from_wire("bfg"), None);
     }
 }

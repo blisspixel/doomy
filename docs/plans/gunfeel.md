@@ -43,6 +43,24 @@ Every number has a reason and a source or an explicit "ours to tune". Damage is 
 | Field of view | implicit 75 vertical (about 107 horizontal at 16:9) | explicit, 90 to 120 horizontal, height-keeping so wider monitors see more, hipfire sensitivity not scaled by it | Quake 3 ships 90 horizontal at 4:3; Counter-Strike 2 ships 75 with a zoom ratio of 1. |
 | Gamepad look | flat 2.2 radians per second | radial deadzone 10 percent, outer 95, exponent 2.0, 180 degrees per second cap, friction to 0.6x inside a 3 degree cone, no added magnetism | The hit cone is already magnetism, so the pad gets friction only. Deadzone and exponent are ours to tune; the platform defaults of 24 percent are unusable. |
 
+## The triangle does not exist yet (2026-09-19)
+
+Once the reflex agents were taught to hold the right weapon for the range, three seeded runs of six agents said this:
+
+| Seed | Accuracy | Shots per kill | Time to kill p50 / p90 | Scatter shots / kills | Flechette shots / kills | Rail shots / kills |
+|---|---|---|---|---|---|---|
+| 1 | 27.0% | 22.6 | 1.50 / 9.15 s | 912 / 36 | 262 / 16 | 0 / 0 |
+| 7 | 18.5% | 32.0 | 1.50 / 6.80 s | 1172 / 38 | 234 / 6 | 0 / 0 |
+| 42 | 36.6% | 17.0 | 1.50 / 3.95 s | 476 / 29 | 169 / 9 | 0 / 0 |
+
+Three findings, all stable across seeds:
+
+1. **The rail is never fired.** Not once, in any run. Fights never begin beyond thirty units because chasing agents close the distance first, so a hundred unit weapon has no situation. A weapon nobody can reach the range for is not a third corner of a triangle; it is dead weight on the pickup pads.
+2. **Choosing the right weapon by range made the game worse, not better.** Against the earlier baseline, accuracy fell from 33.6 to 18.5 through 36.6 percent, and shots per kill roughly doubled to between 17 and 32. The scatter fires four times as fast for 15 damage with a wide cone, so a policy that favours it at close range produces a spray: more shots, fewer landing, longer fights.
+3. **The median time to kill is 1.50 seconds in every run** while the ninetieth percentile swings from 3.95 to 9.15. The typical trade is consistent; the long tail is where the pacing problem lives, and it is the tail that makes a fight feel like it will not end.
+
+This is the case for rung 2 in numbers rather than in taste: the weapon table needs the scatter to hit harder and slower, the rail to be reachable inside the arena, and the flechette to stop being the answer to every distance.
+
 ## Measuring it without human testers
 
 The playtest harness already sees every shot: the server publishes a shot result per fire with hit or miss and the damage. Three additions make the weapon triangle and the time to kill measurable from agents alone, and they need no new wire data:
