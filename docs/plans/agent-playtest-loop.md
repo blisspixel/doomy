@@ -40,10 +40,31 @@ Three findings:
 - Frustration signals become assertions with thresholds in CI: no agent stuck for more than five seconds, no spawn death rate above ten percent, at least one frag per minute at four agents.
 - Output lands under gitignored `.agents/playtest/`; the summary table for a change under test goes into that change's plan doc, except brain results, which stay in `.agents/` per TypeSafe's terms.
 
+## The planner tier, measured (2026-09-19)
+
+Six agents, one round, two seeds, with the weapon table from `plans/gunfeel.md`. Kill distance is the count of kills in each five unit bucket from zero.
+
+| Tier | Accuracy | Shots per kill | Time to kill p50 / p90 | Rail shots | Kill distance buckets |
+|---|---|---|---|---|---|
+| reflex, seed 1 | 16.5% | 22.0 | 1.30 / 5.45 s | 17 | 16, 11, 8, 3, 0 |
+| reflex, seed 42 | 15.3% | 22.6 | 0.90 / 7.60 s | 19 | 19, 7, 16, 3, 0 |
+| planner, seed 1 | 16.8% | 23.1 | 2.05 / 6.25 s | 99 | 0, 5, 36, 5, 3 |
+| planner, seed 42 | 14.9% | 24.7 | 1.60 / 7.65 s | 74 | 1, 3, 43, 6, 1 |
+| mixed, seed 1 | 19.2% | 19.2 | 2.20 / 6.65 s | 44 | 4, 24, 15, 5, 0 |
+| mixed, seed 42 | 15.3% | 25.7 | 1.20 / 6.40 s | 37 | 2, 15, 24, 2, 0 |
+
+What it says:
+
+- **The knife-range problem is gone.** A reflex roster puts fifteen to nineteen kills in the closest bucket; a planner roster puts nought or one there and clusters at ten to fifteen units. Holding the range a weapon wants is the whole difference.
+- **The rail finally matters.** Four to five times the shots and up to seven kills in a run, against one or none for reflex agents.
+- **Accuracy and shots per kill are unchanged**, which is the result that makes the first two trustworthy: the planner is not winning by shooting more or better, it is fighting somewhere else.
+- **Fighting at range takes longer**, median time to kill rising from about one second to about two. That is not obviously wrong. A rail duel across a room should take longer than a shotgun in a doorway; the question the gunfeel plan now has to answer is whether the long tail is pacing or frustration.
+- **A mixed roster produces the most varied distances** and the best accuracy and shots per kill of the three. It is the better default for measuring anything, because it exercises the whole triangle rather than one corner of it.
+
 ## Rungs
 
 1. Harness boots a server on a free loopback port, connects N reflex agents, runs R rounds, writes the JSON report. CI runs it with four agents and one round.
-2. Planner tier with waypoints read from the map data; pickup seeking; the report gains contention and route metrics.
+2. **Shipped.** Planner tier: hold the range the held weapon wants in three zones (close in, strafe, back off), break off for health below 45, and collect a weapon not in hand when nobody is pressing. `--tiers reflex,planner` deals policies round robin and names agents after theirs. Waypoints from map data and the contention and route metrics remain.
 3. Server exposes tick time percentiles and bytes per tick on a status line, and `--bench N M` runs N scripted bots for M ticks and prints the same JSON. This rung is rung 1 of `plans/benchmark-and-stats.md`, which specifies the histograms, the phase split, the budget headroom, and the determinism check; the hardening plan later serves the same JSON over HTTP, and the buttery-controls plan reads its correction metrics from this line. The deeper match statistics build on the same report.
 4. Optional observer: an off-tick process that reads the event stream and writes free-text notes, gated behind a flag and a key.
 
@@ -56,6 +77,6 @@ Three findings:
 ## Success criteria
 
 - [x] Rung 1 in CI (#95).
-- [ ] Planner tier with route metrics.
+- [x] Planner tier (route metrics still to come).
 - [x] Status line metrics from the server (`--bench`, `--status-every-s`, the same JSON in both).
 - [ ] Thresholds catch a deliberately introduced stuck bot in a test.
