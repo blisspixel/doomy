@@ -14,13 +14,27 @@ That explains a measurement that has been sitting in the plans looking like a ba
 
 So this plan is not "add ammo to fragr". It is: the pickup economy does not exist yet, and ammo is the thing that makes it exist. One line gates the swap on a set of owned weapons. Everything below is what that line needs around it to be fun rather than annoying.
 
+## The feel to aim at
+
+A kart racer's item box. You get something often and you lose it often. Holding a good weapon is a temporary state you enjoy rather than an inventory you build, and the moment you pick one up is an upgrade moment the way trading up off a dead opponent is in Halo.
+
+That sets the dials. Pads are generous, reserves are thin, and churn beats hoarding. A full pickup is a fight and a half. Melee outlasts a gun because you find it less often, and still breaks, because nothing is permanent except your fists.
+
+## The three rules
+
+Carry a melee, a sidearm and two found weapons. Reload, per weapon, magazine and reserve. Run out, because ammunition is finite and found.
+
+Picking up a third primary means choosing which one hits the floor, under fire, with a number in your head about how much each has left. Running a weapon dry drops you to the sidearm; running that dry drops you to your fists. That descent is supposed to be frightening rather than merely inconvenient, and it is the reason the fists are in the game at all.
+
+The canonical magazines and reload times are in [`docs/WEAPONS.md`](../WEAPONS.md).
+
 ## The argument, briefly
 
 **Shared pools, not per-weapon counters.** Doom ran eight weapons on four pools and the sharing is what makes the decision: plasma now, or cells saved for the BFG. Quake did the same and got the item-timing meta this repo has said it wants. Quake 3 then moved to per-weapon counters capped at 200 and ammo stopped mattering in duel, because no single gun can be fired long enough for its own counter to bite. Halo's per-weapon model works, but only because you carry two guns; the two-slot limit is doing the work and the ammo model is a slot model wearing a hat. With eight carried guns it becomes eight counters and no pressure.
 
 Four pools also happens to be the only version that fits the HUD this repo already specified, which allows sprites and at most one line of text.
 
-**No reloads.** Every reference fragr has committed to is in the no-reload lineage. The cooldown already is the cadence, and a magazine puts a second rhythm on top of the first where they fight each other. A reload is also a second authoritative timer needing prediction, reconciliation, a cancel rule and a swap-mid-reload rule, which is real protocol cost for a mechanic the design does not need. And the measured time to kill is 0.6 to 1.2 seconds, so a two second reload is two entire fights of dead time in a game whose known problem is already a long tail.
+**Reloads, kept short.** The research argued against them: the cooldown is already the cadence, a magazine adds a second rhythm, and a reload is a second authoritative timer needing prediction and a cancel rule. Every one of those costs is real and they are accepted, because a reload is the rhythm of *not* firing and the gap between the two is where fights are won. The mitigation is the numbers. Nothing takes two seconds, most are near one, and the two slow ones are the weapons where the moment after the shot was always the interesting part.
 
 **Scarce things get charges, not pools.** The signature weapon, the melee upgrade and the thrown mine each carry their own count with their own clock. That is how they can be individually spectacular without destabilising the economy.
 

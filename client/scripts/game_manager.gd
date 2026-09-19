@@ -36,6 +36,7 @@ var action_state = {
 	"turn_left": false,
 	"turn_right": false,
 	"fire": false,
+	"jump": false,
 	"weapon_swap": null,
 	"yaw": 0.0,
 	"seq": 0
@@ -50,8 +51,13 @@ const SPEAK_LINES = [
 var speak_line_index = 0
 var pending_weapon_swap = null
 
+var arena_cover: ArenaCover = null
+var console: FragrConsole = null
+var pause_menu: PauseMenu = null
+
 func _ready():
 	net_client.snapshot_received.connect(_on_snapshot_received)
+	net_client.map_info_received.connect(_on_map_info)
 	net_client.event_received.connect(_on_event_received)
 	net_client.ack_received.connect(_on_ack_received)
 	net_client.connected_to_server.connect(_on_connected)
@@ -70,6 +76,61 @@ func _ready():
 	net_client.connect_to_server(role, player_name)
 	hud.set_mode(str(boot.get("hud_mode", "SPECTATING")))
 	_setup_radio()
+	_setup_frontend(str(boot.get("mode", "spectate")))
+
+	# Cover is built from what the server sends, never from a second copy in
+	# the scene. See arena_cover.gd for why that matters.
+	arena_cover = ArenaCover.new()
+	var arena_root: Node = get_node_or_null("Arena")
+	if arena_root != null:
+		arena_root.add_child(arena_cover)
+	else:
+		add_child(arena_cover)
+
+func _on_map_info(info: Dictionary) -> void:
+	if arena_cover != null:
+		arena_cover.apply_map_info(info)
+
+## The console, the pause menu and the loading card. Built here rather than in
+## the scene because they are the same three things whatever the match is.
+func _setup_frontend(boot_mode: String) -> void:
+	console = FragrConsole.new()
+	console.name = "FragrConsole"
+	add_child(console)
+
+	pause_menu = PauseMenu.new()
+	pause_menu.name = "PauseMenu"
+	# Only a solo match may be held. See pause_menu.gd for why.
+	pause_menu.solo = boot_mode == "solo"
+	pause_menu.leave_requested.connect(_on_leave_requested)
+	add_child(pause_menu)
+
+	if is_human_player:
+		show_loading_card()
+
+## The controls card. Shown on every join, including pressing J mid-match,
+## because a player who joined from the booth never saw the boot one.
+func show_loading_card() -> void:
+	if get_node_or_null("LoadingCard") != null:
+		return
+	var card: LoadingCard = LoadingCard.new()
+	card.name = "LoadingCard"
+	add_child(card)
+
+func _on_leave_requested() -> void:
+	get_tree().change_scene_to_file("res://scenes/boot_menu.tscn")
+
+func _unhandled_input(event: InputEvent) -> void:
+	if console != null and console.is_open():
+		return
+	if not (event is InputEventKey):
+		return
+	var key: InputEventKey = event
+	if not key.pressed or key.echo:
+		return
+	if key.physical_keycode == KEY_ESCAPE and pause_menu != null:
+		pause_menu.toggle()
+		get_viewport().set_input_as_handled()
 
 ## Contested Frequency radio lives under AudioPlayers and reads the audiogen manifest.
 func _setup_radio() -> void:
@@ -136,6 +197,7 @@ func _input(_event):
 		fp_spawn_flashed = false
 		net_client.connect_to_server("human", "Human Player")
 		hud.set_mode("PLAYING")
+		show_loading_card()
 		if radio:
 			radio.set_human_mode(true)
 		_pick_ghost_rival_from_alive()
@@ -176,6 +238,7 @@ func _process(_delta):
 		action_state.left = Input.is_action_pressed("move_left")
 		action_state.right = Input.is_action_pressed("move_right")
 		action_state.fire = Input.is_action_pressed("fire")
+		action_state.jump = Input.is_action_pressed("jump")
 		# Client-owned yaw: the server takes the absolute facing and never turns
 		# us at a fixed rate, so the look axis does not round-trip. Turn bits stay
 		# zero for humans and remain the path for agents and older clients.

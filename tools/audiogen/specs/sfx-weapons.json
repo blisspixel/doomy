@@ -640,6 +640,126 @@
       "prompt": "armour plating claimed, heavy plates seating, retro arcade shooter, dry and punchy, no reverb, mono",
       "seconds": 0.5,
       "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "reload_tack",
+      "title": "Tack reload",
+      "prompt": "a small pistol magazine dropped and a fresh one seated, light and quick, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 1.2,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "reload_flechette",
+      "title": "Flechette reload",
+      "prompt": "a needle canister ejected and a full one clicked into place, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 1.2,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "reload_scatter",
+      "title": "Scatter reload",
+      "prompt": "shells thumbed into a tube one after another, then the pump racked, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 1.2,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "reload_rail",
+      "title": "Rail reload",
+      "prompt": "a spent capacitor cell pulled out and a charged one locked in, heavy, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 1.2,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "reload_repeater",
+      "title": "Repeater reload",
+      "prompt": "a long ammunition belt fed in and the cover slammed shut, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 1.2,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "reload_arc",
+      "title": "Arc reload",
+      "prompt": "a drained cell swapped for a charged one, electrical hum rising as it seats, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 1.2,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "empty_tack",
+      "title": "Tack out of ammunition",
+      "prompt": "a pistol slide locking back on nothing, final, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.7,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "empty_flechette",
+      "title": "Flechette out of ammunition",
+      "prompt": "a needle feed running dry, a hollow rattle and silence, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.7,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "empty_scatter",
+      "title": "Scatter out of ammunition",
+      "prompt": "a pump racked on an empty tube and nothing after it, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.7,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "empty_rail",
+      "title": "Rail out of ammunition",
+      "prompt": "a capacitor failing to hold charge, a dying whine, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.7,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "empty_repeater",
+      "title": "Repeater out of ammunition",
+      "prompt": "a belt running out mid-burst, the barrel spinning down alone, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.7,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "empty_lobber",
+      "title": "Lobber out of ammunition",
+      "prompt": "a firing pin on an empty chamber, deep and hollow, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.7,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "empty_arc",
+      "title": "Arc out of ammunition",
+      "prompt": "a coil collapsing, the hum dropping away to nothing, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.7,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "empty_shiv",
+      "title": "Shiv out of ammunition",
+      "prompt": "nothing left to do with it, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.7,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "empty_fists",
+      "title": "Fists out of ammunition",
+      "prompt": "breathing hard with nothing in your hands, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.7,
+      "influence": 0.6
     }
   ]
 }

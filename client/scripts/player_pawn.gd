@@ -142,7 +142,9 @@ static func smoothing(speed: float, delta: float) -> float:
 func _process(delta):
 	var t: float = smoothing(INTERP_SPEED, delta)
 	position = position.lerp(target_position, t)
-	rotation.y = lerp_angle(rotation.y, target_yaw, t)
+	# The pawn's muzzle and weapon sprites hang off its local +X, so that is
+	# what has to point where the server is sending it.
+	rotation.y = lerp_angle(rotation.y, ServerYaw.pawn_rotation_y(target_yaw), t)
 	
 	_update_far_cam_scale()
 	
@@ -188,7 +190,10 @@ func set_player_data(id: String, name: String):
 		label.modulate = player_color
 	
 	target_position = position
-	target_yaw = rotation.y
+	# target_yaw is in the server's convention, and rotation.y is not, so this
+	# seeds from the identity facing rather than converting a rotation that has
+	# not been set yet.
+	target_yaw = 0.0
 
 func update_state(state: Dictionary):
 	target_position = Vector3(state.x, state.y, state.z)

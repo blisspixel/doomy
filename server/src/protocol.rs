@@ -461,6 +461,9 @@ pub struct Action {
     pub left: bool,
     #[serde(default)]
     pub right: bool,
+    /// Held. A grounded fighter leaves the floor on the first tick it is set.
+    #[serde(default)]
+    pub jump: bool,
     #[serde(default)]
     pub turn_left: bool,
     #[serde(default)]

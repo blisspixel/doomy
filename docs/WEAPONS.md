@@ -18,30 +18,54 @@ Nobody is a class. There are no loadouts and no roles: if you are sniping it is 
 
 ## The ladder
 
-| # | Weapon | Role | Damage | Cooldown | Bare kill | Ammunition | Where |
-|---|---|---|---|---|---|---|---|
-| 1 | **Fists** | Melee, always carried | 20 | 0.40 s | 5 hits, 1.60 s | none | Always |
-| 2 | **Shiv** | Melee, found | 35 | 0.55 s | 3 hits, 1.10 s | none | Pad, common |
-| 3 | **Tack** | Sidearm, found | 20 | 0.25 s | 5 hits, 1.00 s | Tacks | Pad, beside every spawn |
-| 4 | **Flechette** | Mid workhorse | 25 | 0.20 s | 4 hits, 0.60 s | Darts | Pad |
-| 5 | **Scatter** | Close shred | 40 falling to 14 | 0.45 s | 3 hits, 0.90 s | Darts, 4 per pull | Pad |
-| 6 | **Rail** | Long precision | 80 | 1.00 s | 2 hits, 1.00 s | Cores, 2 per shot | Pad |
-| 7 | **Repeater** | Heavy full auto | 14 | 0.10 s | 8 hits, 0.70 s | Tacks | Pad |
-| 8 | **Lobber** | Splash, projectile | 65 direct, 45 splash | 0.80 s | 2 hits plus travel | Cans | Pad, outer ring |
-| 9 | **Arc** | Energy, ignores armour | 18 | 0.15 s | 6 hits, 0.75 s | Cores | Pad, outer ring |
-| 10 | **Proximity tin** | Thrown, placed | 90 at centre | 1.5 s to arm | Area denial | 3 carried | Pad |
-| 11 | **Article Blade** | Melee upgrade | 70 | 0.45 s | 2 hits, 0.45 s | 12 swings | Plinth, near centre |
-| 12 | **Denial** | Signature | 250 | 1.25 s | 1 hit | 5 charges, no refill | Plinth, centre |
+Magazine is what is in the weapon; reserve is what you are carrying for it. Reload swaps one for the other and costs the time in the table.
 
-Three melee tiers, six guns and a sidearm, a thrown mine and a signature weapon. Four ammunition pools feed the guns. Tacks for the sidearm and the repeater, Darts for the flechette and the scatter, Cores for the rail and the arc, Cans for the lobber. The tin, the blade and the signature weapon carry their own counts and sit outside the pools entirely.
+| # | Weapon | Role | Damage | Cooldown | Magazine | Reload | Ammunition | Where |
+|---|---|---|---|---|---|---|---|---|
+| 1 | **Fists** | Melee, always carried | 20 | 0.40 s | none | none | none | Always |
+| 2 | **Shiv** | Melee, found | 35 | 0.55 s | 25 hits | none | breaks | Pad, common |
+| 3 | **Tack** | Sidearm, found | 20 | 0.25 s | 12 | 0.9 s | Tacks | Pad, beside every spawn |
+| 4 | **Flechette** | Mid workhorse | 25 | 0.20 s | 30 | 1.1 s | Darts | Pad |
+| 5 | **Scatter** | Close shred | 40 falling to 14 | 0.45 s | 6 | 1.3 s | Darts | Pad |
+| 6 | **Rail** | Long precision | 80 | 1.00 s | 4 | 1.4 s | Cores | Pad |
+| 7 | **Repeater** | Heavy full auto | 14 | 0.10 s | 60 | 1.8 s | Tacks | Pad |
+| 8 | **Lobber** | Splash, projectile | 65 direct, 45 splash | 0.80 s | 1 | 1.0 s | Cans | Pad, outer ring |
+| 9 | **Arc** | Energy, ignores armour | 18 | 0.15 s | 24 | 1.2 s | Cores | Pad, outer ring |
+| 10 | **Proximity tin** | Thrown, placed | 90 at centre | 1.5 s to arm | 3 carried | none | none | Pad |
+| 11 | **Article Blade** | Melee upgrade | 70 | 0.45 s | 12 swings | none | none | Plinth, near centre |
+| 12 | **Denial** | Signature | 250 | 1.25 s | 5, no refill | never | none | Plinth, centre |
 
-## Reloads, and what happens instead
+Three melee tiers, six guns and a sidearm, a thrown mine and a signature weapon. Four ammunition pools feed the guns.
 
-**No weapon has a magazine reload.** The cooldown already is the cadence, and a reload puts a second rhythm on top of the first where the two fight each other. At a measured time to kill under a second and a half, a two second reload is two entire fights of standing still.
+Reserve carried, in magazines: sidearm three, flechette three, scatter three, rail two, repeater two, lobber four charges, arc two. A full pickup is a fight and a half.
 
-But every weapon is mechanical and has to sound like it. So each one has a **cycle**: the thing it does between shots that you hear whether or not you are looking at it. The scatter pumps. The rail's capacitor winds back up. The arc's coil settles. The repeater's barrel spins down when you let go.
+Reload times are all under two seconds and most are close to one, because the measured time to kill is under a second and a half and a reload has to be a decision rather than a nap. The rail and the lobber are slow on purpose: they are the weapons where the moment after the shot is the interesting part. Tacks for the sidearm and the repeater, Darts for the flechette and the scatter, Cores for the rail and the arc, Cans for the lobber. The tin, the blade and the signature weapon carry their own counts and sit outside the pools entirely.
 
-Two weapons genuinely reload, because they are single-chamber and it would be strange if they did not. The lobber breaks, ejects and takes another one. The Denial does not reload at all and never will, which is the whole character of it: five, and then it is a very expensive club.
+## Weapons are consumable
+
+The closest thing to how this should feel is a kart racer's item box. You are getting something often. You are also losing it often. Holding a good weapon is a temporary state you enjoy and then lose, not an inventory you build.
+
+So the pads are generous and the reserves are thin. You will find a rail several times in a round and you will fire it maybe nine times each time you do. The moment you pick something up is an upgrade moment, the way it is in Halo when you trade up off a dead opponent, and the moment it runs dry is a real event that changes what you are doing.
+
+**Melee lasts longer and still ends.** The shiv takes twenty-five hits before it breaks. The Article Blade has twelve swings and returns to its plinth. Melee outlasts a gun because you find it less often, and it still runs out, because nothing here is permanent except your fists.
+
+**Reserves are two or three magazines, not ten.** The exact numbers are in the table. The feel to aim at is that a full pickup is a fight and a half, not an afternoon.
+
+**The campaign is the other axis.** In an arena everything is on the floor from the first second and the churn is the whole game. In an episode it works the way Doom and Duke Nukem did: you start with almost nothing, the ladder opens up as the episode goes, and the strong weapons arrive late and are hard to find. The first time you round a corner onto a rail should be a moment, and the episode that hands it over should have made you wait for it.
+
+Same weapons, same numbers, different availability. A map decides which rungs exist in it, and an episode decides the order you meet them in. The best things are late and hidden, and a secret worth finding is usually a weapon you were not supposed to have yet.
+
+## You carry four things, you reload, and you run out
+
+Three rules, and they are the point of the whole design.
+
+**You carry a melee, a sidearm, and two found weapons.** Not twelve. Picking up a third primary means choosing which one hits the floor, and you make that choice under fire with a number in your head about how much ammunition each one has left. A loadout you never have to edit is not a loadout, it is a menu you looked at once.
+
+**Every weapon reloads.** A magazine and a reserve, per weapon, and the reload takes time you do not have. The cooldown is the rhythm of firing and the reload is the rhythm of not firing, and the gap between them is where fights are actually won. Reload timings are short enough that a competent player reloads in cover rather than never: nothing here takes two seconds.
+
+**You run out.** Ammunition is found, it is finite, and a weapon whose reserve is empty is dead weight you are carrying instead of something better. Running dry drops you to the sidearm; running the sidearm dry drops you to your fists. That descent is a real thing that happens in a long fight, and it is supposed to be frightening rather than merely inconvenient.
+
+The Denial does not reload and never will. Five charges, and then it is a very expensive club.
 
 ## The sound set
 
@@ -51,14 +75,15 @@ Every weapon owns its own set. Nothing is shared, because a shared fire sound is
 |---|---|---|
 | **fire** | The shot leaves | Yes |
 | **cycle** | Between shots: pump, recharge, spin-down, settle | Yes |
-| **reload** | Break, eject, load | Lobber only |
+| **reload** | Magazine out, magazine in | Yes, except the fists and the Denial |
 | **raise** | You switch to it | Yes |
-| **dry** | Trigger pulled on an empty pool | Yes |
+| **dry** | Trigger pulled on an empty magazine | Yes |
+| **empty** | The reserve is gone too, and this weapon is finished | Yes |
 | **impact_flesh** | It hits a fighter | Yes |
 | **impact_hard** | It hits the world | Yes |
 | **pickup** | Claimed from a pad | Yes |
 
-That is eight events across twelve weapons, minus the ones that do not apply, which comes to **eighty-six sounds**. Your fists have no pickup and no dry trigger, because they are never empty and you never find them.
+That is nine events across twelve weapons, minus the ones that do not apply. Your fists have no pickup, no reload and no dry trigger, because they are never empty and you never find them.
 
 Three more that belong to the economy rather than to any one weapon: an ammunition pickup per pool, a health pickup, and an armour pickup.
 
@@ -90,9 +115,9 @@ The spec is `tools/audiogen/specs/sfx-weapons.json` and it runs through the pipe
 cargo run -p fragr-audiogen -- batch --spec tools/audiogen/specs/sfx-weapons.json --dry-run
 ```
 
-Dry run reports **77 to generate, about 1612 credits**. The three existing fire sounds are skipped rather than overwritten, so the flechette, scatter and rail keep the voices they already have and the new set is built around them.
+Dry run reports **92 to generate, about 2152 credits**. The three existing fire sounds are skipped rather than overwritten, so the flechette, scatter and rail keep the voices they already have and the new set is built around them.
 
-Two things the dry run taught, both now baked into the spec. The generator refuses anything under half a second, so a dry click and an impact are both authored at the floor and trimmed afterwards rather than requested short. And the skip-if-exists behaviour means this spec can be run repeatedly as weapons land, generating only what is missing, which is how it should be used: one weapon at a time with `--only`, not eighty-six sounds in one night.
+Two things the dry run taught, both now baked into the spec. The generator refuses anything under half a second, so a dry click and an impact are both authored at the floor and trimmed afterwards rather than requested short. And the skip-if-exists behaviour means this spec can be run repeatedly as weapons land, generating only what is missing, which is how it should be used: one weapon at a time with `--only`, not ninety-five sounds in one night.
 
 Developer-only. Never in CI, never called by the game.
 

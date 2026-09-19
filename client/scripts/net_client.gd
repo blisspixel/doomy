@@ -2,6 +2,7 @@ extends Node
 
 signal connected_to_server
 signal disconnected_from_server
+signal map_info_received(info: Dictionary)
 signal snapshot_received(data)
 signal event_received(data)
 ## Per-tick acknowledgement of the newest input the server applied to us.
@@ -83,8 +84,13 @@ func send_action(action: Dictionary):
 		"right": action.get("right", false),
 		"turn_left": action.get("turn_left", false),
 		"turn_right": action.get("turn_right", false),
-		"fire": action.get("fire", false)
+		"fire": action.get("fire", false),
+		"jump": action.get("jump", false)
 	}
+	# This rebuilds the action field by field rather than sending the dictionary
+	# it was given, which means a new field has to be added in two places. Jump
+	# was set by the input code and silently dropped here for exactly that
+	# reason. Anything added to the action must be added to this list too.
 	# Same Action path as keyboard; optional weapon_swap when cycling.
 	var swap = action.get("weapon_swap", null)
 	if swap != null and str(swap) != "":
@@ -146,6 +152,9 @@ func _handle_message(text: String):
 			player_id = data.get("player_id")
 			print("Welcome received! Role: ", data.get("role"), " Player ID: ", player_id, " Mode: ", data.get("mode_name", "Contested Frequency"), "/", data.get("playlist", "Arena Duel"))
 		
+		"map_info":
+			map_info_received.emit(data)
+
 		"snapshot":
 			snapshot_received.emit(data)
 		

@@ -550,7 +550,14 @@ fn test_sim_arena_boundary_clamping() {
 
     state.tick(0.05);
 
-    assert!(state.players[idx].x <= 25.0);
+    // The bound is the arena's own half extent, not a number copied from it,
+    // so widening the map does not silently turn this assertion off.
+    let half = crate::sim::MapKind::ArenaDuel.half_extent();
+    assert!(
+        state.players[idx].x <= half,
+        "walked past the edge: {} > {half}",
+        state.players[idx].x
+    );
 }
 
 #[test]
@@ -3313,10 +3320,18 @@ fn test_sim_choke_blocks_move_into_pillar() {
     state.start_round();
     let id = Uuid::new_v4();
     state.add_player(id, "Rusher".into(), Role::Human);
+    // Pick a real solid out of the map rather than copying coordinates that
+    // move whenever the layout does, and stand south of it facing north.
+    let solid = crate::sim::MapKind::ArenaDuel
+        .solids()
+        .into_iter()
+        .find(|s| s.min_z < -2.0 && (s.max_x - s.min_x) > 1.5)
+        .expect("the arena has a chunky solid south of the origin");
+    let face_z = solid.min_z;
+    let centre_x = (solid.min_x + solid.max_x) * 0.5;
     if let Some(p) = state.players.iter_mut().find(|p| p.id == id) {
-        // South of pillar NE at (7, -7); walk north into it.
-        p.x = 7.0;
-        p.z = -9.5;
+        p.x = centre_x;
+        p.z = face_z - 2.5;
         p.yaw = std::f32::consts::FRAC_PI_2; // face +z
     }
     for _ in 0..40 {
@@ -3330,15 +3345,16 @@ fn test_sim_choke_blocks_move_into_pillar() {
         state.tick(0.05);
     }
     let player = state.players.iter().find(|p| p.id == id).unwrap();
-    // Expanded pillar face is at z = -8.25 - 0.5 = -8.75; must not penetrate.
+    // The face is expanded by the fighter's radius, so that is the stop line.
+    let stop = face_z - crate::sim::PLAYER_RADIUS;
     assert!(
-        player.z <= -8.7,
-        "player should be stopped by pillar, z={}",
+        player.z <= stop + 0.05,
+        "player should be stopped by the solid at z={stop}, got z={}",
         player.z
     );
     assert!(
-        (player.x - 7.0).abs() < 0.2,
-        "x should stay near 7, got {}",
+        (player.x - centre_x).abs() < 0.2,
+        "x should stay near {centre_x}, got {}",
         player.x
     );
 }
@@ -3661,11 +3677,13 @@ fn test_scatter_misses_beyond_range() {
         .unwrap();
 
     // Clear north lane (z=20): beyond Scatter 14u, inside Rail. Avoids mid choke walls.
-    state.players[shooter_idx].x = 0.0;
-    state.players[shooter_idx].z = 20.0;
+    // Find ground the map says is clear rather than assuming a lane exists.
+    let (lane_z, span) = clear_lane(20.0);
+    state.players[shooter_idx].x = -span / 2.0;
+    state.players[shooter_idx].z = lane_z;
     state.players[shooter_idx].yaw = 0.0;
-    state.players[target_idx].x = 16.0;
-    state.players[target_idx].z = 20.0;
+    state.players[target_idx].x = -span / 2.0 + 16.0;
+    state.players[target_idx].z = lane_z;
 
     state.players[shooter_idx].weapon = WeaponType::Scatter;
     state.players[shooter_idx].fire_cooldown = 0;
@@ -4946,12 +4964,44 @@ fn action_wire_accepts_yaw_and_seq_and_still_accepts_neither() {
     );
 }
 
+/// A straight, unobstructed east-west lane in the arena: a shooter position
+/// and a target position `span` apart with nothing between them.
+///
+/// Tests used to hard-code a lane along the south edge. When the arena grew
+/// and its cover was laid out again, a pillar landed exactly on the target's
+/// old position and two shooting tests started reporting that a rail could not
+/// hit anything. A test that asserts something about weapons should find its
+/// own clear ground rather than assume the map never moves.
+fn clear_lane(span: f32) -> (f32, f32) {
+    let map = crate::sim::MapKind::ArenaDuel;
+    let half = map.half_extent();
+    let mut z = -(half - 4.0);
+    while z < half - 4.0 {
+        let shooter_x = -span / 2.0;
+        let target_x = span / 2.0;
+        let mut clear = true;
+        // Sample along the lane, with the fighter's radius accounted for.
+        let mut x = shooter_x;
+        while x <= target_x {
+            if crate::sim::circle_blocked_for_test(map, x, z) {
+                clear = false;
+                break;
+            }
+            x += 0.5;
+        }
+        if clear {
+            return (z, span);
+        }
+        z += 1.0;
+    }
+    panic!("no clear lane of {span} units anywhere in the arena");
+}
+
 #[test]
 fn dispersion_is_dispersion_not_free_aim() {
     use crate::protocol::WeaponType;
 
-    // A clear lane along the south edge: no pillar, wall, or crate between
-    // (-20, -20) and (0, -20), so only the weapon decides.
+    // A lane the map itself says is clear, so only the weapon decides.
     let lane = |offset: f32| {
         let mut state = GameState::new();
         state.seed(11);
@@ -4968,12 +5018,13 @@ fn dispersion_is_dispersion_not_free_aim() {
         state.add_player(target, "Target".to_string(), Role::Agent);
         let si = state.players.iter().position(|p| p.id == shooter).unwrap();
         let ti = state.players.iter().position(|p| p.id == target).unwrap();
-        state.players[si].x = -20.0;
-        state.players[si].z = -20.0;
+        let (lane_z, span) = clear_lane(20.0);
+        state.players[si].x = -span / 2.0;
+        state.players[si].z = lane_z;
         state.players[si].yaw = 0.0;
         state.players[si].weapon = WeaponType::Rail;
-        state.players[ti].x = 0.0;
-        state.players[ti].z = -20.0 + offset;
+        state.players[ti].x = span / 2.0;
+        state.players[ti].z = lane_z + offset;
         (state, shooter, ti)
     };
 
@@ -5023,8 +5074,9 @@ fn dispersion_is_dispersion_not_free_aim() {
     // The scatter gun's wide cone does wander, which is the point: dispersion
     // at the edge of its reach, not a guaranteed hit.
     let (mut state, shooter, ti) = lane(0.0);
-    state.players[ti].x = -20.0 + 11.0;
     let si = state.players.iter().position(|p| p.id == shooter).unwrap();
+    // Eleven units down the same lane, measured from wherever the lane is.
+    state.players[ti].x = state.players[si].x + 11.0;
     state.players[si].weapon = WeaponType::Scatter;
     let scattered = fire_many(&mut state, shooter, ti, 40);
     assert!(
@@ -5081,5 +5133,107 @@ fn the_scatter_gun_falls_off_with_distance() {
                 "{weapon:?} should not fall off"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod jump_tests {
+    use super::*;
+
+    fn jumping() -> Action {
+        Action {
+            jump: true,
+            ..Action::default()
+        }
+    }
+
+    /// A grounded fighter leaves the floor, rises, and comes back down to it.
+    #[test]
+    fn a_jump_goes_up_and_returns() {
+        let mut state = GameState::new();
+        let id = Uuid::new_v4();
+        state.add_player(id, "Jumper".to_string(), Role::Human);
+        state.start_round();
+        let floor = crate::sim::PLAYER_FLOOR_Y;
+
+        state.set_action(id, jumping());
+        state.tick(0.05);
+        let after_one = state.players[0].y;
+        assert!(
+            after_one > floor,
+            "one tick of jump should leave the floor, got {after_one}"
+        );
+
+        // Climb, then fall. Hold nothing: a jump is not a thrust.
+        state.set_action(id, Action::default());
+        let mut peak = after_one;
+        let mut ticks = 0;
+        while ticks < 200 {
+            state.tick(0.05);
+            peak = peak.max(state.players[0].y);
+            if state.players[0].y <= floor && ticks > 2 {
+                break;
+            }
+            ticks += 1;
+        }
+        assert!(
+            peak - floor > 0.8,
+            "a jump should clear something, peaked {:.2} above the floor",
+            peak - floor
+        );
+        assert!(
+            (state.players[0].y - floor).abs() < 1e-3,
+            "it has to come back down, ended at {}",
+            state.players[0].y
+        );
+        assert!(
+            ticks < 60,
+            "and it should not hang in the air for {ticks} ticks"
+        );
+    }
+
+    /// Holding jump in the air does not climb, which is what stops a held key
+    /// from being flight.
+    #[test]
+    fn holding_jump_does_not_fly() {
+        let mut state = GameState::new();
+        let id = Uuid::new_v4();
+        state.add_player(id, "Holder".to_string(), Role::Human);
+        state.start_round();
+        state.set_action(id, jumping());
+        let mut peak: f32 = 0.0;
+        for _ in 0..120 {
+            state.tick(0.05);
+            peak = peak.max(state.players[0].y);
+        }
+        assert!(
+            peak - crate::sim::PLAYER_FLOOR_Y < 2.0,
+            "held jump climbed to {:.2}, which is flight",
+            peak - crate::sim::PLAYER_FLOOR_Y
+        );
+    }
+
+    /// Dying mid-jump and respawning must not leave you falling.
+    #[test]
+    fn a_respawn_lands_you_standing() {
+        let mut state = GameState::new();
+        let id = Uuid::new_v4();
+        state.add_player(id, "Faller".to_string(), Role::Human);
+        state.start_round();
+        state.set_action(id, jumping());
+        state.tick(0.05);
+        state.tick(0.05);
+        assert!(
+            state.players[0].vy != 0.0,
+            "should be in the air to test this"
+        );
+        // Kill them mid-air and let the respawn clock run out.
+        state.players[0].hp = 0;
+        state.players[0].respawn_timer = Some(1);
+        state.set_action(id, Action::default());
+        state.tick(0.05);
+        state.tick(0.05);
+        assert_eq!(state.players[0].vy, 0.0, "respawned still falling");
+        assert_eq!(state.players[0].y, crate::sim::PLAYER_FLOOR_Y);
     }
 }
