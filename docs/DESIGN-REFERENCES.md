@@ -56,6 +56,10 @@ Refused: regenerating health (it removes item control), Doom or id branding, esp
 | Squad | 16 to 32 | COD-sized teams | protocol version, delta snapshots, per-connection caps, reconnect token, status endpoint, admin channel, bigger maps, measured tick time |
 | Objective | 5v5 to 8v8 | single life plant and defuse | round state machine, plant and defuse progress, optional economy, relay delay for the booth |
 | Control | 32 to 64 | flags, tickets, vehicles | capture timers, spawn at flag, vehicle entities and seats, spawn templates, interest management, tick under 25 ms |
+| Broadcast co-op | 1 to 4 plus agents | the episodes against Continuance rosters, drop-in | monsters on the tick, shared objectives and keys, results card per team, save per party |
+| Horde ladder | 1 to 4 plus agents | waves that scale in count with boss beats, a ladder you can finish | spawn groups by wave, medals, shared best scores |
+| Survival sweep | 1 to 4 plus agents | endless rounds, you cannot win, the round you fell on is the score | round counter, points economy that opens doors and buys off pads, revive, escalating spawn tables, best round persisted |
+| Counter-op | co-op party plus one | one player runs the Continuance side | a spectator seat that possesses monsters, fairness rules from `plans/fair-play.md` |
 | Massive | 100 plus, agents in the majority | control across sharded arenas | interest management mandatory, spectators only through the relay, `observe` filtered by interest, staggered bot think, time dilation, one process per arena, the Host stitching arenas together |
 
 ## Radio
@@ -71,6 +75,25 @@ Refused: regenerating health (it removes item control), Doom or id branding, esp
 | Sidechain compressor on the music bus keyed by the voice bus | Godot audio docs | The standard way to duck music under speech | Music, VO, SFX buses; compressor with attack 10 ms, release 300 ms |
 
 The station bible, cadence, and prompt craft live in `plans/radio-stations.md`.
+
+## Foundational classics: the aspects of fun to draw on
+
+Each of these did one thing so well that people still remember the feeling. The point is the feeling, never the assets or the names. What fragr takes from each is a feature with a home in a plan.
+
+| Game | What was fun | What fragr takes | Where it lives |
+|---|---|---|---|
+| GoldenEye 007 (N64) | Objectives that change with difficulty, not just enemy health; enemies that react to where they were hit; a weapon cabinet with personality (a golden gun, proximity mines, dual wield); couch multiplayer twists (one-shot kills, melee only, one golden gun on the map); the character-select joke that everyone argued about | Difficulty tiers that add objectives in the campaign; hit reactions by direction and weapon on fighter sprites; mode twists as mutators (one-shot rail only, scatter only, one golden rail on the map); a roster joke in the fighter select | `plans/campaign-continuance.md` tiers; `plans/look-pass-boomer.md` fighter sprites; Phase 4 bigger modes; `LORE.md` roster |
+| Perfect Dark (N64) | Simulants: bots with named personalities and quirks you could pick per match; counter-operative mode where a second player is the enemy; co-op through the campaign | Rule bots with personalities you choose per match, not just difficulties; a spectator who can drop in as an enemy in the campaign; co-op campaign with agents as teammates | Phase 1.4 bots that read as players; `plans/campaign-continuance.md` |
+| TimeSplitters 2 | Arcade league of bite-sized challenges with medals; a map maker; bots in every mode | The arcade ladder with medals per round; community maps through the `.map` pipeline; bots in every mode by default | `plans/campaign-continuance.md` rung 1; Phase 4 community servers |
+| Quake and Quake 3 Arena | Movement as a skill (strafe, momentum, rocket jumps); item timing as the meta; one map, eight players, nothing else needed | Movement with weight and acceleration you can master; pad timers worth watching; arena purity as the default mode | `plans/buttery-controls.md`; pads already shipped |
+| Halo: Combat Evolved | The thirty seconds of fun loop: a triangle of gun, grenade, melee that answers every situation; a regenerating shield that lets you re-engage | The weapon triangle (close, mid, long) that already exists, plus a melee or shove answer to the close case; armour that the pads refill so a fight can be re-entered | `plans/gunfeel.md`; pads |
+| Half-Life | The world keeps going while you watch: scripted moments you walk into, not cutscenes | Host beats and Continuance sweeps that happen in the arena while play continues; the campaign told through the radio, never a cutscene | `LORE.md`; `plans/radio-stations.md`; `plans/campaign-continuance.md` |
+| Duke Nukem 3D | An interactive world (switches, screens, toilets) and a voice with attitude | Interactive props on maps (the jammer dish, the broadcast desk); the Host as the voice with attitude | `plans/campaign-continuance.md` triggers; the Host |
+| Team Fortress 2 | Class silhouettes readable at a glance; humour that never breaks the fight | Fighter silhouettes and weapon view models identifiable at thirty metres; the comedy stays in the radio and the Host, never in the hit registration | `plans/look-pass-boomer.md`; `plans/visual-qa-tour.md` criteria |
+| Tribes | Skiing: a movement trick the designers did not plan that became the game | Leave room for one emergent movement trick (a slide or a dodge) once the movement step is shared, and keep it if the playtests love it | `plans/buttery-controls.md` |
+| Serious Sam | Hordes that make a shotgun feel like a decision | Arcade ladder waves that scale in count, not just health | `plans/campaign-continuance.md` |
+| Call of Duty Zombies, Killing Floor, Devil Daggers | You cannot win, only last longer: a round counter that is the score, hordes that escalate every round, a points economy that opens doors and buys guns so the map grows as you survive, downed friends you can pick up, one metric everyone compares | The Survival sweep: endless Continuance rounds, the round you fell on is the score, points from frags open the next section and buy off the pads, revive a downed partner, the Host counts rounds like a radio countdown, best round on the results card and the scoreboard | `plans/campaign-continuance.md` rung 1 (Survival variant); `LORE.md` |
+| Counter-Strike beta | Controls that simply worked: tap fire, movement inaccuracy you could feel, rounds short enough to try again | First-shot accuracy and movement inaccuracy in the gun model; rounds that end fast | `plans/gunfeel.md` |
 
 ## Sources
 
