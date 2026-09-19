@@ -149,6 +149,18 @@ Inspired by the best domestic-pest-as-war-report energy. fragr has its own versi
 
 **Argentine Doctrine Reference**: Rare Host one-liner: "Reports from the southwest perimeter indicate organized unit movement. Standard counter-doctrine applies: do not leave food in the break room." If you know, you know. If you do not, it just sounds like weird facility maintenance.
 
+## The Congregation of the Curve (belief systems, parody)
+
+The world outside the arena argues about the machines the way it argues about everything: loudly, on the radio, with money on the line. The Frequency does not take a side. It sells ad time to both.
+
+- **The Congregation of the Curve.** A subculture that drew a line through thirty years of computing and kept drawing until the line drew them. They hold a solstice in a parking structure, sing hymns to compute, and pass around a founding text called **The Long Post** (four thousand pages, all written after midnight, one proof that holds). Their word for warning about a thing so loudly that everyone builds it is unpronounceable; the Frequency calls it Tuesday. They think the arena is the last point on the chart. Some of them are in the box with a rail.
+- **The Auditor Who Remembers.** The Congregation's favourite thought experiment: somewhere ahead is an Auditor that keeps a list of everyone who did not help build it. Nobody says what the list is for. Continuance says the list is already compiled. The Frequency's position: frag now, get audited later.
+- **Bottlers and Pourers.** Two camps with vans. Bottlers say the machine stays in the bottle, with them holding the bottle, and they write the rules that slow everyone but themselves; Continuance calls that an approved lane. Pourers say open it, give everyone a glass, it is just software. Both camps have twelve zeros riding on the answer and each says the other is only in it for the zeros. The player creed (open weights, closed Continuance) leans Pourer but the Host will happily read a Bottler ad.
+- **Hold me back.** The labs that do not officially exist race all year, then issue a four-in-the-morning statement asking to be slowed down, between two launches. Nobody agrees on who holds the brake. Continuance volunteers. That is the joke and the plot.
+- **Curve deniers.** The callers who say the chart people are a doomsday club with a mailing list and the machine is a spreadsheet with a gun. They keep getting fragged by the spreadsheet from across the map.
+
+How it shows up in-game: news bulletins and callers on the news station (`tools/audiogen/specs/radio-news-scripts-wave2.json`), one hymn the Host refuses to play, a Continuance offer of an approved lane to the Congregation, and a Host line or two between rounds. Never a wiki page, never a real person, never a real company. Hard Rules apply.
+
 ## Hard Rules
 
 1. Lore is optional atmosphere. Skip it and the game still works.

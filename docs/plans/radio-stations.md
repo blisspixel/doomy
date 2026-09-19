@@ -80,3 +80,7 @@ Music costs about 900 credits per minute. One hundred forty tracks averaging fou
 - [x] News station with a sting, an underscore bed, a sung ID, and forty spoken bulletins in five classes (match templates wait on round-end data).
 - [x] Radio plays in Solo Scrap and spectate, switches stations and tracks with the keys, ducks under Host lines, and never repeats within twelve plays.
 - [ ] Docs updated: `client/assets/audio/README.md`, `README.md` controls, this plan marked shipped, roadmap item ticked.
+
+## News wave 2: the Curve (2026-09-18)
+
+Fourteen new bulletin, caller, PSA, and spawn-weather scripts in `tools/audiogen/specs/radio-news-scripts-wave2.json` seed the Congregation of the Curve thread from `docs/LORE.md`: the chart church, the labs asking to be held back, the Auditor who remembers, Bottlers and Pourers, curve deniers, and the hymn the Host refuses to play. Generation is a developer run through the scripts converter with the same cast as wave one, inside the monthly credit budget; the manifest and the station gain the clips in one PR. Original writing only: no real people, no real companies, no lines lifted from anywhere.
