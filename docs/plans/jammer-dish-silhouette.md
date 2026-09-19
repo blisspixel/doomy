@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `feat/jammer-dish-silhouette`
 **Spend:** $0. Loopback. No Cloud Agent. No release tag.
-**Status:** shipped (#116).
+**Status:** shipped (#116). Unmissable bar still OPEN after Casino soft prison; follow-up [`jammer-dish-unmissable.md`](./jammer-dish-unmissable.md).
 
 ## Goal
 

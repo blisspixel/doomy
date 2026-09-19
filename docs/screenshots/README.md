@@ -25,6 +25,17 @@ README screenshots MUST match the current playable UI. Stale mood stubs labeled 
 
 Recaptured on tip after Solo Broadcast Episode 0 via `tools/capture_tip_screenshots.sh`. `12_tip_calibration_larak` is a first-class tip embed.
 
+
+## Jammer dish proof (stranger eyes)
+
+| File | Aspect | Purpose |
+|------|--------|---------|
+| `20_jammer_dish_follow_16x9.png` | 16:9 | Live tip proof: jammer dish at spectator follow (~12m), SEIZE JAMMER billboard |
+| `22_jammer_dish_overview_16x9.png` | 16:9 | Live tip proof: jammer dish at tip overview (~36m) |
+| `23_jammer_dish_seize_label_16x9.png` | 16:9 | Live tip proof: SEIZE JAMMER label read |
+
+Regenerated via `tools/capture_jammer_dish_proof.sh` (and tip_capture jammer proof path). These stills are the stranger-eye bar for the unmissable dish claim; do not claim unmissable in a tag until Testy re-Casino.
+
 ## Mood plates (archived)
 
 | File | Aspect | Purpose |
