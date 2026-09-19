@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `fix/ep0-nods-progress`
 **Spend:** $0. Loopback. No Cloud Agent. No release tag.
-**Status:** in flight (this PR).
+**Status:** shipped (#111).
 
 ## Goal
 
