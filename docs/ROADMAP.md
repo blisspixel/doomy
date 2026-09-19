@@ -32,7 +32,7 @@ Status: **in progress**. Small, high-leverage, mostly tooling.
 
 - **Standards.** `AGENTS.md` refreshed; workspace lints in `Cargo.toml`; CI actions on current majors; coverage tool installed as a prebuilt binary; dependency advisories checked in CI. Shipped with this roadmap.
 - **Godot in CI.** Shipped: the `godot` CI job runs `tools/godot_check.sh` (import, parse every script, the radio and far-cam harnesses).
-- **One protocol crate.** The adapter currently mirrors the server's wire types in its own `protocol.rs`. Extract `fragr-protocol` shared by both so the wire cannot drift. Planned.
+- **One source for the wire.** Shipped: the adapter, the playtest harness, and the brain agent all read the wire types from `fragr-server`, so a protocol change is edited once and the compiler finds every reader. The adapter's hand-kept mirror is gone. Extracting a standalone `fragr-protocol` crate is optional tidying, not a correctness need.
 - **Dev audio pipeline.** `tools/audiogen` generates sound effects and music through the ElevenLabs API for developers only, writes assets plus a manifest, and never runs in CI or at player runtime. Shipped, including speech, multi-voice dialogue, credit estimates, and wave controls.
 - **Rust and GDScript only.** The procedural Python audio generator is retired; effects come from the audio pipeline and the committed files are the fallback. Shipped.
 - **Sprite and texture pipeline.** Palette lock from `palette.json`, fixed base sizes, import presets, and a documented path from source plates to atlases. Planned.
@@ -122,7 +122,7 @@ Every item above maps to a plan or says "plan needed". The order of the next PRs
 
 | Item | Plan | Next PR order |
 |---|---|---|
-| Phase 0: one protocol crate | the adapter moves onto `fragr-server` types (wire changes in `plans/buttery-controls.md` are edited once) | 3 |
+| Phase 0: one protocol crate | **done**: the adapter, the playtest harness, and the brain all read the wire types from `fragr-server`; extracting a separate crate is optional cosmetics | |
 | Phase 1.1: movement and gunfeel | `plans/buttery-controls.md` | 5 (stage 1), then stage 2 after 4 |
 | Phase 1.2: look pass | `plans/look-pass-boomer.md` | 8 |
 | Phase 1.3: sound and music | `plans/radio-stations.md` (shipped; bumpers and Host voice remain) | |

@@ -2,7 +2,7 @@
 //! (and initialize / tools/list).
 //! Kept free of stdin/WebSocket I/O so behavioral unit tests can cover the real tool paths.
 
-use crate::protocol::{self, Action, Speak};
+use fragr_server::protocol::{self as protocol, Action, Speak};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;

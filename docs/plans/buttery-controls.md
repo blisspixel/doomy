@@ -19,7 +19,7 @@ The 1.0 bar in [`../ROADMAP.md`](../ROADMAP.md) asks for first-person movement a
 - Stage 1: `Action` gains an absolute `yaw` (f32) and an input `seq` (u32); the server acknowledges `last_seq` in the snapshot it sends that client.
 - Stage 3: `PlayerState` gains velocity (three f32).
 - Stage 4: every tick-count field on the wire (`respawn_in`, cooldowns, `duration_ticks`, the 160-tick linger) becomes seconds or milliseconds, with the tick rate stated in `Hello`.
-- Each of these lands in `docs/protocol.md` and the adapter in the same PR. The adapter still hand-mirrors the wire types; moving it onto `fragr-server` (or a shared protocol crate) is the first PR of this plan so a wire change is edited once.
+- Each of these lands in `docs/protocol.md` in the same PR. The adapter reads the wire types from `fragr-server` (as the playtest harness and the brain do), so a wire change is edited once and the compiler finds every reader.
 
 ## Dependents of the tick change (stage 4)
 
