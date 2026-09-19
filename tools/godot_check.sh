@@ -67,9 +67,11 @@ if [ -f "$BASELINE_FILE" ]; then
     echo "     Give new variables a static type, or explain why in the pull request."
     fail=1
   elif [ "$untyped" -lt "$baseline" ]; then
-    echo "ok   gdscript typing: $untyped untyped declarations, baseline $baseline"
-    echo "     Baseline is stale. Lower it to $untyped in $BASELINE_FILE."
-    fail=1
+    # Never fail for an improvement. The count can also differ between a
+    # developer machine and CI, because analysing a script pulls in whatever it
+    # instantiates, so only an increase is treated as a regression.
+    echo "ok   gdscript typing: $untyped untyped declarations, under the $baseline baseline"
+    echo "     Worth lowering the baseline in $BASELINE_FILE to $untyped."
   else
     echo "ok   gdscript typing: $untyped untyped declarations, at baseline"
   fi
