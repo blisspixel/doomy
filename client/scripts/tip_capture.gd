@@ -364,11 +364,11 @@ func _aim_local_fp_at_jammer(gm: Node) -> void:
 		return
 	var dish := Vector3(0.0, 0.35, 0.0)
 	if "players" in gm and typeof(gm.players) == TYPE_DICTIONARY:
-		for pid in gm.players.keys():
-			var pawn = gm.players[pid]
+		for pid: String in gm.players.keys():
+			var pawn: Node = gm.players[pid]
 			if pawn == null or not is_instance_valid(pawn):
 				continue
-			var is_fp = ("is_local_fp" in pawn and pawn.is_local_fp)
+			var is_fp: bool = ("is_local_fp" in pawn and pawn.is_local_fp)
 			if not is_fp:
 				continue
 			if pawn is Node3D:

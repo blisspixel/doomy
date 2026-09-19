@@ -21,7 +21,7 @@ func _initialize() -> void:
 		print("test_aim_sensitivity: PASS")
 		quit(0)
 	else:
-		for failure in failures:
+		for failure: String in failures:
 			printerr("test_aim_sensitivity: FAIL " + failure)
 		quit(1)
 

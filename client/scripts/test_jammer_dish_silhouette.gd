@@ -64,7 +64,7 @@ func _initialize() -> void:
 		"LabelBanner",
 		"DishLabel",
 	]
-	for name in required:
+	for name: String in required:
 		if root.get_node_or_null(NodePath(name)) == null:
 			push_error("test_jammer_dish_silhouette: missing child %s" % name)
 			ok = false

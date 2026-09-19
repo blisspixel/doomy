@@ -43,7 +43,7 @@ func _initialize() -> void:
 	var cases: Array = golden.get("cases", [])
 	_check(cases.size() >= 10, "at least ten cases, got %d" % cases.size())
 	var checked := 0
-	for case in cases:
+	for case: Dictionary in cases:
 		checked += _run_case(case, dt)
 	_test_unit_behaviour()
 
@@ -51,7 +51,7 @@ func _initialize() -> void:
 		print("test_move_golden: PASS (%d cases, %d states)" % [cases.size(), checked])
 		quit(0)
 	else:
-		for failure in failures:
+		for failure: String in failures:
 			printerr("test_move_golden: FAIL " + failure)
 		quit(1)
 
@@ -73,7 +73,7 @@ func _run_case(case: Dictionary, dt: float) -> int:
 				_check(false, "%s: more checkpoints than expected states" % name)
 				break
 			var want: Dictionary = expected[next_expected]
-			for field in FIELDS:
+			for field: String in FIELDS:
 				var a: float = float(state[field])
 				var b: float = float(want[field])
 				if absf(a - b) > tolerance:
