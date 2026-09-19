@@ -279,7 +279,11 @@ func _refresh_telemetry_lines() -> void:
 func _refresh_mode_label():
 	if not mode_label:
 		return
-	var league = league_mode_name.to_upper() + " // " + league_playlist.to_upper()
+	# The league and the playlist are how a spectator knows what they tuned
+	# into. A player picked the match and is standing in it.
+	var league = ""
+	if client_mode == "SPECTATING":
+		league = league_mode_name.to_upper() + " // " + league_playlist.to_upper()
 	# The map name is already on screen as its own chip. It used to be here as
 	# well, and inside the playlist above, so the first visual QA tour
 	# photographed three copies of "ARENA DUEL" in a single frame.
@@ -1018,7 +1022,9 @@ func set_followed_weapon(weapon_name: String, player_name: String = "", behavior
 	# "FOLLOWING: Human Player" is what a player was told about themselves.
 	# The line is for a spectator watching someone else.
 	if client_mode != "SPECTATING":
-		weapon_label.text = weapon_desc
+		# The gun is already in the player's hands, drawn large. Naming it in
+		# the corner as well is the third copy of the same fact.
+		weapon_label.text = ""
 	else:
 		weapon_label.text = StanceChipScript.follow_line(player_name, behavior, weapon_desc)
 	weapon_label.add_theme_color_override("font_color", StanceChipScript.accent_color(behavior != ""))
