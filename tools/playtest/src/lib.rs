@@ -71,6 +71,8 @@ pub struct Config {
     /// Simulation seed. The same seed gives the same match, which is what lets
     /// two harness runs be compared rather than merely averaged.
     pub seed: u64,
+    /// Policies dealt round robin to the agents.
+    pub tiers: Vec<Policy>,
 }
 
 impl Default for Config {
@@ -83,6 +85,7 @@ impl Default for Config {
             time_limit_ticks: 20 * 60,
             max_ticks: 20 * 120,
             seed: 1,
+            tiers: vec![Policy::Reflex],
         }
     }
 }
@@ -650,11 +653,194 @@ pub fn reflex_action(bot_id: Uuid, snapshot: &Snapshot) -> Action {
     }
 }
 
+/// How an agent decides what to do. Both play through the same wire; the
+/// difference is only what they ask for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Policy {
+    /// Chase the nearest fighter and hold the fire button. The baseline, and
+    /// the reason the first combat reports found every kill at knife range.
+    Reflex,
+    /// Keep the distance its weapon wants, break off for health when hurt,
+    /// and collect a weapon it does not have.
+    Planner,
+}
+
+impl Policy {
+    pub fn parse(text: &str) -> Option<Policy> {
+        match text.trim().to_ascii_lowercase().as_str() {
+            "reflex" => Some(Policy::Reflex),
+            "planner" => Some(Policy::Planner),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Policy::Reflex => "reflex",
+            Policy::Planner => "planner",
+        }
+    }
+
+    /// Parse a comma separated list, which the harness deals round robin to
+    /// the agents. An empty or unparseable list is an error rather than a
+    /// silent fall back to one policy.
+    pub fn parse_list(text: &str) -> Result<Vec<Policy>, String> {
+        let mut out = Vec::new();
+        for part in text.split(',') {
+            let part = part.trim();
+            if part.is_empty() {
+                continue;
+            }
+            out.push(Policy::parse(part).ok_or_else(|| format!("unknown tier {part:?}"))?);
+        }
+        if out.is_empty() {
+            return Err("no tiers given".to_string());
+        }
+        Ok(out)
+    }
+}
+
+/// Below this health the planner breaks off for a health pad.
+pub const PLANNER_LOW_HEALTH: i32 = 45;
+/// It will detour for a pickup no further away than this.
+pub const PLANNER_PICKUP_REACH: f32 = 18.0;
+
+/// The distance band a weapon wants to fight at: (comfortable, ideal).
+fn preferred_band(weapon: WeaponType) -> (f32, f32) {
+    match weapon {
+        WeaponType::Scatter => (1.5, 4.0),
+        WeaponType::Flechette => (7.0, 12.0),
+        WeaponType::Rail => (18.0, 28.0),
+    }
+}
+
+/// The planner: hold the range your weapon wants, heal when hurt, and pick up
+/// a weapon you do not have when one is close. Everything it knows comes from
+/// the same snapshot a reflex agent sees.
+pub fn planner_action(bot_id: Uuid, snapshot: &Snapshot) -> Action {
+    let Some(me) = snapshot.players.iter().find(|p| p.id == bot_id) else {
+        return Action::default();
+    };
+    let held = weapon_from_wire(&me.weapon).unwrap_or_default();
+    let distance_to = |x: f32, z: f32| ((x - me.x).powi(2) + (z - me.z).powi(2)).sqrt();
+
+    let mut nearest: Option<(f32, &fragr_server::protocol::PlayerState)> = None;
+    for other in &snapshot.players {
+        if other.id == bot_id || other.hp <= 0 {
+            continue;
+        }
+        let dist = distance_to(other.x, other.z);
+        if nearest.is_none_or(|(d, _)| dist < d) {
+            nearest = Some((dist, other));
+        }
+    }
+
+    // Hurt and a pad within reach: go and heal, and do not stop to shoot.
+    if me.hp < PLANNER_LOW_HEALTH {
+        if let Some(pad) = nearest_pickup(snapshot, me, |p| p.kind == "health") {
+            return walk_to(pad, me, nearest.map(|(_, e)| e));
+        }
+    }
+
+    let Some((dist, enemy)) = nearest else {
+        // Nobody about: collect something useful.
+        if let Some(pad) = nearest_pickup(snapshot, me, |p| p.kind != "health") {
+            return walk_to(pad, me, None);
+        }
+        return Action::default();
+    };
+
+    // A weapon this fighter is not carrying, close by, and no enemy breathing
+    // down its neck: worth the detour.
+    if dist > preferred_band(held).1 * 1.5 {
+        if let Some(pad) = nearest_pickup(snapshot, me, |p| {
+            p.kind == "weapon" && weapon_from_wire(&p.weapon) != Some(held)
+        }) {
+            return walk_to(pad, me, Some(enemy));
+        }
+    }
+
+    let wanted = weapon_for_distance(dist);
+    let weapon_swap = (held != wanted).then_some(wanted);
+    // Three zones: too far, in the band, too close. In the band it strafes
+    // rather than standing still, which is the whole difference from a reflex
+    // agent that only ever charges.
+    let (comfortable, ideal) = preferred_band(wanted);
+    let holding = dist >= comfortable && dist <= ideal;
+    Action {
+        look_at: Some(LookAt {
+            player_id: Some(enemy.id),
+            x: None,
+            z: None,
+        }),
+        forward: dist > ideal,
+        back: dist < comfortable,
+        left: holding && snapshot.tick % 40 < 20,
+        right: holding && snapshot.tick % 40 >= 20,
+        fire: dist < wanted.range_units(),
+        weapon_swap,
+        ..Action::default()
+    }
+}
+
+/// The closest available pickup this fighter cares about, within reach.
+fn nearest_pickup<'a>(
+    snapshot: &'a Snapshot,
+    me: &fragr_server::protocol::PlayerState,
+    wanted: impl Fn(&fragr_server::protocol::PickupState) -> bool,
+) -> Option<&'a fragr_server::protocol::PickupState> {
+    snapshot
+        .pickups
+        .iter()
+        .filter(|p| p.available && wanted(p))
+        .map(|p| (((p.x - me.x).powi(2) + (p.z - me.z).powi(2)).sqrt(), p))
+        .filter(|(d, _)| *d <= PLANNER_PICKUP_REACH)
+        .min_by(|a, b| a.0.total_cmp(&b.0))
+        .map(|(_, p)| p)
+}
+
+/// Walk to a point, still shooting at anything already in front.
+fn walk_to(
+    pad: &fragr_server::protocol::PickupState,
+    me: &fragr_server::protocol::PlayerState,
+    enemy: Option<&fragr_server::protocol::PlayerState>,
+) -> Action {
+    let dist = ((pad.x - me.x).powi(2) + (pad.z - me.z).powi(2)).sqrt();
+    let fire = enemy.is_some_and(|e| {
+        let to_enemy = ((e.x - me.x).powi(2) + (e.z - me.z).powi(2)).sqrt();
+        to_enemy < 6.0
+    });
+    Action {
+        look_at: Some(LookAt {
+            x: Some(pad.x),
+            z: Some(pad.z),
+            player_id: None,
+        }),
+        forward: dist > 1.0,
+        fire,
+        ..Action::default()
+    }
+}
+
+/// The action for one agent under its policy.
+pub fn policy_action(policy: Policy, bot_id: Uuid, snapshot: &Snapshot) -> Action {
+    match policy {
+        Policy::Reflex => reflex_action(bot_id, snapshot),
+        Policy::Planner => planner_action(bot_id, snapshot),
+    }
+}
+
 fn transport<E: fmt::Display>(err: E) -> Error {
     Error::Transport(err.to_string())
 }
 
-async fn agent_task(url: String, name: String, stop: Arc<AtomicBool>) -> Result<(), Error> {
+async fn agent_task(
+    url: String,
+    name: String,
+    policy: Policy,
+    stop: Arc<AtomicBool>,
+) -> Result<(), Error> {
     let (ws, _) = connect_async(&url).await.map_err(transport)?;
     let (mut sink, mut stream) = ws.split();
     let hello = ClientMessage::Hello {
@@ -680,7 +866,7 @@ async fn agent_task(url: String, name: String, stop: Arc<AtomicBool>) -> Result<
                 let Some(id) = player_id else {
                     continue;
                 };
-                let action = ClientMessage::Action(reflex_action(id, &snapshot));
+                let action = ClientMessage::Action(policy_action(policy, id, &snapshot));
                 if sink
                     .send(Message::Text(
                         serde_json::to_string(&action).map_err(transport)?,
@@ -741,10 +927,19 @@ pub async fn run(config: Config) -> Result<(Report, Observation), Error> {
 
     let stop = Arc::new(AtomicBool::new(false));
     let mut agents = Vec::with_capacity(config.agents);
+    let tiers = if config.tiers.is_empty() {
+        vec![Policy::Reflex]
+    } else {
+        config.tiers.clone()
+    };
     for i in 0..config.agents {
+        let policy = tiers[i % tiers.len()];
         agents.push(tokio::spawn(agent_task(
             url.clone(),
-            format!("Probe-{}", i + 1),
+            // The name carries the policy, so the per-agent report says which
+            // agents were which without a second lookup.
+            format!("{}-{}", policy.name(), i + 1),
+            policy,
             stop.clone(),
         )));
     }
@@ -1308,5 +1503,272 @@ mod weapon_choice_tests {
         assert_eq!(weapon_from_wire("Rail"), Some(WeaponType::Rail));
         assert_eq!(weapon_from_wire("scatter"), Some(WeaponType::Scatter));
         assert_eq!(weapon_from_wire("bfg"), None);
+    }
+}
+
+#[cfg(test)]
+mod planner_tests {
+    use super::*;
+    use fragr_server::protocol::{PickupState, PlayerState};
+
+    fn player(name: &str, id: Uuid, x: f32, z: f32, hp: i32, weapon: &str) -> PlayerState {
+        PlayerState {
+            id,
+            name: name.to_string(),
+            x,
+            y: 1.0,
+            z,
+            yaw: 0.0,
+            hp,
+            armor: 0,
+            just_fired: false,
+            behavior: None,
+            score: 0,
+            weapon: weapon.to_string(),
+        }
+    }
+
+    fn pad(kind: &str, weapon: &str, x: f32, z: f32, available: bool) -> PickupState {
+        PickupState {
+            id: format!("{kind}-{weapon}-{x}-{z}"),
+            kind: kind.to_string(),
+            weapon: weapon.to_string(),
+            amount: None,
+            x,
+            y: 0.0,
+            z,
+            available,
+            respawn_in: None,
+        }
+    }
+
+    fn scene(tick: u64, players: Vec<PlayerState>, pickups: Vec<PickupState>) -> Snapshot {
+        Snapshot {
+            tick,
+            players,
+            round_state: Some("Active".to_string()),
+            round_time_left: Some(60),
+            frag_limit: Some(10),
+            shot_results: Vec::new(),
+            mode_name: "Contested Frequency".to_string(),
+            playlist: "Arena Duel".to_string(),
+            pressure: None,
+            host_line: String::new(),
+            mvp: None,
+            mvp_frags: None,
+            pickups,
+            map_id: 1,
+            map_name: "Arena Duel".to_string(),
+            episode_id: None,
+            episode_title: None,
+            episode_objective: None,
+            episode_progress: None,
+            episode_phase: None,
+            jammer_dish: None,
+        }
+    }
+
+    #[test]
+    fn tiers_parse_or_say_why_not() {
+        assert_eq!(Policy::parse("reflex"), Some(Policy::Reflex));
+        assert_eq!(Policy::parse(" Planner "), Some(Policy::Planner));
+        assert_eq!(Policy::parse("brain"), None);
+        assert_eq!(
+            Policy::parse_list("reflex,planner").unwrap(),
+            vec![Policy::Reflex, Policy::Planner]
+        );
+        assert_eq!(
+            Policy::parse_list(" planner , planner ").unwrap(),
+            vec![Policy::Planner, Policy::Planner]
+        );
+        assert!(
+            Policy::parse_list("").is_err(),
+            "an empty list is an error, not a default"
+        );
+        assert!(Policy::parse_list(",,").is_err());
+        let err = Policy::parse_list("reflex,brain").unwrap_err();
+        assert!(err.contains("brain"), "the error names the offender: {err}");
+        for p in [Policy::Reflex, Policy::Planner] {
+            assert_eq!(Policy::parse(p.name()), Some(p));
+        }
+    }
+
+    #[test]
+    fn the_planner_holds_the_range_its_weapon_wants() {
+        let me = Uuid::new_v4();
+        let foe = Uuid::new_v4();
+        // Flechette wants roughly seven to twelve units; the rail wants
+        // eighteen to twenty eight, and the planner picks the weapon first.
+        let far = scene(
+            0,
+            vec![
+                player("me", me, 0.0, 0.0, 100, "flechette"),
+                player("foe", foe, 40.0, 0.0, 100, "flechette"),
+            ],
+            vec![],
+        );
+        let action = planner_action(me, &far);
+        assert!(action.forward, "beyond every band: close in");
+        assert!(!action.back);
+        assert_eq!(
+            action.weapon_swap,
+            Some(WeaponType::Rail),
+            "and bring the rail"
+        );
+        assert_eq!(action.look_at.as_ref().unwrap().player_id, Some(foe));
+
+        // At twenty five units the rail is already in its band, so it holds.
+        let mut rail_band = far.clone();
+        rail_band.players[1].x = 25.0;
+        let action = planner_action(me, &rail_band);
+        assert!(!action.forward, "the rail is happy here: {action:?}");
+        assert!(action.left || action.right);
+
+        let mut holding = far.clone();
+        holding.players[1].x = 10.0;
+        let action = planner_action(me, &holding);
+        assert!(!action.forward, "in the band: stop closing");
+        assert!(!action.back);
+        assert!(
+            action.left || action.right,
+            "and keep moving while holding it"
+        );
+        assert!(action.fire);
+
+        let mut hugged = far.clone();
+        hugged.players[1].x = 1.0;
+        let action = planner_action(me, &hugged);
+        assert!(action.back, "far too close: back off");
+        assert!(!action.forward);
+
+        // A reflex agent in the same spot just keeps charging, which is the
+        // behaviour that put every kill at knife range.
+        let reflex = reflex_action(me, &holding);
+        assert!(reflex.forward, "reflex closes whenever it can");
+    }
+
+    #[test]
+    fn the_planner_breaks_off_for_health_when_hurt() {
+        let me = Uuid::new_v4();
+        let foe = Uuid::new_v4();
+        let hurt = scene(
+            0,
+            vec![
+                player("me", me, 0.0, 0.0, 20, "flechette"),
+                player("foe", foe, 10.0, 0.0, 100, "flechette"),
+            ],
+            vec![pad("health", "", 0.0, 8.0, true)],
+        );
+        let action = planner_action(me, &hurt);
+        let look = action.look_at.as_ref().unwrap();
+        assert_eq!(look.player_id, None, "it walks to the pad, not the enemy");
+        assert_eq!(look.z, Some(8.0));
+        assert!(action.forward);
+
+        // With the pad taken, it goes back to fighting.
+        let mut taken = hurt.clone();
+        taken.pickups[0].available = false;
+        let action = planner_action(me, &taken);
+        assert_eq!(action.look_at.as_ref().unwrap().player_id, Some(foe));
+
+        // Healthy, it ignores the pad entirely.
+        let mut healthy = hurt.clone();
+        healthy.players[0].hp = 100;
+        let action = planner_action(me, &healthy);
+        assert_eq!(action.look_at.as_ref().unwrap().player_id, Some(foe));
+
+        // A pad on the far side of the map is not worth the walk.
+        let mut distant = hurt.clone();
+        distant.pickups[0].z = 40.0;
+        let action = planner_action(me, &distant);
+        assert_eq!(action.look_at.as_ref().unwrap().player_id, Some(foe));
+    }
+
+    #[test]
+    fn the_planner_collects_a_weapon_it_lacks_when_nobody_is_close() {
+        let me = Uuid::new_v4();
+        let foe = Uuid::new_v4();
+        let quiet = scene(
+            0,
+            vec![
+                player("me", me, 0.0, 0.0, 100, "flechette"),
+                player("foe", foe, 35.0, 0.0, 100, "flechette"),
+            ],
+            vec![pad("weapon", "Rail", 5.0, 0.0, true)],
+        );
+        let action = planner_action(me, &quiet);
+        assert_eq!(
+            action.look_at.as_ref().unwrap().x,
+            Some(5.0),
+            "detour for the rail"
+        );
+
+        // It does not detour for the weapon it is already holding.
+        let mut same = quiet.clone();
+        same.pickups[0].weapon = "Flechette".to_string();
+        let action = planner_action(me, &same);
+        assert_eq!(action.look_at.as_ref().unwrap().player_id, Some(foe));
+
+        // Nor with an enemy in its face.
+        let mut pressed = quiet.clone();
+        pressed.players[1].x = 6.0;
+        let action = planner_action(me, &pressed);
+        assert_eq!(action.look_at.as_ref().unwrap().player_id, Some(foe));
+    }
+
+    #[test]
+    fn a_planner_alone_tidies_up_and_a_missing_fighter_does_nothing() {
+        let me = Uuid::new_v4();
+        let alone = scene(
+            0,
+            vec![player("me", me, 0.0, 0.0, 100, "flechette")],
+            vec![pad("armor", "", 3.0, 0.0, true)],
+        );
+        let action = planner_action(me, &alone);
+        assert_eq!(action.look_at.as_ref().unwrap().x, Some(3.0));
+        assert!(!action.fire, "nothing to shoot at");
+
+        let empty = scene(0, vec![player("me", me, 0.0, 0.0, 100, "rail")], vec![]);
+        let action = planner_action(me, &empty);
+        assert!(action.look_at.is_none() && !action.forward && !action.fire);
+
+        let absent = planner_action(Uuid::new_v4(), &alone);
+        assert!(
+            absent.look_at.is_none(),
+            "a fighter not in the snapshot does nothing"
+        );
+
+        // Dead fighters are not targets.
+        let corpses = scene(
+            0,
+            vec![
+                player("me", me, 0.0, 0.0, 100, "flechette"),
+                player("dead", Uuid::new_v4(), 5.0, 0.0, 0, "flechette"),
+            ],
+            vec![],
+        );
+        assert!(planner_action(me, &corpses).look_at.is_none());
+    }
+
+    #[test]
+    fn policy_action_dispatches() {
+        let me = Uuid::new_v4();
+        let foe = Uuid::new_v4();
+        let close = scene(
+            0,
+            vec![
+                player("me", me, 0.0, 0.0, 100, "flechette"),
+                player("foe", foe, 10.0, 0.0, 100, "flechette"),
+            ],
+            vec![],
+        );
+        assert!(
+            policy_action(Policy::Reflex, me, &close).forward,
+            "reflex closes"
+        );
+        assert!(
+            !policy_action(Policy::Planner, me, &close).forward,
+            "the planner is already where it wants to be"
+        );
     }
 }

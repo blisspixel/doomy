@@ -39,6 +39,10 @@ struct Cli {
     /// Simulation seed, so a run can be reproduced and two runs compared.
     #[arg(long, default_value_t = 1)]
     seed: u64,
+    /// Agent policies, dealt round robin: reflex, planner, or a comma
+    /// separated mix such as `reflex,planner` for an even split.
+    #[arg(long, default_value = "reflex")]
+    tiers: String,
 }
 
 fn config_from(cli: &Cli) -> Result<Config, String> {
@@ -52,6 +56,8 @@ fn config_from(cli: &Cli) -> Result<Config, String> {
         time_limit_ticks: cli.time_limit_seconds * 20,
         max_ticks: cli.max_seconds * 20,
         seed: cli.seed,
+        tiers: fragr_playtest::Policy::parse_list(&cli.tiers)
+            .map_err(|e| format!("invalid --tiers {:?}: {e}", cli.tiers))?,
     })
 }
 

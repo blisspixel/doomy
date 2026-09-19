@@ -81,6 +81,12 @@ What moved, and what did not:
 
 Two changes had to land together, which is worth recording. Changing the cone values alone would have been meaningless while a cone meant forgiveness rather than dispersion, and fixing the meaning alone would have left the rail needing a tenth of a degree of accuracy to hit anything. The before and after therefore measures both.
 
+## What the planner tier changed (2026-09-19)
+
+Agents that hold the range their weapon wants, rather than charging, move the fight without changing the guns: kills at nought to five units fall from fifteen to nineteen per run to nought or one, the rail goes from one kill to as many as seven, and accuracy and shots per kill stay where they were. The full table is in `plans/agent-playtest-loop.md`.
+
+The open question this leaves is worth stating plainly. Accuracy sits near fifteen percent whichever tier plays, while a flechette at its ideal twelve units should land more than nine shots in ten on a stationary target. The gap is not dispersion; it is that these agents hold the fire button through walls, around corners, and while their target is behind cover. Firing discipline, not the cone, is what the accuracy number is currently measuring, and any weapon tuning read off that number alone would be tuning the wrong thing.
+
 ## Measuring it without human testers
 
 The playtest harness already sees every shot: the server publishes a shot result per fire with hit or miss and the damage. Three additions make the weapon triangle and the time to kill measurable from agents alone, and they need no new wire data:
