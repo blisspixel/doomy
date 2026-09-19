@@ -22,6 +22,10 @@ pub struct ServerOptions {
     pub map_rotate: bool,
     /// Match rules override (frag limit, timers). `None` keeps the defaults.
     pub match_config: Option<MatchConfig>,
+    /// Seed for the simulation's random stream, so a session can be reproduced.
+    pub seed: u64,
+    /// Seconds between status reports in the log; zero turns them off.
+    pub status_every_s: u64,
     /// Contested Frequency Solo Broadcast Episode 0 (Calibration / Larak Lot).
     pub solo_broadcast: bool,
 }
@@ -35,6 +39,8 @@ impl Default for ServerOptions {
             map_rotate: false,
             match_config: None,
             solo_broadcast: false,
+            seed: 1,
+            status_every_s: 60,
         }
     }
 }
@@ -59,6 +65,7 @@ pub async fn run_server(
     });
 
     let mut session = GameSession::with_map(options.map, options.map_rotate);
+    session.state.seed(options.seed);
     if let Some(config) = options.match_config {
         session.state.config = config;
     }
@@ -80,6 +87,13 @@ pub async fn run_server(
 
     let mut tick_interval = tokio::time::interval(TICK);
     tick_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    let mut stats = crate::bench::TickStats::new();
+    let mut status_interval = (options.status_every_s > 0).then(|| {
+        let mut i = tokio::time::interval(Duration::from_secs(options.status_every_s));
+        i.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        i
+    });
+    tracing::info!("Simulation seed: {}", options.seed);
 
     tracing::info!("Game loop starting (20 Hz tick)");
 
@@ -88,10 +102,29 @@ pub async fn run_server(
     loop {
         tokio::select! {
             _ = tick_interval.tick() => {
+                let started = std::time::Instant::now();
                 let messages = session.tick_messages(TICK.as_secs_f32());
+                let elapsed = started.elapsed();
+                let bytes = messages
+                    .iter()
+                    .map(|m| serde_json::to_string(m).map(|s| s.len()).unwrap_or(0))
+                    .sum::<usize>();
+                stats.record_tick(elapsed, bytes);
                 broadcast_to_clients(&clients, &messages).await;
                 let unicasts = session.take_unicasts();
                 send_unicasts_to_players(&clients, &session.client_to_player, &unicasts).await;
+            }
+
+            _ = async { status_interval.as_mut().expect("guarded").tick().await },
+                if status_interval.is_some() && stats.ticks() > 0 =>
+            {
+                let fighters = session.state.players.len();
+                let client_count = clients.lock().await.len();
+                let report = stats.report(fighters, client_count);
+                match serde_json::to_string(&report) {
+                    Ok(json) => tracing::info!("STATUS {json}"),
+                    Err(err) => tracing::warn!("status report could not be encoded: {err}"),
+                }
             }
 
             Some(cmd) = game_rx.recv() => {

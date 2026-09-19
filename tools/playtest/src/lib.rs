@@ -38,6 +38,9 @@ pub struct Config {
     pub time_limit_ticks: u32,
     /// Hard stop for the whole run, in ticks of the observed clock.
     pub max_ticks: u64,
+    /// Simulation seed. The same seed gives the same match, which is what lets
+    /// two harness runs be compared rather than merely averaged.
+    pub seed: u64,
 }
 
 impl Default for Config {
@@ -49,6 +52,7 @@ impl Default for Config {
             frag_limit: 5,
             time_limit_ticks: 20 * 60,
             max_ticks: 20 * 120,
+            seed: 1,
         }
     }
 }
@@ -678,6 +682,9 @@ pub async fn run(config: Config) -> Result<(Report, Observation), Error> {
         map: config.map,
         map_rotate: false,
         match_config: Some(match_config),
+        // A harness run is reproducible and quiet: the report is the output.
+        seed: config.seed,
+        status_every_s: 0,
         solo_broadcast: false,
     };
     let server = tokio::spawn(async move {

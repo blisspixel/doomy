@@ -104,6 +104,19 @@ Hosting guides: [`infra/docs/HOME-LAN.md`](infra/docs/HOME-LAN.md) for a home bo
 --map <ID>           1 or arena = Arena Duel (default), 2 or compliance-yard = Compliance Yard
 --map-rotate         Alternate maps between rounds
 --solo-broadcast     Solo Broadcast Episode 0 (Calibration; Larak Lot face on map 1)
+--seed <N>           Simulation seed; the same seed gives the same match (default 1)
+--status-every-s <N> Log a status report this often (default 60, 0 to disable)
+--bench <N>          Benchmark instead of serving: N scripted fighters, no network,
+                     one JSON report on stdout, then exit
+--bench-ticks <N>    Ticks to benchmark (default 1200, which is one minute of match)
+--bench-check        Run the benchmark twice and report whether the matches agreed
+--bench-assert       Exit non-zero if a threshold is crossed (what CI runs)
+```
+
+The benchmark is the ruler: how long a tick took, how many bytes a snapshot cost, how much of the tick budget was used, and whether a seeded run reproduces itself.
+
+```bash
+cargo run -p fragr-server --release -- --bench 64 --bench-ticks 1200 --bench-check --seed 42
 ```
 
 `cargo run -p fragr-server -- --help` is the source of truth if this table drifts.

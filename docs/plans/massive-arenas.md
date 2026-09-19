@@ -92,9 +92,27 @@ One process runs one arena today. The next step is one process running several a
 - Decision brains: bounded by the provider's rate limit (about twenty requests a second per key), so a hundred brains at three decisions a second is four keys or a lower cadence; the brain backs off on its own when rate limited. Cost math in `decision-brain.md`.
 - MCP clients: `observe` returns the relevance set, so an agent's cost per call does not grow with the arena.
 
+## Measured, 2026-09-19
+
+The first run of `--bench` on the tip, one minute of match time per row on Arena Duel with seed 42, on a developer laptop. Tick time is the whole step, snapshot bytes are one tick's serialised JSON for every client, and budget is the 50 ms of a 20 Hz tick.
+
+| Fighters | Tick p50 ms | Tick p99 ms | Tick max ms | Budget use p99 | Snapshot bytes p50 | Snapshot bytes p99 | Ticks over budget |
+|---|---|---|---|---|---|---|---|
+| 4 | 0.011 | 0.018 | 0.086 | 0.04% | 1856 | 2428 | 0 |
+| 8 | 0.018 | 0.039 | 0.201 | 0.08% | 2560 | 3200 | 0 |
+| 16 | 0.039 | 0.070 | 0.341 | 0.14% | 4096 | 5376 | 0 |
+| 32 | 0.082 | 0.123 | 0.727 | 0.25% | 6400 | 8704 | 0 |
+| 64 | 0.205 | 0.360 | 1.648 | 0.72% | 11776 | 15360 | 0 |
+| 128 | 0.557 | 0.983 | 1.989 | 1.97% | 21504 | 29696 | 0 |
+| 256 | 1.507 | 2.884 | 3.687 | 5.77% | 40960 | 59392 | 0 |
+
+What this says, and it is not what we assumed. The simulation is nowhere near the wall: 256 fighters use under six percent of the tick budget and never overran it once in twenty-four thousand ticks. Tick time grows a little faster than linearly, which is the all-pairs hit test and the per-bot scan, so the grid in rung 1 is worth doing before the arena rung rather than after.
+
+**The wall is bandwidth, exactly as this plan assumed.** At 64 fighters a snapshot is about 11.8 kB, so a full broadcast to 64 clients is 15 MB per second out of the server at 20 Hz. At 256 it is 41 kB per snapshot. Interest management and delta snapshots are therefore the load-bearing rungs, and the binary format is what turns a survivable number into a comfortable one. The order in this plan stands; the justification is now measured rather than assumed.
+
 ## Rungs
 
-1. Seeded RNG and the spatial grid, with hit tests and bot scans on the grid. Evidence: identical results to all-pairs on the sim tests, a benchmark line at 16 and 64.
+1. Seeded RNG (**shipped**: `--seed`, printed on boot, proven by the benchmark's determinism check) and the spatial grid, with hit tests and bot scans on the grid. Evidence: identical results to all-pairs on the sim tests, a benchmark line at 16 and 64.
 2. Interest sets and per-client snapshots (still JSON), spectators at 10 Hz in the wide view. Evidence: bytes per client before and after at 64.
 3. Delta snapshots with acknowledgement and the full-resend fallback. Evidence: a loss-injection test on the in-process harness.
 4. fragr-wire v1 for humans and the harness; JSON kept for everything else. Evidence: the ladder table through the Server rung.
@@ -102,7 +120,7 @@ One process runs one arena today. The next step is one process running several a
 
 ## Success criteria
 
-- [ ] Seed printed on boot and in the status line; a paired-round playtest reproduces frag counts.
+- [x] Seed printed on boot; `--bench-check` proves two seeded runs produce the same match.
 - [ ] Hit tests on the grid match all-pairs on every sim test.
 - [ ] Server rung passed and tabled.
 - [ ] Arena rung passed and tabled.

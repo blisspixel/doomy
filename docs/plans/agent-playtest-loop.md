@@ -44,7 +44,7 @@ Three findings:
 
 1. Harness boots a server on a free loopback port, connects N reflex agents, runs R rounds, writes the JSON report. CI runs it with four agents and one round.
 2. Planner tier with waypoints read from the map data; pickup seeking; the report gains contention and route metrics.
-3. Server exposes tick time percentiles and bytes per tick on a status line, and `--bench N M` runs N scripted bots for M ticks and prints the same JSON. This rung owns the roadmap's benchmark mode; the hardening plan later serves the same JSON over HTTP, and the buttery-controls plan reads its correction metrics from this line.
+3. Server exposes tick time percentiles and bytes per tick on a status line, and `--bench N M` runs N scripted bots for M ticks and prints the same JSON. This rung is rung 1 of `plans/benchmark-and-stats.md`, which specifies the histograms, the phase split, the budget headroom, and the determinism check; the hardening plan later serves the same JSON over HTTP, and the buttery-controls plan reads its correction metrics from this line. The deeper match statistics build on the same report.
 4. Optional observer: an off-tick process that reads the event stream and writes free-text notes, gated behind a flag and a key.
 
 ## Verification
@@ -57,5 +57,5 @@ Three findings:
 
 - [x] Rung 1 in CI (#95).
 - [ ] Planner tier with route metrics.
-- [ ] Status line metrics from the server.
+- [x] Status line metrics from the server (`--bench`, `--status-every-s`, the same JSON in both).
 - [ ] Thresholds catch a deliberately introduced stuck bot in a test.
