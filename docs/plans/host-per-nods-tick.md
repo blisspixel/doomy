@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `feat/host-per-nods-tick`
 **Spend:** $0. Loopback. No Cloud Agent. No release tag.
-**Status:** in flight.
+**Status:** shipped (#120).
 **Tip base:** main after #116 jammer dish (`5c94706` or newer).
 
 ## Goal
