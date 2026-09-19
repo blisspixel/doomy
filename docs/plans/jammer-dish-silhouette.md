@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `feat/jammer-dish-silhouette`
 **Spend:** $0. Loopback. No Cloud Agent. No release tag.
-**Status:** in flight.
+**Status:** shipped (#116).
 
 ## Goal
 
