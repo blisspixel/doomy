@@ -218,6 +218,18 @@ pub fn episode0_host_line_nods() -> String {
         .to_string()
 }
 
+/// Short Contested Frequency Host tick per credited NODS clear (rate-sane: one line per clear).
+pub fn episode0_host_line_nods_tick(cleared: u32, goal: u32) -> String {
+    match cleared {
+        0 => episode0_host_line_cold_open(),
+        1 => episode0_host_line_nods(),
+        2 => format!("HOST: NODS {cleared}/{goal}. Another approved lane goes dark."),
+        3 => format!("HOST: NODS {cleared}/{goal}. Continuance is sweating the spreadsheet."),
+        4 => format!("HOST: NODS {cleared}/{goal}. One more and the dish wakes up."),
+        n => format!("HOST: NODS {n}/{goal}. Keep the scrap on the air."),
+    }
+}
+
 pub fn episode0_host_line_jammer() -> String {
     "HOST: Jammer's up. Seize the dish or I go text-only. Value for value.".to_string()
 }

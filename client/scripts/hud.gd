@@ -312,6 +312,7 @@ func set_ghost_rival(rival: String):
 
 func set_episode_chrome(ep_id: String, title: String, objective: String, progress: String, phase: String):
 	# Solo Broadcast face: title + objective chip. Silly booth, not wiki.
+	var prev_progress = episode_progress
 	episode_id = ep_id
 	episode_title = title
 	episode_objective = objective
@@ -321,6 +322,10 @@ func set_episode_chrome(ep_id: String, title: String, objective: String, progres
 	if title != "" and not episode_title_shown and round_message:
 		episode_title_shown = true
 		show_episode_title_card(title, objective)
+	# Host-per-NODS-tick: flash when progress advances under nods phase.
+	# Skip empty first paint (join / cold open) and jammer+ handoff.
+	if phase == "nods" and progress != "" and prev_progress != "" and progress != prev_progress:
+		show_nods_tick(progress, sticky_host_line)
 
 func show_episode_title_card(title: String, objective: String = ""):
 	if not round_message:
@@ -333,6 +338,27 @@ func show_episode_title_card(title: String, objective: String = ""):
 	round_message.text = line
 	await get_tree().create_timer(3.2).timeout
 	if round_message and episode_phase != "won" and episode_phase != "failed":
+		round_message.visible = false
+
+func show_nods_tick(progress: String, host_line: String = ""):
+	# Short Contested Frequency booth beat per NODS clear. Not speak. Not killstreak length.
+	flash_broadcast_chrome("host")
+	streak_flash_timer = 0.32
+	if streak_flash:
+		streak_flash.visible = true
+		streak_flash.modulate = Color(1.0, 0.78, 0.28, 0.42)
+	if not round_message:
+		return
+	var line = host_line
+	if line == "":
+		line = "HOST: " + progress
+	round_message.text = line + "\n" + progress
+	round_message.visible = true
+	var tween = create_tween()
+	tween.tween_property(round_message, "scale", Vector2(1.18, 1.18), 0.08)
+	tween.tween_property(round_message, "scale", Vector2(1.0, 1.0), 0.14)
+	await get_tree().create_timer(1.35).timeout
+	if is_instance_valid(round_message) and episode_phase == "nods":
 		round_message.visible = false
 
 func show_episode_complete(host_line: String, unlock_teaser: String = ""):
@@ -395,6 +421,7 @@ func reset_host_chrome():
 	# Clear sticky Host + flash latch so a reconnect mid-round can flash once again.
 	sticky_host_line = ""
 	host_line_seen = false
+	episode_progress = ""
 	hide_warmup_tv()
 	_refresh_mode_label()
 

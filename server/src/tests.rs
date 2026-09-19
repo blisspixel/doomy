@@ -4407,6 +4407,86 @@ fn note_nods_frag_credits_human_and_agent_meatbag_not_rule_bot() {
 }
 
 #[test]
+fn note_nods_frag_host_ticks_each_clear_until_jammer() {
+    let mut session = GameSession::new();
+    session.spawn_bots(2);
+    session.enable_solo_broadcast_ep0();
+    session.state.start_round();
+
+    let nods: Vec<_> = session
+        .state
+        .players
+        .iter()
+        .filter(|p| p.name.starts_with("NODS-") && !p.is_boss)
+        .map(|p| p.id)
+        .collect();
+    assert!(!nods.is_empty());
+    let victim = nods[0];
+    let human = Uuid::new_v4();
+    session
+        .state
+        .add_player(human, "Meatbag".to_string(), Role::Human);
+
+    let goal = session.state.solo_broadcast.nods_goal;
+    assert!(goal >= 4, "expected Calibration NODS goal >= 4, got {goal}");
+
+    session.state.note_nods_frag(human, victim);
+    assert_eq!(session.state.solo_broadcast.nods_cleared, 1);
+    let line1 = session
+        .state
+        .solo_broadcast
+        .host_line
+        .clone()
+        .expect("host line after first NODS clear");
+    assert_eq!(line1, crate::protocol::episode0_host_line_nods());
+
+    session.state.note_nods_frag(human, victim);
+    assert_eq!(session.state.solo_broadcast.nods_cleared, 2);
+    let line2 = session
+        .state
+        .solo_broadcast
+        .host_line
+        .clone()
+        .expect("host line after second NODS clear");
+    assert_ne!(line2, line1, "each NODS clear should bump Host");
+    assert!(
+        line2.contains("NODS 2/"),
+        "expected NODS 2 tick Host, got {line2}"
+    );
+
+    session.state.note_nods_frag(human, victim);
+    session.state.note_nods_frag(human, victim);
+    assert_eq!(session.state.solo_broadcast.nods_cleared, 4);
+    let line4 = session
+        .state
+        .solo_broadcast
+        .host_line
+        .clone()
+        .expect("host line after fourth NODS clear");
+    assert!(
+        line4.contains("NODS 4/"),
+        "expected NODS 4 tick Host, got {line4}"
+    );
+
+    // Goal clear hands Host to jammer only.
+    while session.state.solo_broadcast.nods_cleared < goal {
+        session.state.note_nods_frag(human, victim);
+    }
+    assert_eq!(session.state.solo_broadcast.phase, EpisodePhase::Jammer);
+    let jammer = session
+        .state
+        .solo_broadcast
+        .host_line
+        .clone()
+        .expect("jammer host line");
+    assert_eq!(jammer, crate::protocol::episode0_host_line_jammer());
+    assert!(
+        !jammer.contains("NODS 5/"),
+        "goal clear must not leave NODS-tick Host: {jammer}"
+    );
+}
+
+#[test]
 fn note_nods_frag_via_lethal_hitscan_path() {
     let mut state = GameState::new();
     state.enable_solo_broadcast_ep0();

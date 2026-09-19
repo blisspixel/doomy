@@ -21,12 +21,14 @@ Status words: **planned**, **in flight**, **shipped** (merged to `main`, PR numb
 | [`tip-stills-ep0.md`](./tip-stills-ep0.md) | **shipped** (#110) | Recapture tip stills + README Solo Broadcast face after Episode 0. |
 | [`ep0-nods-progress-fix.md`](./ep0-nods-progress-fix.md) | **shipped** (#111) | Calibration NODS credit for meatbags, jammer dish silhouette, map_name honesty. |
 | [`jammer-dish-silhouette.md`](./jammer-dish-silhouette.md) | **shipped** (#116) | Unmissable Godot jammer dish silhouette in-camera for Solo Broadcast phase two. |
+| [`host-per-nods-tick.md`](./host-per-nods-tick.md) | **shipped** (#120) | Soft juice: Host / HUD beat on every Solo Broadcast NODS clear, not only the first. |
 | [`art-pipeline.md`](./art-pipeline.md) | **planned** | Sprites, weapons, icons, and tiles through two pixel-art-native services plus a Rust post-processor and touch-up; provenance recorded; spend gated. |
 | [`fair-play.md`](./fair-play.md) | **planned** | Anti-cheat that keeps it fun: validated inputs, lanes for humans and agents, a behaviour profiler, replays as evidence, no kernel drivers. |
 | [`localization.md`](./localization.md) | **planned** | Keys for every string, the basics plus regional, community-signed, and lore locales, fonts and layout, a tour per locale. |
 | [`benchmark-and-stats.md`](./benchmark-and-stats.md) | **planned** | Benchmark mode with phase histograms and budget headroom, plus the deep analysis layer: distributions, intervals, TrueSkill, a nerd overlay, and a full export. |
 | [`massive-arenas.md`](./massive-arenas.md) | **planned** | Seeded sim, spatial grid, interest sets, delta snapshots, binary wire, tick budget, and the measured scale ladder to hundreds of fighters. |
 | [`visual-qa-tour.md`](./visual-qa-tour.md) | **planned** | Manifest-driven tour of every player-facing state with stills, a contact sheet, and feel probes for the agent developer to critique. |
+| [`gunfeel.md`](./gunfeel.md) | **in flight** (aim defaults shipped) | What the weapons and the aim do: the parameter set from the classics, dispersion separated from aim assist, feedback timings, the dodge. |
 | [`buttery-controls.md`](./buttery-controls.md) | **planned** | Client-owned yaw, prediction and reconciliation, timeline interpolation, 60 Hz sim, lag compensation, gamepad curves, transport spike, all with pass numbers. |
 | [`public-server-hardening.md`](./public-server-hardening.md) | **planned** | Frame caps, accept limits, HMAC join tickets, name rules, Caddy TLS, status endpoint and benchmark mode. |
 | [`agent-door-2026.md`](./agent-door-2026.md) | **planned** | MCP 2026-07-28 compliance with legacy clients kept, the rmcp decision, a team blackboard before A2A. |
