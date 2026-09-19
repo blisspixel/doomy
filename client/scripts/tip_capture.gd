@@ -2,7 +2,7 @@ extends SceneTree
 
 # Tip screenshot helper. Run under Xvfb + opengl3 (see tools/capture_tip_screenshots.sh).
 # Bare --headless has no framebuffer; do not use it for pixel captures.
-# Timed stills: Host bumper, killfeed/scoreboard, compliance pressure, mid-join Host flash.
+# Timed stills: Calibration/Larak Lot chrome, Host bumper, killfeed/scoreboard, mid-join Host flash.
 
 func _initialize() -> void:
 	call_deferred("_run_capture")
@@ -25,6 +25,9 @@ func _run_capture() -> void:
 
 	# Unmissable Warmup TV bumper still (forced chrome so capture always lands).
 	await _capture_warmup_tv_bumper(out_dir)
+
+	# Solo Broadcast Episode 0 title + objective chip (Calibration / Larak Lot).
+	await _capture_calibration_larak(out_dir)
 
 	# Seconds after scene load (warmup ~2s; compliance ~15s into Active).
 	# 12s lands mid-scrap for weapons / frags killfeed still.
@@ -74,7 +77,7 @@ func _run_capture() -> void:
 	quit(0)
 
 func _capture_warmup_tv_bumper(out_dir: String) -> void:
-	# Full-frame Contested Frequency Warmup TV: huge map, roster chips, GOES LIVE IN N.
+	# Full-frame Contested Frequency Warmup TV: Larak Lot face, roster chips, GOES LIVE IN N.
 	var gm: Node = _find_game_manager()
 	if gm == null:
 		push_warning("tip_capture: GameManager missing; skip Warmup TV bumper shot")
@@ -88,25 +91,89 @@ func _capture_warmup_tv_bumper(out_dir: String) -> void:
 		return
 
 	if hud.has_method("set_map_name"):
-		hud.set_map_name("Arena Duel")
+		hud.set_map_name("Larak Lot")
 	if hud.has_method("set_league_identity"):
-		hud.set_league_identity("Contested Frequency", "Arena Duel")
+		hud.set_league_identity("Contested Frequency", "Larak Lot")
+	if hud.has_method("set_episode_chrome"):
+		hud.set_episode_chrome(
+			"ep0",
+			"Solo Broadcast: Calibration",
+			"Clear NODS. Seize jammer dish. Drop the Auditor.",
+			"",
+			"nods"
+		)
 
 	var roster: Array = [
-		"Dead Air Dan",
-		"Nightfall",
-		"Static Kid",
-		"Aunt Linda",
-		"Buzzkill",
-		"Tin Foil Tina",
+		"NODS-1",
+		"NODS-2",
+		"NODS-3",
+		"NODS-4",
 	]
-	var host_line: String = "HOST: CONTESTED FREQUENCY. ARENA DUEL TUNES IN. DEAD AIR DAN, NIGHTFALL, +4 ON THE SCRAP. GOES LIVE IN 2."
+	var host_line: String = "HOST: CONTESTED FREQUENCY. LARAK LOT TUNES IN. NODS-1, NODS-2, +2 ON THE SCRAP. GOES LIVE IN 2."
 	hud.show_warmup_bumper(host_line, 2, roster)
 	await create_timer(0.25).timeout
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
 
 	var shot_name: String = "11_tip_warmup_tv_bumper_16x9.png"
+	var img: Image = get_root().get_viewport().get_texture().get_image()
+	if img == null:
+		push_error("tip_capture: viewport image was null for " + shot_name)
+		quit(1)
+		return
+	if _looks_like_pink_placeholder(img):
+		push_warning("tip_capture: pink-ish frame for " + shot_name + "; saving anyway for inspection")
+	var path: String = out_dir.path_join(shot_name)
+	var err: Error = img.save_png(path)
+	if err != OK:
+		push_error("tip_capture: save_png failed (%s) -> %s" % [str(err), path])
+		quit(1)
+		return
+	print("tip_capture: wrote ", path, " size=", img.get_width(), "x", img.get_height())
+
+	if hud.has_method("hide_warmup_tv"):
+		hud.hide_warmup_tv()
+	elif "round_message" in hud and hud.round_message:
+		hud.round_message.visible = false
+
+
+
+func _capture_calibration_larak(out_dir: String) -> void:
+	# Solo Broadcast Episode 0 face: title card + objective + Larak Lot line.
+	var gm: Node = _find_game_manager()
+	if gm == null:
+		push_warning("tip_capture: GameManager missing; skip Calibration still")
+		return
+	var hud: Node = gm.get_node_or_null("HUD")
+	if hud == null:
+		push_warning("tip_capture: HUD missing; skip Calibration still")
+		return
+
+	if hud.has_method("set_map_name"):
+		hud.set_map_name("Larak Lot")
+	if hud.has_method("set_league_identity"):
+		hud.set_league_identity("Contested Frequency", "Larak Lot")
+	if "episode_title_shown" in hud:
+		hud.episode_title_shown = false
+	if hud.has_method("set_episode_chrome"):
+		hud.set_episode_chrome(
+			"ep0",
+			"Solo Broadcast: Calibration",
+			"Clear NODS. Seize jammer dish. Drop the Auditor.",
+			"NODS 0/4",
+			"nods"
+		)
+	elif hud.has_method("show_episode_title_card"):
+		hud.show_episode_title_card(
+			"Solo Broadcast: Calibration",
+			"Clear NODS. Seize jammer dish. Drop the Auditor."
+		)
+
+	await create_timer(0.35).timeout
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+
+	var shot_name: String = "12_tip_calibration_larak_16x9.png"
 	var img: Image = get_root().get_viewport().get_texture().get_image()
 	if img == null:
 		push_error("tip_capture: viewport image was null for " + shot_name)
