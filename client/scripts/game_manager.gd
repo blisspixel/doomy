@@ -764,13 +764,14 @@ func _process_shot_results(results) -> void:
 		if not is_local and not is_followed:
 			continue
 		var wpn = _local_weapon_name() if is_local else _followed_weapon_name()
+		# Every shot you take kicks the view model and lights the barrel. This
+		# used to happen only when you missed, so landing a shot was the one
+		# case where pulling the trigger looked like nothing happened.
+		if is_local and hud and hud.has_method("show_fire_juice"):
+			hud.show_fire_juice(wpn)
 		if hit:
 			if hud and hud.has_method("show_hit_marker"):
 				hud.show_hit_marker(dmg, wpn)
-		else:
-			# Miss still gets a light fire kick in FP.
-			if is_local and hud and hud.has_method("show_fire_juice"):
-				hud.show_fire_juice(wpn)
 
 func _local_weapon_name() -> String:
 	var pid = str(net_client.player_id) if net_client.player_id != null else ""

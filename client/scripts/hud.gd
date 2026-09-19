@@ -21,6 +21,7 @@ signal host_spoke(seconds: float)
 @onready var spawn_flash = $SpawnFlash
 @onready var streak_flash = $StreakFlash
 @onready var fp_weapon = $FpWeapon
+@onready var fp_muzzle = $FpMuzzle
 @onready var chrome_strip = $ChromeStrip
 @onready var on_air_badge = $OnAirBadge
 @onready var contested_frequency_badge = $ContestedFrequencyBadge
@@ -76,8 +77,13 @@ var spawn_flash_timer = 0.0
 var streak_flash_timer = 0.0
 var hit_marker_timer = 0.0
 var fp_kick_timer = 0.0
+## Seconds the first-person muzzle flash stays up. Short: it is a flash, and a
+## player sees it for the frame or two that the shot leaves the barrel.
+var fp_muzzle_timer: float = 0.0
+var fp_muzzle_texture: Texture2D
 var fp_kick_amount = Vector2.ZERO
 var current_fp_weapon = ""
+const FP_MUZZLE_SECONDS: float = 0.07
 var floating_damage_nodes = []
 
 # Full-frame Warmup Contested Frequency TV bumper (unmissable scrap open).
@@ -95,6 +101,10 @@ var warmup_tv_host_line = ""
 
 func _ready():
 	_ensure_map_chip_label()
+	fp_muzzle_texture = load("res://assets/vfx/32/muzzle_flash.png")
+	if fp_muzzle:
+		fp_muzzle.texture = fp_muzzle_texture
+		fp_muzzle.visible = false
 	weapon_textures["Flechette"] = load("res://assets/weapons/32/flechette.png")
 	weapon_textures["Rail"] = load("res://assets/weapons/32/rail.png")
 	weapon_textures["Scatter"] = load("res://assets/weapons/32/scatter.png")
@@ -1021,6 +1031,15 @@ func _process(delta):
 			hit_marker.modulate.a = 0.0
 	if fp_kick_timer > 0:
 		fp_kick_timer -= delta
+	if fp_muzzle_timer > 0:
+		fp_muzzle_timer -= delta
+		if fp_muzzle:
+			# Fades and shrinks over its short life rather than blinking off.
+			var m: float = clampf(fp_muzzle_timer / FP_MUZZLE_SECONDS, 0.0, 1.0)
+			fp_muzzle.modulate.a = m
+			fp_muzzle.scale = Vector2.ONE * (0.75 + 0.35 * m)
+		if fp_muzzle_timer <= 0 and fp_muzzle:
+			fp_muzzle.visible = false
 	_update_floating_damage(delta)
 	if fp_juice_enabled and fp_weapon and fp_weapon.visible:
 		fp_bob_t += delta * 9.0
@@ -1177,9 +1196,28 @@ func show_hit_marker(damage: int = 0, weapon_name: String = "") -> void:
 func show_fire_juice(weapon_name: String = "") -> void:
 	_fp_fire_kick(weapon_name if weapon_name != "" else current_fp_weapon)
 
+## The flash a player sees for their own shot. The pawn has had one all along,
+## but in first person the pawn is not what anyone is looking at, so until now
+## the only feedback for pulling the trigger was the sound.
+func _fp_muzzle_flash(weapon_name: String) -> void:
+	if not fp_juice_enabled or not fp_muzzle or fp_muzzle_texture == null:
+		return
+	# Same colours the fighter's own flash uses, so the two read as one weapon.
+	match weapon_name:
+		"Rail":
+			fp_muzzle.modulate = Color(0.72, 0.78, 0.82, 1.0)
+		"Scatter":
+			fp_muzzle.modulate = Color(0.95, 0.55, 0.28, 1.0)
+		_:
+			fp_muzzle.modulate = Color(0.92, 0.78, 0.55, 1.0)
+	fp_muzzle.scale = Vector2.ONE * 1.1
+	fp_muzzle.visible = true
+	fp_muzzle_timer = FP_MUZZLE_SECONDS
+
 func _fp_fire_kick(weapon_name: String) -> void:
 	if not fp_juice_enabled:
 		return
+	_fp_muzzle_flash(weapon_name)
 	fp_kick_timer = 0.12
 	match weapon_name:
 		"Rail":
