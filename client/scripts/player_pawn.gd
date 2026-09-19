@@ -100,6 +100,8 @@ func _ready():
 
 var fire_streams = {}
 var hit_streams = {}
+## The impact sound used when the shooter's weapon is not known.
+var generic_hit_stream: AudioStream = null
 
 func _load_audio_streams():
 	var audio_dir = "res://assets/audio/"
@@ -121,12 +123,26 @@ func _load_audio_streams():
 	
 	if fire_sound and ResourceLoader.exists(fallback_fire):
 		fire_sound.stream = load(fallback_fire)
+	if ResourceLoader.exists(fallback_hit):
+		generic_hit_stream = load(fallback_hit)
 	if hit_sound and ResourceLoader.exists(fallback_hit):
 		hit_sound.stream = load(fallback_hit)
 
+## Fraction of the remaining distance to close this frame.
+##
+## `speed * delta` is the obvious form and it is frame-rate dependent: at 240
+## frames a second it closes 4 percent per frame and at 40 it closes 25, which
+## are not the same curve, so two machines render a fighter in different places
+## from identical snapshots. Above a delta of 1/speed it overshoots outright.
+## The exponential form closes the same fraction per unit of *time* whatever
+## the frame rate, which is what smoothing was always supposed to mean.
+static func smoothing(speed: float, delta: float) -> float:
+	return 1.0 - exp(-speed * delta)
+
 func _process(delta):
-	position = position.lerp(target_position, INTERP_SPEED * delta)
-	rotation.y = lerp_angle(rotation.y, target_yaw, INTERP_SPEED * delta)
+	var t: float = smoothing(INTERP_SPEED, delta)
+	position = position.lerp(target_position, t)
+	rotation.y = lerp_angle(rotation.y, target_yaw, t)
 	
 	_update_far_cam_scale()
 	
@@ -291,11 +307,19 @@ func show_muzzle_flash(weapon: String):
 		if muzzle_glow:
 			muzzle_glow.light_energy = 0.0
 
+## Feedback for being hit. `weapon` is the gun that did it.
+##
+## When it is unknown this used to fall back to `current_weapon`, which is the
+## weapon this fighter is *holding*, not the one that shot them: being shot by
+## a rail while carrying a scatter played the scatter's impact. The generic
+## impact is the honest sound for an unknown shooter. The weapon reaches here
+## properly once shot results carry it; see plans/shot-feedback.md.
 func show_hit_feedback(weapon: String = ""):
 	if hit_sound:
-		var w = weapon if weapon != "" else current_weapon
-		if hit_streams.has(w):
-			hit_sound.stream = hit_streams[w]
+		if weapon != "" and hit_streams.has(weapon):
+			hit_sound.stream = hit_streams[weapon]
+		elif generic_hit_stream != null:
+			hit_sound.stream = generic_hit_stream
 		if hit_sound.stream:
 			hit_sound.play()
 	
