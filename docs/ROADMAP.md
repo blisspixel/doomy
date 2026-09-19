@@ -108,13 +108,21 @@ Concrete, checkable, and required before any phase is called done. Evidence is a
 - **Sticky.** The next round starts without a menu. Leaving to spectate never ends the match.
 - **No slop.** No overlapping HUD text, no placeholder sprites in a shipped screenshot, no mood art labeled as gameplay.
 
+## Hard problems first
+
+Three problems decide whether the rest is possible, because they cross the language boundary, change the wire, or set the scale ceiling. They are designed decision-complete so they can be implemented mechanically:
+
+- **Netcode for buttery controls** (`plans/buttery-controls.md`, design detail): one movement step written in Rust and GDScript against committed golden vectors, numbered bundled inputs with an `ack` message, reconciliation with a visual offset, timeline interpolation, bounded lag compensation, and a 60 Hz movement step under 20 Hz snapshots.
+- **Maps as data and monsters as tables** (`plans/campaign-continuance.md`, framework detail): a versioned map manifest built from TrenchBroom files by a Rust tool, convex solids shared by collision and sight, three-bit skill placement, a monster row schema with Doom's rules in seconds, triggers, doors, keys, secrets, exits, and saves.
+- **Snapshots at scale** (`plans/massive-arenas.md`): a seeded sim, a spatial grid, interest sets, delta snapshots with acknowledgement, a binary wire format, a tick budget model, and a measured scale ladder.
+
 ## Plan coverage and order
 
 Every item above maps to a plan or says "plan needed". The order of the next PRs is the last column; a blank means it waits on the ones before it.
 
 | Item | Plan | Next PR order |
 |---|---|---|
-| Phase 0: one protocol crate | plan needed (the adapter moves onto `fragr-server` types first) | 3 |
+| Phase 0: one protocol crate | the adapter moves onto `fragr-server` types (wire changes in `plans/buttery-controls.md` are edited once) | 3 |
 | Phase 1.1: movement and gunfeel | `plans/buttery-controls.md` | 5 (stage 1), then stage 2 after 4 |
 | Phase 1.2: look pass | `plans/look-pass-boomer.md` | 8 |
 | Phase 1.3: sound and music | `plans/radio-stations.md` (shipped; bumpers and Host voice remain) | |
@@ -129,7 +137,7 @@ Every item above maps to a plan or says "plan needed". The order of the next PRs
 | Phase 1.11: visual QA tour | `plans/visual-qa-tour.md` | 2 |
 | Phase 2.1, 2.2, 2.6, 2.8: hardening, protocol version, status, observability | `plans/public-server-hardening.md` | after Phase 1 |
 | Phase 2.3: transport spike | `plans/buttery-controls.md` stage 7 | |
-| Phase 2.4: snapshot efficiency | plan needed | |
+| Phase 2.4: snapshot efficiency | `plans/massive-arenas.md` | rung 1 (seed and grid) any time; rungs 2 to 4 after buttery stage 2 |
 | Phase 2.5: reconnect and resume | plan needed | |
 | Phase 2.7: desktop exports on tags | plan needed (small) | |
 | Phase 2.9: strangers | `plans/public-server-hardening.md` rung 5 | |
