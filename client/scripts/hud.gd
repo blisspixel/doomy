@@ -183,6 +183,12 @@ func _refresh_map_chip_badge() -> void:
 	# Hide brand Hangar Candy art so it cannot impersonate the map chip.
 	if hangar_candy_badge:
 		hangar_candy_badge.visible = false
+	# chrome_strip_hud.png bakes Hangar Candy as a third top chip. During Solo
+	# Broadcast (Larak Lot) that reads as a second map name beside MapChipLabel.
+	# Keep OnAir + ContestedFrequency badges; strip off when map is Larak Lot.
+	if chrome_strip:
+		var solo_larak = map_label.strip_edges().to_lower() == "larak lot"
+		chrome_strip.visible = not solo_larak
 
 
 func set_status(text: String):
@@ -455,7 +461,9 @@ func _update_broadcast_chrome(state: String) -> void:
 	var live = state == "Active"
 	var ended = state == "Ended"
 	if chrome_strip:
-		chrome_strip.visible = true
+		# Do not re-show the Hangar Candy strip during Solo Broadcast / Larak Lot.
+		var solo_larak = map_label.strip_edges().to_lower() == "larak lot"
+		chrome_strip.visible = not solo_larak
 		var a = 0.92 if live else (0.88 if warm else 0.7)
 		chrome_strip.modulate = Color(1, 1, 1, a)
 	if on_air_badge:
