@@ -21,7 +21,10 @@ var auto_cycle_timer = 0.0
 var frag_follow_timer = 0.0
 var frag_follow_target_id = ""
 # tip_capture: freeze follow / frag yank while posing at dish origin.
+# Held transform is re-applied every frame so set_fp_mode / other yanks cannot stick.
 var tip_pose_lock = false
+var tip_locked_transform: Transform3D = Transform3D.IDENTITY
+var tip_has_locked_transform = false
 var camera_shake_intensity = 0.0
 var camera_zoom_offset = 0.0
 
@@ -59,6 +62,8 @@ func _process(delta):
 
 	if tip_pose_lock:
 		mouse_motion = Vector2.ZERO
+		if tip_has_locked_transform:
+			global_transform = tip_locked_transform
 		return
 
 	var mouse_captured = Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED
@@ -243,6 +248,8 @@ func get_followed_target():
 	return null
 
 func lock_on_frag(killer_id: String, duration: float = 1.5):
+	if tip_pose_lock:
+		return
 	if fp_mode:
 		return
 	frag_follow_target_id = killer_id
@@ -329,6 +336,9 @@ func consume_turn_bits() -> Dictionary:
 	return {"turn_left": left, "turn_right": right}
 
 func set_fp_mode(enabled: bool, target: Node3D = null) -> void:
+	# tip_capture pose lock: never teleport onto a soldier mid-jammer still.
+	if tip_pose_lock:
+		return
 	fp_mode = enabled
 	fp_target = target
 	if not enabled:
@@ -344,3 +354,25 @@ func set_fp_mode(enabled: bool, target: Node3D = null) -> void:
 		position = target.global_position + Vector3(0, FP_EYE_HEIGHT, 0)
 		rotation.y = yaw
 		rotation.x = fp_pitch
+
+
+## tip_capture: latch free-fly pose at dish and re-assert every frame.
+func latch_tip_pose(xform: Transform3D) -> void:
+	tip_pose_lock = true
+	tip_locked_transform = xform
+	tip_has_locked_transform = true
+	follow_mode = false
+	frag_follow_timer = 0.0
+	frag_follow_target_id = ""
+	fp_mode = false
+	fp_target = null
+	global_transform = xform
+
+
+func capture_tip_pose_from_current() -> void:
+	latch_tip_pose(global_transform)
+
+
+func clear_tip_pose_lock() -> void:
+	tip_pose_lock = false
+	tip_has_locked_transform = false

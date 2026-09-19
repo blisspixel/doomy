@@ -14,7 +14,7 @@ README screenshots MUST match the current playable UI. Stale mood stubs labeled 
 
 | File | Aspect | Purpose |
 |------|--------|---------|
-| `20_jammer_dish_follow_16x9.png` | 16:9 | Live tip: jammer dish at follow (~12m), SEIZE JAMMER, LARAK LOT |
+| `20_jammer_dish_follow_16x9.png` | 16:9 | Live tip: chunky jammer dish look-at (~9.5m), SEIZE JAMMER, LARAK LOT |
 | `22_jammer_dish_overview_16x9.png` | 16:9 | Live tip: jammer dish at overview (~36m) in hangar |
 | `23_jammer_dish_seize_label_16x9.png` | 16:9 | Live tip: SEIZE JAMMER label read under HUD |
 | `09_tip_weapons_frags_16x9.png` | 16:9 | Live tip: weapons / muzzle / killfeed combat still |
@@ -26,7 +26,7 @@ README screenshots MUST match the current playable UI. Stale mood stubs labeled 
 | `11_tip_warmup_tv_bumper_16x9.png` | 16:9 | Live tip: Warmup Contested Frequency TV bumper (Larak Lot face) |
 | `12_tip_calibration_larak_16x9.png` | 16:9 | Live tip: Solo Broadcast Calibration chrome on Larak Lot (secondary; not README lead) |
 
-Recaptured on tip after tip-capture-dish-gate (tip_force survives seize, pose lock, orange gate) via `tools/capture_tip_screenshots.sh`. README tip gallery leads with dish + weapons.
+Recaptured on tip after tip-capture-dish-pose (held tip pose + chunky dish look-at; orange gate) via `tools/capture_tip_screenshots.sh`. README tip gallery leads with dish + weapons.
 
 ## Jammer dish proof (stranger eyes)
 
