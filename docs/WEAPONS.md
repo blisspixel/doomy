@@ -92,6 +92,7 @@ Developer-only. Never in CI, never called by the game.
 
 ## Related
 
+- `docs/MODES.md`: where you use them.
 - `plans/weapon-economy.md`: the ammunition pools, the pads, and why weapon pads did not matter until now.
 - `plans/gunfeel.md`: the measured baselines and the feel work.
 - `docs/ART-ASSET-LIST.md`: the view models, world pickups, icons and held sprites each of these needs drawn.
