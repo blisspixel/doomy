@@ -36,6 +36,9 @@ struct Cli {
     /// Exit non-zero when a frustration threshold is crossed.
     #[arg(long)]
     assert: bool,
+    /// Simulation seed, so a run can be reproduced and two runs compared.
+    #[arg(long, default_value_t = 1)]
+    seed: u64,
 }
 
 fn config_from(cli: &Cli) -> Result<Config, String> {
@@ -48,6 +51,7 @@ fn config_from(cli: &Cli) -> Result<Config, String> {
         frag_limit: cli.frag_limit,
         time_limit_ticks: cli.time_limit_seconds * 20,
         max_ticks: cli.max_seconds * 20,
+        seed: cli.seed,
     })
 }
 

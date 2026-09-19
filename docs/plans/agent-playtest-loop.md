@@ -39,5 +39,5 @@ Local agents play the game and file structured feedback so most iteration does n
 
 - [x] Rung 1 in CI (#95).
 - [ ] Planner tier with route metrics.
-- [ ] Status line metrics from the server.
+- [x] Status line metrics from the server (`--bench`, `--status-every-s`, the same JSON in both).
 - [ ] Thresholds catch a deliberately introduced stuck bot in a test.

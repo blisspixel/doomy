@@ -1,3 +1,4 @@
+pub mod bench;
 pub mod movement;
 pub mod net;
 pub mod protocol;
