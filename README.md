@@ -8,10 +8,11 @@ It is the 1993 LAN-party feeling rebuilt for 2026: a Rust authoritative server, 
 
 ## What runs today
 
-- **Solo Scrap:** offline on loopback, four named rule bots with visible tactics (Aggressive, Defensive, Flanker, Balanced).
+- **Solo Broadcast:** Episode 0 Calibration on Larak Lot. Host cold-open, objective chip (clear NODS, seize jammer, drop Auditor), same guns as MP. Default from `./tools/solo_scrap.sh` (server `--solo-broadcast`). Episode depth lives in [`docs/VISION.md`](docs/VISION.md) and [`docs/plans/solo-story-episodes.md`](docs/plans/solo-story-episodes.md).
+- **Solo Scrap:** arcade offline on loopback without the episode path (`FRAGR_SOLO_BROADCAST=0`), four named rule bots with visible tactics (Aggressive, Defensive, Flanker, Balanced).
 - **Watch or join:** spectator by default with a director camera. Join mid-match as a human, leave back to spectate. Bots keep the server alive.
-- **Contested Frequency match loop:** 10-frag or 3-minute rounds, warmup and round-end Host bumpers, killstreak callouts, a mid-round Compliance Drone boss.
-- **Guns and maps:** three weapon roles (Flechette, Rail, Scatter), weapon and health pads, two maps (Arena Duel, Compliance Yard).
+- **Contested Frequency match loop:** 10-frag or 3-minute rounds, warmup and round-end Host bumpers, killstreak callouts, a mid-round Compliance Drone boss (Auditor on Solo Broadcast).
+- **Guns and maps:** three weapon roles (Flechette, Rail, Scatter), weapon and health pads, two scrap maps (Arena Duel, Compliance Yard). Solo Broadcast faces Larak Lot on Arena Duel (map 1); Compliance Yard keeps its own name.
 - **Agent door:** MCP tools `join`, `leave`, `observe`, `act`, `speak`, `get_events`, `round_state`, and a reference client (`fragr-brain`) that asks a decision model for its stance while a local controller plays every tick. An agent is one participant however it thinks; the server sees one fighter. Structured state, no vision model required.
 
 This is a playable vertical slice, not a finished game. The build order and what is still missing live in [`docs/ROADMAP.md`](docs/ROADMAP.md).
@@ -19,6 +20,8 @@ This is a playable vertical slice, not a finished game. The build order and what
 ## Screenshots
 
 Live captures from the current build (Godot 4.7.2-stable against a loopback server with four bots). Details and the regeneration script are in [`docs/screenshots/README.md`](docs/screenshots/README.md).
+
+![Calibration on Larak Lot](docs/screenshots/12_tip_calibration_larak_16x9.png)
 
 ![Arena overview](docs/screenshots/01_arena_overview_16x9.png)
 
@@ -38,19 +41,19 @@ Requirements: Rust stable and Godot 4.7.2-stable. No accounts, no cloud, no spen
 ./tools/solo_scrap.sh
 ```
 
-That builds the server, binds it to `127.0.0.1:6767` with four bots, and launches the Godot client in Solo Scrap. Or run the two halves yourself:
+That builds the server with `--solo-broadcast`, binds it to `127.0.0.1:6767` with four NODS, and launches the Godot client into Solo Broadcast Episode 0. Set `FRAGR_SOLO_BROADCAST=0` for plain Solo Scrap. Or run the two halves yourself:
 
 ```bash
-# Terminal 1: authoritative server with four named rule bots
-cargo run -p fragr-server -- --bind 127.0.0.1:6767 --bots 4
+# Terminal 1: Solo Broadcast Episode 0 (Calibration / Larak Lot)
+cargo run -p fragr-server -- --bind 127.0.0.1:6767 --bots 4 --solo-broadcast
 
-# Terminal 2: open client/ in Godot 4.7.2 and press F5, then pick Solo Scrap
+# Terminal 2: open client/ in Godot 4.7.2 and press F5, then pick Solo Broadcast
 # Headless alternative: godot --path client res://scenes/main.tscn -- --solo
 ```
 
 **Controls:** WASD to move, mouse to look, left mouse to fire, J to join, L to leave back to spectate, F to cycle the spectator camera, R next radio station, N next track, M radio on or off, Esc to release the mouse. Gamepads work too; see the controls table below.
 
-**Boot menu:** Solo Scrap (default), Spectate Local, Join Host. The map picker selects Arena Duel or Compliance Yard and must match the server's `--map`.
+**Boot menu:** Solo Broadcast (Episode 0, default focus), Spectate Local, Join Host. The map picker selects Arena Duel or Compliance Yard and must match the server's `--map`. Solo Broadcast faces Larak Lot only on Arena Duel (map 1); Compliance Yard keeps its name. Plain Solo Scrap is `FRAGR_SOLO_BROADCAST=0` on the launcher.
 
 ## Controls (keyboard and gamepad)
 
@@ -96,10 +99,11 @@ Hosting guides: [`infra/docs/HOME-LAN.md`](infra/docs/HOME-LAN.md) for a home bo
 ## Server options
 
 ```text
---bind <ADDR>   Bind address (default 0.0.0.0:6767; Solo Scrap uses 127.0.0.1:6767)
---bots <N>      Rule bots to spawn and keep stocked (default 4)
---map <ID>      1 or arena = Arena Duel (default), 2 or compliance-yard = Compliance Yard
---map-rotate    Alternate maps between rounds
+--bind <ADDR>        Bind address (default 0.0.0.0:6767; Solo Scrap uses 127.0.0.1:6767)
+--bots <N>           Rule bots to spawn and keep stocked (default 4)
+--map <ID>           1 or arena = Arena Duel (default), 2 or compliance-yard = Compliance Yard
+--map-rotate         Alternate maps between rounds
+--solo-broadcast     Solo Broadcast Episode 0 (Calibration; Larak Lot face on map 1)
 ```
 
 `cargo run -p fragr-server -- --help` is the source of truth if this table drifts.
@@ -144,7 +148,7 @@ client/          Godot 4.7.2-stable client (GDScript)
 server/          Rust authoritative WebSocket server
 agent-adapter/   MCP observe/act control plane
 agents/          example agents (brain: decision model plus local controller)
-tools/           Solo Scrap launcher, screenshot capture, audio pipeline, playtest harness
+tools/           Solo Broadcast / Solo Scrap launcher, screenshot capture, audio pipeline, playtest harness
 docs/            vision, roadmap, architecture, protocol, art bible, plans
 infra/           GCP Terraform and self-host guides (plan-only until approved)
 AGENTS.md        operating rules for coding agents and contributors

@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `feat/solo-broadcast-ep0`
 **Spend:** $0. Loopback. No GCP apply, no ElevenLabs, no look_at reopen, no Doom IP.
-**Status:** In flight. Tip base `6881009` (after brain third-tier #103).
+**Status:** Shipped (#106 / `8a85895`). Tip stills face follow-up: [`tip-stills-ep0.md`](./tip-stills-ep0.md).
 
 ## Goal
 
@@ -125,9 +125,13 @@ $0. No secrets. No attribution, emoji, or em/en dashes in commits, PR text, or d
 - [x] Server `--solo-broadcast` supports NODS clear + jammer + Auditor without breaking MP
 - [x] Win/fail Host lines match Fringy spec; Area Kitchen teaser on win
 - [ ] Tests + coverage fail-under 80 if Rust touched
-- [ ] PR open on `feat/solo-broadcast-ep0`
+- [x] PR open on `feat/solo-broadcast-ep0` (#106)
 
 ## Tip priorities (this slice)
 
 1. **Solo Broadcast Episode 0** (this plan) - Calibration face on Larak Lot
 2. HOLD: full campaign maps, cutscenes, AGI theater, GCP apply, look_at reopen
+
+## Follow-up: NODS progress fix
+
+See [`ep0-nods-progress-fix.md`](./ep0-nods-progress-fix.md). Calibration NODS clears now credit Human and non-rule-bot Agent frags of NODS victims; jammer dish gets a world silhouette; map face matches MapKind.

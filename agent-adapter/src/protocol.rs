@@ -162,6 +162,15 @@ pub struct PickupState {
     pub respawn_in: Option<u32>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct JammerDishState {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub live: bool,
+    pub seized: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Snapshot {
     pub tick: u64,
@@ -202,6 +211,8 @@ pub struct Snapshot {
     pub episode_progress: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub episode_phase: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jammer_dish: Option<JammerDishState>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
