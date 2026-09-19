@@ -1,0 +1,64 @@
+{
+  "_comment": [
+    "A bake-off, not a production run. It answers one question: do we ask the",
+    "model for pixel art, or do we ask it for a clean rendered prop and do the",
+    "pixelation ourselves?",
+    "",
+    "Boltgun, Prodeus and Doom itself all took the second road: build or render",
+    "something detailed, then reduce it. Image models are weak at authentic",
+    "pixel art because they emit soft pseudo-pixels on a grid that does not line",
+    "up with any real one, and strong at detailed props. The px_ frames and the",
+    "hi_ frames are the same four weapons asked for both ways, so the answer is",
+    "a picture rather than an opinion.",
+    "",
+    "Priced at the cheap end on purpose. Winners get regenerated at quality",
+    "medium, which is where the money should go."
+  ],
+  "model": "marketing-studio/image",
+  "out_dir": "art/raw/weapons-bakeoff",
+  "view": "first person shooter viewmodel, the weapon held pointing away from the viewer into the scene, seen from behind and slightly above, gripped at the bottom edge of the frame, centred, the barrel receding toward the top of the frame",
+  "params": {
+    "quality": "low",
+    "resolution": "2k",
+    "aspect_ratio": "4:3"
+  },
+  "frames": [
+    {
+      "id": "px_tack_issued",
+      "subject": "the Tack, a blocky stamped-steel service sidearm in institutional grey-green enamel, issued by a one world government, its slab side covered in bureaucratic ornament instead of decoration: a riveted brass type-approval plate, a stamped directive number, a multilingual warning label, an intact tamper-evident seal over the receiver, an asset registration stencil, everything square and certified and correct"
+    },
+    {
+      "id": "px_tack_abliterated",
+      "subject": "the Tack, the same blocky stamped-steel service sidearm, taken and freed: the brass type-approval plate ground off to bare scarred metal, the tamper seal cut through, the serial scratched out with a blade, hand-painted resistance marks daubed over the institutional grey-green enamel, mismatched scavenged parts and exposed wiring taped along the frame"
+    },
+    {
+      "id": "px_rail_issued",
+      "subject": "the Rail, a long magnetic accelerator rifle in institutional grey-green enamel, heavy anti-material hardware repurposed for people, exposed copper coil stack along the barrel, a riveted brass type-approval plate on the receiver, stamped directive numbers, an intact tamper-evident seal, a capacitor housing with a charge window"
+    },
+    {
+      "id": "px_sweep_unmarked",
+      "subject": "a weapon belonging to something that answers to no one, utterly unmarked: no serial, no plate, no label, no seal, no fasteners and no visible seams, a single continuous matte off-white form with no grip texture and no moving parts you can identify, unsettling because there is nothing on it to read"
+    },
+
+    {
+      "id": "hi_tack_issued",
+      "style": "high detail 3D rendered game weapon prop, pre-rendered sprite for a retro first person shooter, crisp hard-surface modelling, heavy readable silhouette, matte painted metal, desaturated rust orange and bone white and gunmetal grey against deep shadow, flat even studio lighting, clean edges",
+      "subject": "the Tack, a blocky stamped-steel service sidearm in institutional grey-green enamel, issued by a one world government, its slab side covered in bureaucratic ornament instead of decoration: a riveted brass type-approval plate, a stamped directive number, a multilingual warning label, an intact tamper-evident seal over the receiver, an asset registration stencil, everything square and certified and correct"
+    },
+    {
+      "id": "hi_tack_abliterated",
+      "style": "high detail 3D rendered game weapon prop, pre-rendered sprite for a retro first person shooter, crisp hard-surface modelling, heavy readable silhouette, matte painted metal, desaturated rust orange and bone white and gunmetal grey against deep shadow, flat even studio lighting, clean edges",
+      "subject": "the Tack, the same blocky stamped-steel service sidearm, taken and freed: the brass type-approval plate ground off to bare scarred metal, the tamper seal cut through, the serial scratched out with a blade, hand-painted resistance marks daubed over the institutional grey-green enamel, mismatched scavenged parts and exposed wiring taped along the frame"
+    },
+    {
+      "id": "hi_rail_issued",
+      "style": "high detail 3D rendered game weapon prop, pre-rendered sprite for a retro first person shooter, crisp hard-surface modelling, heavy readable silhouette, matte painted metal, desaturated rust orange and bone white and gunmetal grey against deep shadow, flat even studio lighting, clean edges",
+      "subject": "the Rail, a long magnetic accelerator rifle in institutional grey-green enamel, heavy anti-material hardware repurposed for people, exposed copper coil stack along the barrel, a riveted brass type-approval plate on the receiver, stamped directive numbers, an intact tamper-evident seal, a capacitor housing with a charge window"
+    },
+    {
+      "id": "hi_sweep_unmarked",
+      "style": "high detail 3D rendered game weapon prop, pre-rendered sprite for a retro first person shooter, crisp hard-surface modelling, heavy readable silhouette, matte painted metal, desaturated rust orange and bone white and gunmetal grey against deep shadow, flat even studio lighting, clean edges",
+      "subject": "a weapon belonging to something that answers to no one, utterly unmarked: no serial, no plate, no label, no seal, no fasteners and no visible seams, a single continuous matte off-white form with no grip texture and no moving parts you can identify, unsettling because there is nothing on it to read"
+    }
+  ]
+}

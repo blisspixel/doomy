@@ -58,6 +58,17 @@ Providers differ in what these are called and whether they exist. Confirm per pr
 - Does it support **seamless tiling** on both axes? Tiles need it; without it they need manual edge work and are not worth generating.
 - What is the **rate limit and batch ceiling**? The run is thousands of frames and needs to be resumable.
 
+### Answered for Higgsfield
+
+Measured against the live API. Full numbers and costs are in [`plans/higgsfield-pipeline.md`](./plans/higgsfield-pipeline.md).
+
+- **No negative prompt**, on any image model reachable through the endpoint. The list above is appended to the prompt as avoidance language, which is weaker, so the contract leans harder on quantisation and on throwing frames away.
+- **Reference images yes**, up to sixteen, through `image_urls` on `marketing-studio/image`. This is the mechanism that keeps a roster on-model and it is not wired up yet.
+- **Seamless tiling: no field for it.** Tiles need edge work or a different approach.
+- **Concurrency about four**, and exceeding it returns HTTP 400 rather than 429. Runs are resumable through the ledger.
+
+One rule here was decided by experiment rather than by reasoning, and it overrides the instinct to copy Boltgun: **ask the generator for the stylised sprite, not for a photoreal render to be shrunk later.** A photoreal prop is lit photographically, holds a narrow band of values, and turns to mud at sprite scale. The same subject asked for as limited-palette pixel art survives the downscale intact. Boltgun renders detailed models and reduces them, but its artists control the contrast of that render and a prompt cannot.
+
 ## Per-group specification
 
 ### Fighters and enemies

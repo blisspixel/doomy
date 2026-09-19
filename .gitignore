@@ -25,3 +25,10 @@
 # Desktop export output (presets write under builds/)
 builds/**
 !builds/README.md
+
+# Generated art. Raw provider output is large and regenerable from the spec.
+art/raw/
+art/**/*_preview.png
+
+# Subagent worktrees are checkouts, not content.
+.claude/worktrees/

@@ -1,0 +1,28 @@
+[package]
+name = "fragr-spritegen"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Developer-only sprite art generation for fragr through the Higgsfield API"
+publish = false
+
+[lib]
+name = "fragr_spritegen"
+path = "src/lib.rs"
+
+[[bin]]
+name = "fragr-spritegen"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.6", features = ["derive"] }
+reqwest = { version = "0.13", features = ["blocking", "json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[lints]
+workspace = true
