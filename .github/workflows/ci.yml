@@ -40,6 +40,9 @@ jobs:
       - name: Run tests
         run: cargo test --workspace
 
+      - name: Benchmark, determinism, and budget gate
+        run: cargo run -p fragr-server --release -- --bench 16 --bench-ticks 1200 --bench-check --bench-assert --seed 42
+
       - name: Agent playtest smoke
         run: cargo run -p fragr-playtest -- --agents 4 --rounds 1 --frag-limit 3 --time-limit-seconds 45 --assert --report .agents/playtest/ci.json
 

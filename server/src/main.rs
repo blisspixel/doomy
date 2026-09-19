@@ -2,7 +2,8 @@ use clap::Parser;
 use fragr_server::run::{run_server, ServerOptions};
 use tracing_subscriber::EnvFilter;
 
-#[derive(Parser, Debug, PartialEq, Eq)]
+// Eq is out because a threshold is a float; PartialEq still serves the tests.
+#[derive(Parser, Debug, PartialEq)]
 #[command(name = "fragr-server")]
 #[command(about = "fragr authoritative game server")]
 struct Args {
@@ -24,18 +25,80 @@ struct Args {
     /// NODS clear + jammer dish + Auditor. MP unchanged when off.
     #[arg(long, default_value_t = false)]
     solo_broadcast: bool,
+
+    /// Benchmark instead of serving: run this many scripted fighters with no
+    /// network, print one JSON report, and exit. The ruler for every change.
+    #[arg(long)]
+    bench: Option<usize>,
+
+    /// Ticks to run in benchmark mode (20 per second of match time).
+    #[arg(long, default_value_t = 1200)]
+    bench_ticks: u64,
+
+    /// Run the benchmark twice and report whether the two matches agreed.
+    #[arg(long, default_value_t = false)]
+    bench_check: bool,
+
+    /// Seed for the simulation's random stream. The same seed gives the same
+    /// match, which is what makes two runs comparable.
+    #[arg(long, default_value_t = 1)]
+    seed: u64,
+
+    /// Print the status report (tick time, bytes, budget use) this often, in
+    /// seconds. Zero turns it off.
+    #[arg(long, default_value_t = 60)]
+    status_every_s: u64,
+
+    /// Exit non-zero when a benchmark crosses a threshold below. This is what
+    /// CI runs, so a regression is a failed build rather than a note nobody
+    /// reads.
+    #[arg(long, default_value_t = false)]
+    bench_assert: bool,
+
+    /// Largest share of the tick budget the p99 tick may use before
+    /// `--bench-assert` fails. One tick in a hundred over half the budget
+    /// means the next change has nowhere to go.
+    #[arg(long, default_value_t = 0.5)]
+    bench_max_budget_p99: f64,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    init_tracing();
     let args = Args::parse();
+    // In benchmark mode the JSON report is the only thing on stdout, so logs
+    // go to stderr and only warnings survive.
+    init_tracing(args.bench.is_some());
     let map = fragr_server::sim::MapKind::from_cli(&args.map).ok_or_else(|| {
         format!(
             "invalid --map {:?}; expected 1/arena or 2/compliance-yard",
             args.map
         )
     })?;
+    if let Some(bots) = args.bench {
+        let report = if args.bench_check {
+            fragr_server::bench::run_bench_checked(bots, args.bench_ticks, map, args.seed)
+        } else {
+            fragr_server::bench::run_bench(bots, args.bench_ticks, map, args.seed)
+        };
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        // A run that is not reproducible is a correctness failure, not a slow one.
+        if report.deterministic == Some(false) {
+            return Err("benchmark was not deterministic for this seed".into());
+        }
+        if args.bench_assert {
+            for complaint in
+                fragr_server::bench::check_thresholds(&report, args.bench_max_budget_p99)
+            {
+                eprintln!("benchmark: {complaint}");
+            }
+            if !fragr_server::bench::check_thresholds(&report, args.bench_max_budget_p99).is_empty()
+            {
+                return Err("benchmark crossed a threshold".into());
+            }
+        }
+        return Ok(());
+    }
+
     let options = ServerOptions {
         bind: args.bind,
         bots: args.bots,
@@ -43,16 +106,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         map_rotate: args.map_rotate,
         match_config: None,
         solo_broadcast: args.solo_broadcast,
+        seed: args.seed,
+        status_every_s: args.status_every_s,
     };
     run_server(options, std::future::pending::<()>(), None).await
 }
 
-fn init_tracing() {
+fn init_tracing(quiet: bool) {
+    let default = if quiet {
+        "warn"
+    } else {
+        "info,fragr_server=debug"
+    };
     tracing_subscriber::fmt()
         .with_env_filter(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new("info,fragr_server=debug")),
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(default)),
         )
+        .with_writer(std::io::stderr)
         .init();
 }
 
@@ -112,6 +182,8 @@ mod tests {
                     map_rotate: false,
                     match_config: None,
                     solo_broadcast: false,
+                    seed: 1,
+                    status_every_s: 0,
                 },
                 async move {
                     let _ = shutdown_rx.await;
