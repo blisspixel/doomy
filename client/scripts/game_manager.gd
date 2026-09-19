@@ -12,6 +12,7 @@ var players = {}
 var pickups = {}
 var jammer_dish_node = null
 const JammerDishBuilderScript = preload("res://scripts/jammer_dish.gd")
+const StanceChipScript = preload("res://scripts/stance_chip.gd")
 var pickup_scene = preload("res://scenes/weapon_pickup.tscn")
 var player_scene = preload("res://scenes/player.tscn")
 var arena_duel_scene = preload("res://scenes/arena.tscn")
@@ -626,12 +627,17 @@ func _pick_ghost_rival_from_alive():
 	hud.set_ghost_rival(names[0])
 
 func _warmup_roster_callsigns(player_list: Array) -> Array:
+	# Warmup TV chips: callsign + stance so spectators never need Tab.
 	var names = []
 	for p in player_list:
 		var n = str(p.get("name", ""))
 		if n == "" or n == "Spectator":
 			continue
-		names.append(n)
+		var beh = ""
+		var raw = p.get("behavior", null)
+		if raw != null:
+			beh = str(raw)
+		names.append(StanceChipScript.roster_entry(n, beh))
 	return names
 
 func _maybe_assign_ghost_rival(player_list: Array):

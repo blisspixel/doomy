@@ -26,7 +26,9 @@ for script in client/scripts/*.gd; do
     echo "ok   $name"
   fi
 done
-for harness in test_radio test_far_cam_scale test_move_golden test_aim_sensitivity test_jammer_dish_silhouette; do
+
+for harness in test_radio test_far_cam_scale test_move_golden test_aim_sensitivity test_jammer_dish_silhouette test_spectator_stance_chips; do
+
   out=$("$GODOT" --headless --path client --script "res://scripts/$harness.gd" 2>&1 || true)
   if echo "$out" | grep -q "$harness: PASS"; then
     echo "ok   $harness harness"
