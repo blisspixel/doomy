@@ -61,6 +61,31 @@ func _initialize() -> void:
 		if ok:
 			print("ok   nameplate scale capped near, follows far curve")
 
+	# Smoothing must close the same fraction of the gap per unit of time
+	# whatever the frame rate, or two machines render a fighter in different
+	# places from identical snapshots.
+	if not pawn.has_method("smoothing"):
+		push_error("test_far_cam_scale: player_pawn missing smoothing")
+		ok = false
+	else:
+		# One step at 1/30 s must equal two steps at 1/60 s, to rounding.
+		var one_big: float = float(pawn.call("smoothing", 10.0, 1.0 / 30.0))
+		var small: float = float(pawn.call("smoothing", 10.0, 1.0 / 60.0))
+		var two_small: float = 1.0 - (1.0 - small) * (1.0 - small)
+		if absf(one_big - two_small) > 1e-6:
+			push_error("test_far_cam_scale: smoothing is frame-rate dependent")
+			ok = false
+		# It must never overshoot, which the naive speed-times-delta form does
+		# for any delta above a tenth of a second at this speed.
+		if float(pawn.call("smoothing", 10.0, 1.0)) > 1.0:
+			push_error("test_far_cam_scale: smoothing overshot on a long frame")
+			ok = false
+		if float(pawn.call("smoothing", 10.0, 0.0)) != 0.0:
+			push_error("test_far_cam_scale: a zero frame must move nothing")
+			ok = false
+		if ok:
+			print("ok   smoothing is frame-rate independent")
+
 	pawn.free()
 
 	if ok:
