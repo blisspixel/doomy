@@ -512,23 +512,24 @@ MVP is the top scorer (same selection as `winner`). `mvp` / `mvp_frags` / `host_
 - Walls prevent movement outside bounds
 
 ### Combat
-- **Weapon types**: Three distinct roles (range-capped hitscan)
+- **Weapon types**: Three roles, each killing an unarmoured fighter in a comparable time by a different route.
   - **Flechette** (default): Mid workhorse
-    - Damage: 25 HP
-    - Cooldown: 10 ticks (500ms)
-    - Spread: 0.10 radians (tight, ~5.7 degrees)
-    - Range: 42 units
+    - Damage: 25 HP, four hits to kill
+    - Cooldown: 4 ticks (0.20 s), so 0.60 s to kill
+    - Dispersion: 0.045 radians (2.6 degrees)
+    - Range: 40 units
   - **Rail**: Long precision
-    - Damage: 75 HP
-    - Cooldown: 40 ticks (2.0s)
-    - Spread: 0.04 radians (very tight, ~2.3 degrees)
-    - Range: 100 units
+    - Damage: 80 HP, two hits to kill
+    - Cooldown: 20 ticks (1.00 s), so 1.00 s to kill
+    - Dispersion: 0.012 radians (0.7 degrees)
+    - Range: 60 units
   - **Scatter**: Close shred
-    - Damage: 15 HP
-    - Cooldown: 5 ticks (250ms)
-    - Spread: 0.38 radians (wide, ~21.8 degrees)
-    - Range: 14 units
-- **Hitscan**: Instant hit detection, no projectile travel; capped by weapon range
+    - Damage: 40 HP, three hits to kill
+    - Cooldown: 9 ticks (0.45 s), so 0.90 s to kill
+    - Dispersion: 0.20 radians (11 degrees)
+    - Range: 12 units
+    - Falloff: full damage to 4 units, then linearly down to 35 percent at 12
+- **Hitscan**: Instant, no projectile travel, capped by weapon range. A shot leaves the barrel at a random angle inside the weapon's dispersion cone, drawn from the simulation's seeded stream, and lands only if that line passes within a fighter's radius. Dispersion is not aim assistance: assistance is a separate constant, currently zero for every input device.
 - **Respawn delay**: 60 ticks (3 seconds)
 
 ### Movement

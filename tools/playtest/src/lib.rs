@@ -30,8 +30,11 @@ const CLOSE_RANGE: f32 = 3.0;
 /// and the needle gun between. The first combat report showed the reflex
 /// agents never swapping, which left two of the three weapons unmeasured and
 /// the weapon triangle an assertion rather than a finding.
-const SCATTER_RANGE: f32 = 10.0;
-const RAIL_RANGE: f32 = 30.0;
+/// Tuned to where fights actually happen, not to the weapons' maximum reach:
+/// the first combat runs found three quarters of kills inside ten units of a
+/// fifty unit arena, so a triangle drawn at thirty units would never be used.
+const SCATTER_RANGE: f32 = 6.0;
+const RAIL_RANGE: f32 = 18.0;
 
 /// The weapon a fighter should be holding at this distance.
 pub fn weapon_for_distance(dist: f32) -> WeaponType {
@@ -1298,10 +1301,10 @@ mod weapon_choice_tests {
     #[test]
     fn the_weapon_follows_the_range() {
         assert_eq!(weapon_for_distance(0.0), WeaponType::Scatter);
-        assert_eq!(weapon_for_distance(9.9), WeaponType::Scatter);
-        assert_eq!(weapon_for_distance(10.0), WeaponType::Flechette);
-        assert_eq!(weapon_for_distance(30.0), WeaponType::Flechette);
-        assert_eq!(weapon_for_distance(30.1), WeaponType::Rail);
+        assert_eq!(weapon_for_distance(5.9), WeaponType::Scatter);
+        assert_eq!(weapon_for_distance(6.0), WeaponType::Flechette);
+        assert_eq!(weapon_for_distance(18.0), WeaponType::Flechette);
+        assert_eq!(weapon_for_distance(18.1), WeaponType::Rail);
         assert_eq!(weapon_from_wire("Rail"), Some(WeaponType::Rail));
         assert_eq!(weapon_from_wire("scatter"), Some(WeaponType::Scatter));
         assert_eq!(weapon_from_wire("bfg"), None);

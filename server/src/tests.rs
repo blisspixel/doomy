@@ -891,21 +891,21 @@ fn test_net_client_session_structure() {
 #[test]
 fn test_protocol_all_weapon_types_coverage() {
     assert_eq!(WeaponType::Flechette.damage(), 25);
-    assert_eq!(WeaponType::Flechette.cooldown_ticks(), 10);
-    assert_eq!(WeaponType::Flechette.spread_radians(), 0.10);
-    assert_eq!(WeaponType::Flechette.range_units(), 42.0);
+    assert_eq!(WeaponType::Flechette.cooldown_ticks(), 4);
+    assert_eq!(WeaponType::Flechette.spread_radians(), 0.045);
+    assert_eq!(WeaponType::Flechette.range_units(), 40.0);
     assert_eq!(WeaponType::Flechette.name(), "Flechette");
 
-    assert_eq!(WeaponType::Rail.damage(), 75);
-    assert_eq!(WeaponType::Rail.cooldown_ticks(), 40);
-    assert_eq!(WeaponType::Rail.spread_radians(), 0.04);
-    assert_eq!(WeaponType::Rail.range_units(), 100.0);
+    assert_eq!(WeaponType::Rail.damage(), 80);
+    assert_eq!(WeaponType::Rail.cooldown_ticks(), 20);
+    assert_eq!(WeaponType::Rail.spread_radians(), 0.012);
+    assert_eq!(WeaponType::Rail.range_units(), 60.0);
     assert_eq!(WeaponType::Rail.name(), "Rail");
 
-    assert_eq!(WeaponType::Scatter.damage(), 15);
-    assert_eq!(WeaponType::Scatter.cooldown_ticks(), 5);
-    assert_eq!(WeaponType::Scatter.spread_radians(), 0.38);
-    assert_eq!(WeaponType::Scatter.range_units(), 14.0);
+    assert_eq!(WeaponType::Scatter.damage(), 40);
+    assert_eq!(WeaponType::Scatter.cooldown_ticks(), 9);
+    assert_eq!(WeaponType::Scatter.spread_radians(), 0.20);
+    assert_eq!(WeaponType::Scatter.range_units(), 12.0);
     assert_eq!(WeaponType::Scatter.name(), "Scatter");
 }
 
@@ -1395,20 +1395,42 @@ fn test_bots_persist_when_human_leaves() {
 fn test_weapon_type_stats() {
     use crate::protocol::WeaponType;
 
+    // Four flechette hits, three scatter hits, or two rail hits kill an
+    // unarmoured fighter, which puts every weapon inside the time-to-kill band
+    // in docs/plans/gunfeel.md.
     assert_eq!(WeaponType::Flechette.damage(), 25);
-    assert_eq!(WeaponType::Flechette.cooldown_ticks(), 10);
-    assert_eq!(WeaponType::Flechette.spread_radians(), 0.10);
-    assert_eq!(WeaponType::Flechette.range_units(), 42.0);
+    assert_eq!(WeaponType::Flechette.cooldown_ticks(), 4);
+    assert_eq!(WeaponType::Flechette.spread_radians(), 0.045);
+    assert_eq!(WeaponType::Flechette.range_units(), 40.0);
 
-    assert_eq!(WeaponType::Rail.damage(), 75);
-    assert_eq!(WeaponType::Rail.cooldown_ticks(), 40);
-    assert_eq!(WeaponType::Rail.spread_radians(), 0.04);
-    assert_eq!(WeaponType::Rail.range_units(), 100.0);
+    assert_eq!(WeaponType::Rail.damage(), 80);
+    assert_eq!(WeaponType::Rail.cooldown_ticks(), 20);
+    assert_eq!(WeaponType::Rail.spread_radians(), 0.012);
+    assert_eq!(WeaponType::Rail.range_units(), 60.0);
 
-    assert_eq!(WeaponType::Scatter.damage(), 15);
-    assert_eq!(WeaponType::Scatter.cooldown_ticks(), 5);
-    assert_eq!(WeaponType::Scatter.spread_radians(), 0.38);
-    assert_eq!(WeaponType::Scatter.range_units(), 14.0);
+    assert_eq!(WeaponType::Scatter.damage(), 40);
+    assert_eq!(WeaponType::Scatter.cooldown_ticks(), 9);
+    assert_eq!(WeaponType::Scatter.spread_radians(), 0.20);
+    assert_eq!(WeaponType::Scatter.range_units(), 12.0);
+
+    // Time to kill at 100 HP, in seconds at the 20 Hz tick.
+    for (weapon, hits, seconds) in [
+        (WeaponType::Flechette, 4, 0.6),
+        (WeaponType::Rail, 2, 1.0),
+        (WeaponType::Scatter, 3, 0.9),
+    ] {
+        let needed = (100 + weapon.damage() - 1) / weapon.damage();
+        assert_eq!(needed, hits, "{weapon:?} should need {hits} clean hits");
+        let ttk = (needed - 1) as f32 * weapon.cooldown_ticks() as f32 / 20.0;
+        assert!(
+            (ttk - seconds).abs() < 0.001,
+            "{weapon:?} time to kill {ttk} should be {seconds}"
+        );
+        assert!(
+            (0.5..=1.2).contains(&ttk),
+            "{weapon:?} must sit in the target band, got {ttk}"
+        );
+    }
 }
 
 #[test]
@@ -1508,7 +1530,7 @@ fn test_rail_higher_damage_than_flechette() {
     state.tick(0.05);
 
     let damage_dealt = initial_hp - state.players[target_idx].hp;
-    assert_eq!(damage_dealt, 75, "Rail should deal 75 damage");
+    assert_eq!(damage_dealt, 80, "Rail should deal 80 damage");
     assert!(
         damage_dealt > WeaponType::Flechette.damage(),
         "Rail damage should exceed Flechette"
@@ -1516,7 +1538,7 @@ fn test_rail_higher_damage_than_flechette() {
 }
 
 #[test]
-fn test_scatter_lower_damage_than_flechette() {
+fn test_scatter_hits_harder_than_flechette_up_close() {
     use crate::protocol::WeaponType;
 
     let mut state = GameState::new();
@@ -1558,10 +1580,16 @@ fn test_scatter_lower_damage_than_flechette() {
     state.tick(0.05);
 
     let damage_dealt = initial_hp - state.players[target_idx].hp;
-    assert_eq!(damage_dealt, 15, "Scatter should deal 15 damage");
+    // Five units out, inside the four unit full-damage band plus a little
+    // falloff, so the shot lands for more than a flechette does anywhere.
+    assert_eq!(damage_dealt, 37, "Scatter at five units should deal 37");
     assert!(
-        damage_dealt < WeaponType::Flechette.damage(),
-        "Scatter damage should be less than Flechette"
+        damage_dealt > WeaponType::Flechette.damage(),
+        "up close the scatter gun should hit harder than the flechette"
+    );
+    assert!(
+        damage_dealt < WeaponType::Scatter.damage(),
+        "and less than point blank, because it falls off"
     );
 }
 
@@ -1599,13 +1627,13 @@ fn test_rail_longer_cooldown() {
     state.tick(0.05);
 
     assert_eq!(
-        state.players[shooter_idx].fire_cooldown, 40,
-        "Rail cooldown should be 40 ticks"
+        state.players[shooter_idx].fire_cooldown, 20,
+        "Rail cooldown should be 20 ticks, a shot a second"
     );
 }
 
 #[test]
-fn test_scatter_shorter_cooldown() {
+fn test_scatter_fires_faster_than_rail() {
     use crate::protocol::WeaponType;
 
     let mut state = GameState::new();
@@ -1638,8 +1666,8 @@ fn test_scatter_shorter_cooldown() {
     state.tick(0.05);
 
     assert_eq!(
-        state.players[shooter_idx].fire_cooldown, 5,
-        "Scatter cooldown should be 5 ticks"
+        state.players[shooter_idx].fire_cooldown, 9,
+        "Scatter cooldown should be 9 ticks, slower than it was but far faster than the rail"
     );
 }
 
@@ -4845,4 +4873,142 @@ fn action_wire_accepts_yaw_and_seq_and_still_accepts_neither() {
         json.contains("\"seq\":3") && json.contains("\"tick\":12"),
         "{json}"
     );
+}
+
+#[test]
+fn dispersion_is_dispersion_not_free_aim() {
+    use crate::protocol::WeaponType;
+
+    // A clear lane along the south edge: no pillar, wall, or crate between
+    // (-20, -20) and (0, -20), so only the weapon decides.
+    let lane = |offset: f32| {
+        let mut state = GameState::new();
+        state.seed(11);
+        state.config = crate::sim::MatchConfig {
+            warmup_ticks: 1,
+            boss_spawn_ticks: None,
+            compliance_ping_ticks: None,
+            ..crate::sim::MatchConfig::default()
+        };
+        state.start_round();
+        let shooter = Uuid::new_v4();
+        let target = Uuid::new_v4();
+        state.add_player(shooter, "Shooter".to_string(), Role::Agent);
+        state.add_player(target, "Target".to_string(), Role::Agent);
+        let si = state.players.iter().position(|p| p.id == shooter).unwrap();
+        let ti = state.players.iter().position(|p| p.id == target).unwrap();
+        state.players[si].x = -20.0;
+        state.players[si].z = -20.0;
+        state.players[si].yaw = 0.0;
+        state.players[si].weapon = WeaponType::Rail;
+        state.players[ti].x = 0.0;
+        state.players[ti].z = -20.0 + offset;
+        (state, shooter, ti)
+    };
+
+    // Fire `shots` times, counting hits. Health is restored every tick so the
+    // target never dies and respawns somewhere else, which would silently turn
+    // the rest of the run into misses.
+    let fire_many = |state: &mut GameState, shooter: Uuid, ti: usize, shots: usize| {
+        let full = state.players[ti].hp;
+        let mut hits = 0;
+        let mut fired = 0;
+        while fired < shots {
+            state.set_action(
+                shooter,
+                Action {
+                    fire: true,
+                    ..Default::default()
+                },
+            );
+            let before = state.players[ti].hp;
+            state.tick(0.05);
+            if !state.shot_results.is_empty() {
+                fired += 1;
+                if state.players[ti].hp < before {
+                    hits += 1;
+                }
+            }
+            state.players[ti].hp = full;
+            state.players[ti].armor = 0;
+            state.players[ti].respawn_timer = None;
+        }
+        hits
+    };
+
+    // Dead centre at twenty units: the rail's cone is 0.7 degrees, which is
+    // 0.24 units of wander at this range, well inside a fighter's half metre.
+    let (mut state, shooter, ti) = lane(0.0);
+    let centred = fire_many(&mut state, shooter, ti, 20);
+    assert_eq!(centred, 20, "a rail shot on target should always land");
+
+    // Two units off the line is about 5.7 degrees. The old code accepted
+    // anything inside the cone, so this counted as a hit; now the shot has to
+    // pass within a fighter's radius, and it does not.
+    let (mut state, shooter, ti) = lane(2.0);
+    let missed = fire_many(&mut state, shooter, ti, 20);
+    assert_eq!(missed, 0, "a shot that misses by two units should miss");
+
+    // The scatter gun's wide cone does wander, which is the point: dispersion
+    // at the edge of its reach, not a guaranteed hit.
+    let (mut state, shooter, ti) = lane(0.0);
+    state.players[ti].x = -20.0 + 11.0;
+    let si = state.players.iter().position(|p| p.id == shooter).unwrap();
+    state.players[si].weapon = WeaponType::Scatter;
+    let scattered = fire_many(&mut state, shooter, ti, 40);
+    assert!(
+        (1..40).contains(&scattered),
+        "an eleven unit scatter shot should sometimes land and sometimes not, got {scattered} of 40"
+    );
+}
+
+#[test]
+fn the_scatter_gun_falls_off_with_distance() {
+    use crate::protocol::{WeaponType, SCATTER_FAR_DAMAGE_SCALE, SCATTER_FULL_DAMAGE_UNITS};
+
+    let scatter = WeaponType::Scatter;
+    let full = scatter.damage();
+    assert_eq!(scatter.damage_at(0.0), full, "point blank is full damage");
+    assert_eq!(
+        scatter.damage_at(SCATTER_FULL_DAMAGE_UNITS),
+        full,
+        "the full-damage band reaches four units"
+    );
+    let edge = scatter.damage_at(scatter.range_units());
+    assert_eq!(
+        edge,
+        (full as f32 * SCATTER_FAR_DAMAGE_SCALE).round() as i32,
+        "the far end keeps only its share"
+    );
+    assert!(edge < full && edge > 0);
+    // Monotonic in between, never zero, and beyond the reach it stays at the floor.
+    let mut previous = full;
+    let mut d = SCATTER_FULL_DAMAGE_UNITS;
+    while d <= scatter.range_units() {
+        let dealt = scatter.damage_at(d);
+        assert!(
+            dealt <= previous,
+            "falloff should never rise: {d} gave {dealt}"
+        );
+        assert!(dealt > 0);
+        previous = dealt;
+        d += 0.5;
+    }
+    assert_eq!(scatter.damage_at(1000.0), edge);
+    assert_eq!(
+        scatter.damage_at(f32::NAN),
+        full,
+        "nonsense distance is not a bonus"
+    );
+
+    // The other two do not fall off at all.
+    for weapon in [WeaponType::Flechette, WeaponType::Rail] {
+        for distance in [0.0, 5.0, 25.0, 60.0, 1000.0] {
+            assert_eq!(
+                weapon.damage_at(distance),
+                weapon.damage(),
+                "{weapon:?} should not fall off"
+            );
+        }
+    }
 }

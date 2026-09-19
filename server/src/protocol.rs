@@ -267,31 +267,66 @@ pub enum WeaponType {
     Scatter,
 }
 
+/// The scatter gun deals full damage inside this distance.
+pub const SCATTER_FULL_DAMAGE_UNITS: f32 = 4.0;
+/// And this share of it at the edge of its reach.
+pub const SCATTER_FAR_DAMAGE_SCALE: f32 = 0.35;
+
 impl WeaponType {
+    /// Damage on a clean hit, before the scatter gun's range falloff.
+    /// Four flechette hits, three scatter hits, or two rail hits kill an
+    /// unarmoured fighter, which puts every weapon's time to kill inside the
+    /// 0.6 to 1.2 second band in `docs/plans/gunfeel.md`.
     pub fn damage(self) -> i32 {
         match self {
             WeaponType::Flechette => 25,
-            WeaponType::Rail => 75,
-            WeaponType::Scatter => 15,
+            WeaponType::Rail => 80,
+            WeaponType::Scatter => 40,
         }
     }
 
+    /// Damage at a distance. Only the scatter gun falls off: full damage to
+    /// `SCATTER_FULL_DAMAGE_UNITS`, then linearly down to
+    /// `SCATTER_FAR_DAMAGE_SCALE` of it at the edge of its reach, the banded
+    /// shape modern shooters use because it reads at a glance.
+    pub fn damage_at(self, distance: f32) -> i32 {
+        let base = self.damage();
+        if self != WeaponType::Scatter {
+            return base;
+        }
+        let near = SCATTER_FULL_DAMAGE_UNITS;
+        let far = self.range_units();
+        if !distance.is_finite() || distance <= near {
+            return base;
+        }
+        if distance >= far {
+            return (base as f32 * SCATTER_FAR_DAMAGE_SCALE).round() as i32;
+        }
+        let t = (distance - near) / (far - near);
+        let scale = 1.0 - t * (1.0 - SCATTER_FAR_DAMAGE_SCALE);
+        (base as f32 * scale).round().max(1.0) as i32
+    }
+
+    /// Ticks between shots at the 20 Hz tick: 0.20 s, 1.00 s, 0.45 s.
     pub fn cooldown_ticks(self) -> u32 {
         match self {
-            WeaponType::Flechette => 10,
-            WeaponType::Rail => 40,
-            WeaponType::Scatter => 5,
+            WeaponType::Flechette => 4,
+            WeaponType::Rail => 20,
+            WeaponType::Scatter => 9,
         }
     }
 
+    /// Half-angle of the dispersion cone. A shot leaves the barrel somewhere
+    /// inside it, which is what a player learns to manage. This is not aim
+    /// assistance: a shot still has to pass within a fighter's radius to land.
     pub fn spread_radians(self) -> f32 {
         match self {
-            // Mid workhorse: readable cone.
-            WeaponType::Flechette => 0.10,
-            // Long precision: tighter than legacy 0.05.
-            WeaponType::Rail => 0.04,
-            // Close shred: wide cone, dies beyond range_units.
-            WeaponType::Scatter => 0.38,
+            // Mid workhorse: 2.6 degrees, forgiving in its own band.
+            WeaponType::Flechette => 0.045,
+            // Long precision: 0.7 degrees, near enough to a laser to reward aim.
+            WeaponType::Rail => 0.012,
+            // Close shred: 11 degrees, which is why it only works in your face.
+            WeaponType::Scatter => 0.20,
         }
     }
 
@@ -299,9 +334,9 @@ impl WeaponType {
     /// and Rail owns long lanes (arena is ~50 across).
     pub fn range_units(self) -> f32 {
         match self {
-            WeaponType::Flechette => 42.0,
-            WeaponType::Rail => 100.0,
-            WeaponType::Scatter => 14.0,
+            WeaponType::Flechette => 40.0,
+            WeaponType::Rail => 60.0,
+            WeaponType::Scatter => 12.0,
         }
     }
 
