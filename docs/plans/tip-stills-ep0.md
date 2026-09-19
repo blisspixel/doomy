@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `feat/tip-face-ep0-stills`
 **Spend:** $0. No ElevenLabs, no GCP apply, no renet, no soft spectator chips, no gunfeel reopen.
-**Status:** Shipped (this PR).
+**Status:** Shipped (#110).
 
 ## Goal
 
@@ -71,7 +71,7 @@ tools/capture_tip_screenshots.sh
 - [x] Plan in tree; index row present
 - [x] README surfaces Solo Broadcast / `--solo-broadcast`
 - [x] Tip stills refreshed (or honest blocker documented)
-- [x] PR on `feat/tip-face-ep0-stills`
+- [x] PR on `feat/tip-face-ep0-stills` (#110)
 - [x] Squash-merge when CI green; no release tag
 
 ## Spend and safety
