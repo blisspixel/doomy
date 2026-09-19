@@ -1,10 +1,9 @@
 mod mcp;
-mod protocol;
 
 use clap::{Parser, Subcommand};
+use fragr_server::protocol::{self as protocol, ClientMessage, Role, ServerMessage};
 use futures_util::{SinkExt, StreamExt};
 use mcp::{handle_mcp_request, ingest_server_text, McpError, McpRequest, McpResponse, ToolState};
-use protocol::{ClientMessage, Role, ServerMessage};
 use serde_json::Value;
 use std::io::{self, BufRead, Write};
 use tokio_tungstenite::{connect_async, tungstenite::Message};

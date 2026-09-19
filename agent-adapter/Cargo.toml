@@ -6,6 +6,9 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+# The wire types live in the server crate; the adapter reads them there so a
+# protocol change is edited once. tools/playtest does the same.
+fragr-server = { path = "../server", version = "0.1.0" }
 tokio = { version = "1.40", features = ["full"] }
 tokio-tungstenite = "0.24"
 futures-util = "0.3"
