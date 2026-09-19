@@ -1,0 +1,605 @@
+{
+  "out_dir": "client/assets/audio",
+  "items": [
+    {
+      "kind": "sfx",
+      "name": "fire_shiv",
+      "title": "Shiv fire",
+      "prompt": "quick cloth-and-steel knife swing, short air scrape, cheap and light, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.6,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "cycle_shiv",
+      "title": "Shiv cycle",
+      "prompt": "small blade settling back against a belt loop, one soft tick, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "raise_shiv",
+      "title": "Shiv raise",
+      "prompt": "a cheap knife pulled from a sheath, short fabric rasp, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "dry_shiv",
+      "title": "Shiv dry",
+      "prompt": "a dull empty tap, nothing behind it, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_flesh_shiv",
+      "title": "Shiv impact flesh",
+      "prompt": "a short wet thud into a body, close and unpleasant, no squelch tail, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_hard_shiv",
+      "title": "Shiv impact hard",
+      "prompt": "steel skittering off concrete, thin ring, fast decay, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "fire_tack",
+      "title": "Tack fire",
+      "prompt": "flat unimpressive pistol crack, small calibre, slightly disappointing on purpose, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.6,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "cycle_tack",
+      "title": "Tack cycle",
+      "prompt": "light slide cycling, small metal on small metal, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "raise_tack",
+      "title": "Tack raise",
+      "prompt": "a cheap sidearm raised, light plastic and spring, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "dry_tack",
+      "title": "Tack dry",
+      "prompt": "dry hammer click on an empty chamber, twice, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_flesh_tack",
+      "title": "Tack impact flesh",
+      "prompt": "a small sharp impact into a body, low weight, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_hard_tack",
+      "title": "Tack impact hard",
+      "prompt": "a small round pinging off metal plate, short bright ring, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "fire_flechette",
+      "title": "Flechette fire",
+      "prompt": "rapid needle gun burst, sharp metallic chatter with a short mechanical clack, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.6,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "cycle_flechette",
+      "title": "Flechette cycle",
+      "prompt": "needle feed advancing, quick ratcheting tick, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "raise_flechette",
+      "title": "Flechette raise",
+      "prompt": "a needle gun brought up, feed mechanism seating with a clack, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "dry_flechette",
+      "title": "Flechette dry",
+      "prompt": "feed mechanism cycling on nothing, hollow tick, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_flesh_flechette",
+      "title": "Flechette impact flesh",
+      "prompt": "needles punching into a body, rapid stitching thuds, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_hard_flechette",
+      "title": "Flechette impact hard",
+      "prompt": "needles hitting sheet metal, bright scattering pings, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "pickup_flechette",
+      "title": "Flechette pickup",
+      "prompt": "a needle gun lifted off a rack, metal on metal, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "fire_scatter",
+      "title": "Scatter fire",
+      "prompt": "chunky pump shotgun blast, deep boom with gritty noise tail, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.6,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "cycle_scatter",
+      "title": "Scatter cycle",
+      "prompt": "a heavy pump racked, two-stroke, wood and steel, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "raise_scatter",
+      "title": "Scatter raise",
+      "prompt": "a heavy shotgun swung up, strap slap and a short rack, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "dry_scatter",
+      "title": "Scatter dry",
+      "prompt": "pump racked on an empty tube, hollow and loud, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_flesh_scatter",
+      "title": "Scatter impact flesh",
+      "prompt": "a wide spread hitting a body, broad wet slap, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_hard_scatter",
+      "title": "Scatter impact hard",
+      "prompt": "pellets peppering concrete, broad gritty scatter, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "fire_rail",
+      "title": "Rail fire",
+      "prompt": "heavy railgun shot, electric charge crack followed by a cold metallic ring, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.6,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "cycle_rail",
+      "title": "Rail cycle",
+      "prompt": "capacitor winding back up, rising electrical whine over one second, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "raise_rail",
+      "title": "Rail raise",
+      "prompt": "a heavy rail accelerator shouldered, magnetic clunk and a low charge hum, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "dry_rail",
+      "title": "Rail dry",
+      "prompt": "capacitor coughing, a failed charge that drops away, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_flesh_rail",
+      "title": "Rail impact flesh",
+      "prompt": "a hypervelocity slug through a body, hard crack and a brief ring, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_hard_rail",
+      "title": "Rail impact hard",
+      "prompt": "a slug punching a hole in plate steel, loud crack and a long ring, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "fire_repeater",
+      "title": "Repeater fire",
+      "prompt": "heavy full auto rattle, deep and sustained, barrel spinning under it, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.6,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "cycle_repeater",
+      "title": "Repeater cycle",
+      "prompt": "barrel spinning down, a falling mechanical whir, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "raise_repeater",
+      "title": "Repeater raise",
+      "prompt": "a heavy repeater hefted, belt links rattling, barrel spin-up starting, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "dry_repeater",
+      "title": "Repeater dry",
+      "prompt": "barrel spinning on an empty belt, whir with no shots, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_flesh_repeater",
+      "title": "Repeater impact flesh",
+      "prompt": "a stream of rounds into a body, rapid heavy thuds, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_hard_repeater",
+      "title": "Repeater impact hard",
+      "prompt": "a stream of rounds walking across concrete, rapid dust cracks, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "fire_lobber",
+      "title": "Lobber fire",
+      "prompt": "hollow launcher thump, low and soft, a charge leaving the tube, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.6,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "cycle_lobber",
+      "title": "Lobber cycle",
+      "prompt": "a single chamber settling, one heavy clack, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "reload_lobber",
+      "title": "Lobber reload",
+      "prompt": "a launcher broken open, a spent casing ejected and a fresh charge loaded, then snapped shut, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 1.1,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "raise_lobber",
+      "title": "Lobber raise",
+      "prompt": "a stubby launcher swung up, heavy hinge and a latch, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "dry_lobber",
+      "title": "Lobber dry",
+      "prompt": "a firing pin falling on an empty chamber, deep hollow click, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_flesh_lobber",
+      "title": "Lobber impact flesh",
+      "prompt": "a direct hit on a body followed by a close explosion, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_hard_lobber",
+      "title": "Lobber impact hard",
+      "prompt": "an explosion against concrete, sharp crack then a debris tail, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "fire_arc",
+      "title": "Arc fire",
+      "prompt": "an electrical discharge, tight crackling snap with no tail, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.6,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "cycle_arc",
+      "title": "Arc cycle",
+      "prompt": "a coil settling after discharge, brief descending fizz, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "raise_arc",
+      "title": "Arc raise",
+      "prompt": "an energy weapon powering on, coil spinning up to a steady hum, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "dry_arc",
+      "title": "Arc dry",
+      "prompt": "a coil trying and failing to charge, a dying fizz, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_flesh_arc",
+      "title": "Arc impact flesh",
+      "prompt": "electricity arcing through a body, crackling snap and a jolt, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_hard_arc",
+      "title": "Arc impact hard",
+      "prompt": "electricity earthing into metal, harsh snap and a buzz, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "fire_blade",
+      "title": "Blade fire",
+      "prompt": "an energised blade swung hard, the hum rising and falling with the arc, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.6,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "cycle_blade",
+      "title": "Blade cycle",
+      "prompt": "an energised blade idling, steady low hum, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "raise_blade",
+      "title": "Blade raise",
+      "prompt": "an energised blade igniting, a rising hum settling into an idle, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "dry_blade",
+      "title": "Blade dry",
+      "prompt": "an energised blade running out, the hum collapsing to nothing, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_flesh_blade",
+      "title": "Blade impact flesh",
+      "prompt": "an energised blade through a body, a hum interrupted and a hard cut, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_hard_blade",
+      "title": "Blade impact hard",
+      "prompt": "an energised blade into a wall, hum distorting and sparks, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "pickup_blade",
+      "title": "Blade pickup",
+      "prompt": "a blade lifted from a plinth, hum igniting, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "fire_denial",
+      "title": "Denial fire",
+      "prompt": "an enormous single shot, expensive and final, deep crack with a long decaying ring, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.6,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "cycle_denial",
+      "title": "Denial cycle",
+      "prompt": "a heavy mechanism resetting, slow and deliberate, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "raise_denial",
+      "title": "Denial raise",
+      "prompt": "a very heavy weapon brought up, layered mechanical locks seating, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "dry_denial",
+      "title": "Denial dry",
+      "prompt": "a heavy mechanism closing on nothing, final and flat, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_flesh_denial",
+      "title": "Denial impact flesh",
+      "prompt": "an overwhelming hit on a body, no contest, hard crack and a long ring, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "impact_hard_denial",
+      "title": "Denial impact hard",
+      "prompt": "an overwhelming hit on a wall, structural crack and debris, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "pickup_denial",
+      "title": "Denial pickup",
+      "prompt": "a signature weapon lifted off a plinth, layered locks releasing, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "tin_throw",
+      "title": "Proximity tin throw",
+      "prompt": "a small metal tin thrown underarm, tumbling, landing on concrete, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.6,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "tin_arm",
+      "title": "Proximity tin arm",
+      "prompt": "a single clear arming tone, one note, unmistakable across a room, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "tin_trigger",
+      "title": "Proximity tin trigger",
+      "prompt": "a rapid warning beep, a quarter second of it, urgent, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "tin_detonate",
+      "title": "Proximity tin detonate",
+      "prompt": "a sharp compact explosion, close and mean, short debris tail, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.9,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "tin_pickup",
+      "title": "Proximity tin pickup",
+      "prompt": "a handful of small metal tins collected, light rattling, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "pickup_tacks",
+      "title": "Pickup Tacks",
+      "prompt": "a box of small rounds collected, light rattle, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "pickup_darts",
+      "title": "Pickup Darts",
+      "prompt": "a canister of needles collected, metallic slide, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "pickup_cores",
+      "title": "Pickup Cores",
+      "prompt": "a charged cell collected, short electrical hum, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "pickup_cans",
+      "title": "Pickup Cans",
+      "prompt": "heavy charges collected, dull clunks, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "pickup_health",
+      "title": "Pickup Health",
+      "prompt": "a medical pack claimed, a hiss and a reassuring tone, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    },
+    {
+      "kind": "sfx",
+      "name": "pickup_armor",
+      "title": "Pickup Armor",
+      "prompt": "armour plating claimed, heavy plates seating, retro arcade shooter, dry and punchy, no reverb, mono",
+      "seconds": 0.5,
+      "influence": 0.6
+    }
+  ]
+}

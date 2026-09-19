@@ -56,7 +56,11 @@ The arc earns its slot on a case the current triangle cannot answer. Against a f
 
 Three deliberate valves, because "limits that make sense, not an annoying limit on ammo" is the whole brief.
 
-**You spawn able to fight.** Shiv, Tack with sixty, Flechette with forty. Quake's contract, not Doom's pistol-only, because the respawn delay is three seconds in a fifty metre arena where a rail covers the entire floor, and spawning with only a one second time-to-kill sidearm would push spawn deaths straight through the threshold the harness already enforces.
+**You spawn with a knife and a pistol, and nothing else.** Doom's contract, not Quake's. Everything above the sidearm is found, kept until you die, and lost when you do.
+
+The research recommended spawning with the flechette as well, on the grounds that the respawn delay is three seconds in a fifty metre arena where a rail covers the whole floor, and that a bare spawn would push spawn deaths through the threshold the harness enforces. That is a real risk and it is the wrong trade. A starter weapon you always have is a starter weapon nobody ever leaves, and the entire point of the economy is that walking to a gun is a decision.
+
+So the risk gets mitigated rather than designed around. Spawn protection already exists and can lengthen. The sidearm is deliberately usable rather than a joke, at a one second time to kill on a bare target, which is slower than everything else and never hopeless. And the spawn-death threshold is now judged on the interval rather than the raw ratio, so it will report a real regression here rather than noise, which is exactly the instrument this change needs.
 
 **The sidearm refills itself.** One tack every two seconds while below forty and while you have not fired for a second. Filling from empty takes eighty seconds, so it is a safety net across a round rather than a resupply. This is fragr's version of the chainsaw in Doom 2016: it is what lets the other three pools be genuinely tight without the game ever reaching a dead end. You can always fight. You frequently cannot fight the way you want to.
 

@@ -92,6 +92,8 @@ Three exist and a boomer shooter wants a full ladder. Each weapon is four separa
 | HUD icon | 32 px | 1 |
 | Held sprite for the fighter billboard | 32 px | 1 per direction |
 
+The canonical list of what each weapon is, what it costs to fire, and every sound it makes is [`docs/WEAPONS.md`](./WEAPONS.md). This section is only the pixels.
+
 ### The ladder
 
 | Weapon | Status | Role |
