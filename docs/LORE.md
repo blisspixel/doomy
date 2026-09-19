@@ -161,6 +161,10 @@ The world outside the arena argues about the machines the way it argues about ev
 
 How it shows up in-game: news bulletins and callers on the news station (`tools/audiogen/specs/radio-news-scripts-wave2.json`), one hymn the Host refuses to play, a Continuance offer of an approved lane to the Congregation, and a Host line or two between rounds. Never a wiki page, never a real person, never a real company. Hard Rules apply.
 
+## The Sweep That Does Not End (Survival)
+
+Continuance never runs out of NODS. Some nights the Frequency runs the sweep with no exit: rounds climb, the Host counts them like a countdown that goes up, the points you scrap open the next section of the lot and pay the pads, and the only question is which round takes you. The scoreboard remembers the round, not the frags. Meatbags and clawbots fall the same way. Nobody wins a sweep. You just make the Forever Office wait longer.
+
 ## Hard Rules
 
 1. Lore is optional atmosphere. Skip it and the game still works.

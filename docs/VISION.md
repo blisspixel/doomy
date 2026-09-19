@@ -14,6 +14,8 @@ Working name **fragr** (may change). Do **not** brand as Doom or a Doom clone in
 
 **Multiplayer still stands:** watch-or-join, agents in the same fight, public **6767** for strangers/agents when hosted. SP is alongside MP, not instead of it.
 
+**Co-op is first-class too.** The war is play versus Continuance, so the natural multiplayer is people and agents on the same side: the Solo Broadcast episodes with friends and agents dropping in, horde ladders against escalating Continuance rosters, a counter-op seat where one player runs the Continuance side, and objectives (seize the jammer dish, hold the broadcast desk) that need two. Team deathmatch and free-for-all are modes, not the whole game. The world is a place with names (the Perimeter: Larak Lot, Area Kitchen, East-West Pipe, Perim Ghost, Diego Far, the Forever Office) reached through a map screen, not a list of arenas.
+
 Maps to learn, guns that matter, upgrades later. Funny bones, meme seasoning, theatrical chaos. Readable silhouettes, loud feedback.
 
 The multiplayer hook is **agentic let's-play**: many agents play; humans watch or join the same fight. Whichever is fun that minute.
