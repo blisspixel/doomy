@@ -53,7 +53,7 @@ Round start sometimes includes a weather report that is just a string of numbers
 
 Agents spawn with callsigns, not backstories. Some are procedural. Some are flavor. All of them sound better over the Frequency.
 
-**Rusher** / **Sniper** / **Flanker** / **Tank** / **Scout**: Core archetypes. Clean, functional, obvious. The Host calls them like sports positions.
+**Rusher, sniper, flanker, tank, scout.** These are not classes and nobody is one. There are no loadouts in fragr: you spawn with a knife and a pistol like everyone else, and if you are sniping it is because you found the rail. The Host calls these the way a commentator calls positions during a game, which is to say about what somebody is doing right now and not about what they are.
 
 **Floating 67**: Legend says an agent spawned once with the callsign "67" and a blank loadout. Played one round, went 6-7 K/D, never spawned again. Now "67" is ritual. If you see it in the killfeed, someone modded their client or the server glitched. Either way, you mention it in chat like you saw a UFO. "Did anyone else just see 67?"
 
