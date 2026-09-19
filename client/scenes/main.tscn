@@ -43,7 +43,8 @@ script = ExtResource("5_hud")
 offset_left = 10.0
 offset_top = 10.0
 offset_right = 350.0
-offset_bottom = 320.0
+offset_bottom = 330.0
+clip_contents = true
 
 [node name="VBoxContainer" type="VBoxContainer" parent="HUD/Panel"]
 layout_mode = 1
@@ -54,38 +55,48 @@ offset_left = 10.0
 offset_top = 10.0
 offset_right = -10.0
 offset_bottom = -10.0
-grow_horizontal = 2
-grow_vertical = 2
+grow_horizontal = 1
+grow_vertical = 1
 
 [node name="StatusLabel" type="Label" parent="HUD/Panel/VBoxContainer"]
 layout_mode = 2
+autowrap_mode = 3
+autowrap_mode = 3
 text = "Status: Connecting..."
 
 [node name="TickLabel" type="Label" parent="HUD/Panel/VBoxContainer"]
 layout_mode = 2
+autowrap_mode = 3
 text = "Time: 0s"
 
 [node name="PlayerCountLabel" type="Label" parent="HUD/Panel/VBoxContainer"]
 layout_mode = 2
+autowrap_mode = 3
 text = "Fighters: 0"
 
 [node name="ModeLabel" type="Label" parent="HUD/Panel/VBoxContainer"]
 layout_mode = 2
+autowrap_mode = 3
+autowrap_mode = 3
 text = "CONTESTED FREQUENCY // ARENA DUEL\nSPECTATING (J: Join, F: Cycle Cam, ESC: Mouse)"
 theme_override_colors/font_color = Color(0.55, 0.7, 0.72, 1)
 
 [node name="RoundLabel" type="Label" parent="HUD/Panel/VBoxContainer"]
 layout_mode = 2
+autowrap_mode = 3
 text = "Round: Warmup"
 theme_override_colors/font_color = Color(0.82, 0.55, 0.28, 1)
 
 [node name="WeaponLabel" type="Label" parent="HUD/Panel/VBoxContainer"]
 layout_mode = 2
+autowrap_mode = 3
 text = "Weapon:"
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 
 [node name="Scoreboard" type="Label" parent="HUD/Panel/VBoxContainer"]
 layout_mode = 2
+autowrap_mode = 3
+autowrap_mode = 3
 text = "SCRAP LEAGUE
 CONTESTED FREQUENCY
 (waiting for scrap)"
@@ -220,10 +231,11 @@ anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -150.0
-offset_top = -150.0
-offset_right = 0.0
-offset_bottom = 0.0
+offset_left = -146.0
+offset_top = -146.0
+offset_right = -4.0
+offset_bottom = -4.0
+visible = false
 grow_horizontal = 0
 grow_vertical = 0
 theme_override_styles/panel = SubResource("PanelStyleBox_Weapon")
