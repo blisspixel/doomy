@@ -19,17 +19,17 @@ This is a playable vertical slice, not a finished game. The build order and what
 
 ## Screenshots
 
-Live captures from the current build (Godot 4.7.2-stable against a loopback server with four bots). Details and the regeneration script are in [`docs/screenshots/README.md`](docs/screenshots/README.md).
+Live tip captures from the current build (Godot 4.7.2-stable against a loopback `--solo-broadcast` server). Hangar dish in frame, guns that kill. Details and the regeneration script are in [`docs/screenshots/README.md`](docs/screenshots/README.md).
 
-![Calibration on Larak Lot](docs/screenshots/12_tip_calibration_larak_16x9.png)
+![Jammer dish in hangar](docs/screenshots/20_jammer_dish_follow_16x9.png)
 
-![Arena overview](docs/screenshots/01_arena_overview_16x9.png)
-
-![Human join, first person](docs/screenshots/10_tip_human_join_fp_16x9.png)
+![Jammer dish overview](docs/screenshots/22_jammer_dish_overview_16x9.png)
 
 ![Weapons and frags](docs/screenshots/09_tip_weapons_frags_16x9.png)
 
-![Warmup TV bumper (tip)](docs/screenshots/11_tip_warmup_tv_bumper_16x9.png)
+![Human join, first person](docs/screenshots/10_tip_human_join_fp_16x9.png)
+
+![Arena overview](docs/screenshots/01_arena_overview_16x9.png)
 
 ![Host flash on mid-join](docs/screenshots/08_tip_host_flash_midjoin_16x9.png)
 
