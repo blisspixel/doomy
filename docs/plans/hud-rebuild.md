@@ -45,15 +45,34 @@ Everything a player needs, nothing else, in the corners:
 - **Centre:** the crosshair, and never anything else. Host lines go to a band above the bottom edge, one at a time, queued.
 - **Everywhere:** one display font, two weights, hard outline, a five colour palette tied to meaning.
 
+## What has landed (2026-09-19)
+
+| State | Before the HUD work | Now |
+|---|---|---|
+| First person | 19.9% | **4.8%** |
+| Combat follow | 22.1% | **9.4%** |
+| Warmup spectator | 23.3% | **7.4%** |
+
+The ceiling this plan set was twelve percent. The first-person frame is at a third of it.
+
+- **Health and armour are on screen.** A big number with a bar under it bottom-left, armour beside it, red and blue. Health turns pale under thirty-five. Armour at zero fades rather than shouting a nought. There is no ammo to show, because the weapons are cooldown-gated and the protocol has no ammo field; that is a question for `gunfeel.md`.
+- **The station is out of gameplay.** The broadcast strip and its badges are spectator furniture now, along with the followed-fighter line, the weapon icon in its box, the map chip, and the league and playlist line. A spectator keeps all of it, because watching a broadcast is the point of that view.
+- **There is no box behind the HUD.** The panel paints nothing and every label carries a hard outline, which is what the box was for. That single change is most of the drop in the table, because the coverage was never the words.
+- **Nameplates are capped.** A `Label3D` has a fixed size in the world, so a fighter two metres away wore a name that hid the room. Below nine metres it shrinks with the distance, with a floor so it does not vanish at contact range, and beyond that it follows the far camera's curve as before.
+- **The crosshair can be seen.** Every part of it has a dark edge two pixels larger on each side, following whatever shape the weapon chose, including the sizes the code changes at runtime.
+- **The player can see their own gun fire.** Recorded in `gunfeel.md`: there was no first-person muzzle flash at all, and the view-model kick only played when the shot missed.
+
+What is left on a playing screen is the host line and, for eight seconds after joining, the control legend.
+
 ## Stages
 
-1. **Put the numbers on screen.** Health, armour, ammo with icons in the corners, in a display font with an outline. The debug block goes behind a key, off by default. Gate: a still shows health, armour, and ammo, and HUD coverage in first person falls below 12 percent.
-2. **Kill the ON AIR strip in gameplay.** It survives as a small palette-correct chip in warmup and on the round bumper, where the broadcast conceit is the point. Gate: the strip does not appear in any playing state's still.
+1. ~~**Put the numbers on screen.**~~ Landed. Health and armour; there is no ammo to show yet. Health, armour, ammo with icons in the corners, in a display font with an outline. The debug block goes behind a key, off by default. Gate: a still shows health, armour, and ammo, and HUD coverage in first person falls below 12 percent.
+2. ~~**Kill the ON AIR strip in gameplay.**~~ Landed, along with the rest of the spectator furniture. It survives as a small palette-correct chip in warmup and on the round bumper, where the broadcast conceit is the point. Gate: the strip does not appear in any playing state's still.
 3. **The weapon gets its corner.** View model to roughly a third of screen height, no backing panel, ammo beside it.
 4. **One font, one grid.** A display face with outline, a shared margin, and every element snapped to it.
-5. **The crosshair answers.** Hit tick, kill confirm, spread that matches the weapon.
+5. **The crosshair answers.** Half landed: it can be seen now. Hit tick and kill confirm still to do. Hit tick, kill confirm, spread that matches the weapon.
 6. **Playing means first person.** Joining puts a person behind the gun with the playing HUD, and the spectator chrome, the broadcast strip, and the follow-camera furniture stay with the spectator view where they belong.
-7. **Nameplates become a bar and a chip,** from `plans/hud-quiet.md` rung 3, and host lines leave the centre.
+7. **Nameplates become a bar and a chip,** size now capped; from `plans/hud-quiet.md` rung 3, and host lines leave the centre.
 
 ## Verification
 
