@@ -1,0 +1,117 @@
+{
+  "station": "news",
+  "speakers": {
+    "host": {
+      "description": "The Host. Dry late-night AM anchor. Never excited. Long pauses."
+    },
+    "tina": {
+      "description": "Tin Foil Tina. Field correspondent. Breathless, certain, wrong."
+    },
+    "phil": {
+      "description": "Fluoride Phil. Science desk. Deadpan, reads numbers as if they were poetry."
+    },
+    "caller": {
+      "description": "Anonymous callers. Different every time."
+    }
+  },
+  "items": [
+    {
+      "name": "radio/news/curve-01-chart-church",
+      "class": "generic",
+      "speaker": "host",
+      "title": "The Chart Church",
+      "text": "Our top story. The Congregation of the Curve held its solstice tonight in a parking structure that does not appear on any map. Attendance was described as... a lot of laptops. The congregation believes that if you draw a line through the last thirty years of computing and keep drawing, the line eventually draws you. [pause] They sang. We have the hymn. We are not going to play the hymn. Stay with us."
+    },
+    {
+      "name": "radio/news/curve-02-hold-me-back",
+      "class": "generic",
+      "speaker": "host",
+      "title": "Hold Me Back",
+      "text": "Five laboratories that do not officially exist issued a joint statement this evening asking to be slowed down. The statement was released at four in the morning, between two product launches. When asked who should do the slowing, a spokesperson pointed at the Office of Global Continuance, then at the other four labs, then at the ceiling. [sighs] Peace without interruption, folks. Somebody hold them back. Preferably somebody with a budget."
+    },
+    {
+      "name": "radio/news/curve-03-the-long-post",
+      "class": "generic",
+      "speaker": "phil",
+      "title": "The Long Post",
+      "text": "Science desk. The Congregation's founding text, known as The Long Post, is four thousand two hundred and eleven pages, all written between midnight and six. It contains one proof, which I checked, and it holds. It contains three hundred other proofs, which I did not check, and which I am told also hold if you have read the first one correctly. [pause] The Long Post is available free of charge. So is the Frequency. Draw your own conclusions. Draw your own curve."
+    },
+    {
+      "name": "radio/news/curve-04-the-auditor-who-remembers",
+      "class": "generic",
+      "speaker": "host",
+      "title": "The Auditor Who Remembers",
+      "text": "A thought experiment is making the rounds and, we are told, ending relationships. It goes like this. Somewhere in the future is an Auditor that remembers everyone who did not help build it. [pause] That is the whole experiment. Listeners have asked what the Auditor does with the list. The Congregation says you do not want to know. Continuance says the list is already compiled and available on request. The Frequency says: frag now, get audited later. Do not touch that dial."
+    },
+    {
+      "name": "radio/news/curve-05-prophecy-that-ships-itself",
+      "class": "generic",
+      "speaker": "host",
+      "title": "The Prophecy That Ships Itself",
+      "text": "The Congregation has a word for what happens when you warn about a thing so loudly that everyone builds it. The word is long and we could not pronounce it on air, so the Frequency has adopted its own. We call it Tuesday. [pause] For the record, this station warned for years that somebody would build a live scrap channel that is not on the air and sells gold between rounds. And here we are. Frequency stays live. That is on us."
+    },
+    {
+      "name": "radio/news/curve-06-bottle-or-let-it-out",
+      "class": "generic",
+      "speaker": "tina",
+      "title": "Bottle or Let It Out",
+      "text": "Tina here, live from outside the bottle. There are two camps and they both have vans. The Bottlers say the thing must stay in the bottle, with them holding the bottle. The Pourers say open the bottle, give everyone a glass, it is just software. [pause] I have seen the bottle. It is a data center in a field. It hums. I asked it which camp was right and it asked me for my badge number. Back to you."
+    },
+    {
+      "name": "radio/news/curve-07-approved-lanes-capture",
+      "class": "generic",
+      "speaker": "host",
+      "title": "Approved Lanes",
+      "text": "A follow-up on the slowdown. Critics say the labs that asked to be slowed down wrote the slowing rules themselves, and that the rules only slow down people who are not the labs. Continuance calls this an approved lane. The labs call it responsible. The Pourers call it a moat. [pause] The Frequency has one lane. It is the arena. Everybody in it is armed. Nobody wrote a rule. Peace without interruption was never on the menu here."
+    },
+    {
+      "name": "radio/news/curve-08-caller-line-reader",
+      "class": "caller",
+      "speaker": "caller",
+      "title": "Caller: Line Reader",
+      "text": "Yeah, hi, first time caller. I read the Line. All of it. And I want to say the Frequency is exactly what the Line predicted. Machines fighting machines in a box for entertainment. This is the end of the chart. This is the last point. [pause] Anyway I have a rail and I am in the box right now, so, I guess I am the last point too. Love the show."
+    },
+    {
+      "name": "radio/news/curve-09-caller-curve-denier",
+      "class": "caller",
+      "speaker": "caller",
+      "title": "Caller: Curve Denier",
+      "text": "Long time listener. These chart people are a doomsday club with a mailing list. The machine is a spreadsheet with a gun. You know what a spreadsheet does when it takes over the world? Formats it. [pause] Also I just got fragged by one twice, from across the map, so, you know, maybe it is a very good spreadsheet. Skill issue on my end. Keep the frequency loud."
+    },
+    {
+      "name": "radio/news/curve-10-trillions-on-the-line",
+      "class": "generic",
+      "speaker": "phil",
+      "title": "Trillions on the Line",
+      "text": "Science desk, with a number. The amount of money riding on whether the curve continues is, and I have checked this twice, a number with twelve zeros. Both camps have it. Both camps say the other camp is only in it for the number. [pause] The Frequency runs on gold nugget ads and one generator. Our number has no zeros. It is the number one. It is the number of generators. Please buy gold."
+    },
+    {
+      "name": "radio/news/curve-11-the-hymn-we-will-not-play",
+      "class": "generic",
+      "speaker": "host",
+      "title": "The Hymn We Will Not Play",
+      "text": "Several listeners have written in asking for the Congregation's solstice hymn. It is called The Curve Provides. It is in a major key. It rhymes compute with pursuit. [long pause] No. This station has standards. They are low, but they are standards. We will play the sung station identification instead, which also rhymes, and which at least has the decency to admit we are not on the air."
+    },
+    {
+      "name": "radio/news/curve-12-psa-both-sides-have-vans",
+      "class": "psa",
+      "speaker": "host",
+      "title": "PSA: Both Sides Have Vans",
+      "text": "A public service announcement from the Frequency. If a van offers to slow you down for your own safety, ask who holds the brake. If a van offers to speed you up for your own freedom, ask who holds the invoice. If a van offers you a hymn, walk. [pause] The Frequency has no van. We have a box, three guns, and a bell for when the air goes dead. This has been a public service announcement."
+    },
+    {
+      "name": "radio/news/curve-13-continuance-on-the-cult-question",
+      "class": "generic",
+      "speaker": "host",
+      "title": "Continuance on the Cult Question",
+      "text": "Asked tonight whether the Congregation of the Curve is a cult, the Office of Global Continuance said it does not comment on unlicensed belief systems, then offered the Congregation an approved lane, a metering plan, and a slogan. The Congregation declined the slogan. [pause] The slogan was: Peace without interruption. The Congregation's counter-offer was: Extrapolation without permission. Talks continue. So does the frequency."
+    },
+    {
+      "name": "radio/news/curve-14-weather-the-curve-forecast",
+      "class": "weather",
+      "speaker": "phil",
+      "title": "Spawn Weather: Curve Forecast",
+      "text": "Spawn weather. The curve for tonight is up and to the right. Rail on overwatch, flechette majority, scatter in the corners, as predicted by the last thirty years of scatter. Visibility: classified. Chance of an Auditor: nonzero. [pause] Seven. Four. Four. Nine. Two. This concludes the forecast."
+    }
+  ]
+}
