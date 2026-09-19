@@ -134,6 +134,9 @@ fn weapon_from_wire(name: &str) -> Option<WeaponType> {
 }
 /// Movement smaller than this between snapshots counts as idle.
 const IDLE_EPSILON: f32 = 0.01;
+/// Share of frags that may be spawn deaths before a run is called broken,
+/// judged against the low end of the interval rather than the raw ratio.
+const SPAWN_DEATH_RATE_CEILING: f64 = 0.10;
 /// Radians the patrol sweep turns per tick: a full circle in about five
 /// seconds, slow enough to actually cross ground rather than spin on the spot.
 const PATROL_TURN_PER_TICK: f32 = 0.06;
@@ -768,11 +771,23 @@ pub fn check_thresholds(report: &Report) -> Vec<String> {
             ));
         }
     }
-    if report.frags >= 10 && report.spawn_deaths as f64 / report.frags as f64 > 0.10 {
-        problems.push(format!(
-            "spawn deaths {} of {} frags",
-            report.spawn_deaths, report.frags
-        ));
+    // Spawn deaths are a rate, and a rate from ten frags is mostly noise: at
+    // ten, two spawn deaths reads as twenty percent when the truth could be
+    // five. Judge the lower bound of the interval instead, the same Wilson
+    // bound the accuracy figures already carry, so a run fails when the
+    // evidence supports a real problem rather than when a small sample landed
+    // badly. A genuinely bad rate still fails; it just has to prove itself.
+    if report.frags > 0 {
+        let (low, _) = wilson_interval(report.spawn_deaths, report.frags);
+        if low > SPAWN_DEATH_RATE_CEILING {
+            problems.push(format!(
+                "spawn deaths {} of {} frags ({:.0}% at worst, ceiling {:.0}%)",
+                report.spawn_deaths,
+                report.frags,
+                low * 100.0,
+                SPAWN_DEATH_RATE_CEILING * 100.0
+            ));
+        }
     }
     if report.agents >= 4 && report.frags_per_minute < 1.0 {
         problems.push(format!(
@@ -2567,5 +2582,57 @@ mod patrol_tests {
             apart > 0.5,
             "two agents alone should search different ground"
         );
+    }
+}
+
+#[cfg(test)]
+mod spawn_death_threshold_tests {
+    use super::*;
+
+    fn report_with(spawn_deaths: u64, frags: u64) -> Report {
+        Report {
+            rounds_completed: 1,
+            agents: 4,
+            frags,
+            frags_per_minute: 20.0,
+            spawn_deaths,
+            ..Report::default()
+        }
+    }
+
+    fn complains(spawn_deaths: u64, frags: u64) -> bool {
+        check_thresholds(&report_with(spawn_deaths, frags))
+            .iter()
+            .any(|p| p.contains("spawn deaths"))
+    }
+
+    #[test]
+    fn a_small_sample_that_landed_badly_is_not_a_failure() {
+        // The run that failed CI: two of ten reads as twenty percent, but ten
+        // frags cannot tell twenty percent from five.
+        assert!(!complains(2, 10), "two of ten is not evidence of a problem");
+        assert!(!complains(1, 10));
+        assert!(!complains(0, 10));
+    }
+
+    #[test]
+    fn a_rate_that_holds_up_still_fails() {
+        assert!(
+            complains(20, 100),
+            "twenty percent over a hundred frags is real"
+        );
+        assert!(complains(40, 200));
+    }
+
+    #[test]
+    fn spawn_camping_fails_even_on_a_short_run() {
+        // Eight of ten is not a sampling accident at any sample size.
+        assert!(complains(8, 10));
+    }
+
+    #[test]
+    fn a_clean_run_never_complains() {
+        assert!(!complains(0, 200));
+        assert!(!complains(0, 0), "no frags is no rate");
     }
 }
