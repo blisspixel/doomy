@@ -5,7 +5,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-OUT_DIR="${OUT_DIR:-$ROOT/docs/screenshots}"
+# Prefer FRAGR_TIP_CAPTURE_DIR; else this repo. Ignore ambient OUT_DIR from other clones.
+OUT_DIR="${FRAGR_TIP_CAPTURE_DIR:-$ROOT/docs/screenshots}"
 DISPLAY_NUM="${DISPLAY_NUM:-99}"
 SERVER_URL="${FRAGR_SERVER:-127.0.0.1:6767}"
 
@@ -54,7 +55,8 @@ if [ ! -d "$ROOT/client/.godot/imported" ]; then
   "$GODOT_BIN" --path "$ROOT/client" --rendering-driver opengl3 --import --headless --quit-after 120 || true
 fi
 
-# Timed stills: Host bumper / Contested Frequency, scoreboard+killfeed, compliance, mid-join Host flash.
+# Timed stills: Calibration/Larak Lot, Host bumper / Contested Frequency, scoreboard+killfeed, mid-join Host flash.
+# Expect fragr-server with --solo-broadcast so episode chrome matches tip face.
 # --quit-after is frames; give headroom for ~20s of wall clock.
 # gl_compatibility / opengl3: Vulkan on Xvfb needs lavapipe; keep the simple path.
 "$GODOT_BIN" --path "$ROOT/client" --rendering-driver opengl3 --quit-after 30000 \
