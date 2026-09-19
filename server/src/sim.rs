@@ -17,6 +17,10 @@ const MOVE_SPEED: f32 = 5.0;
 const TURN_SPEED: f32 = 2.0;
 const ARENA_SIZE: f32 = 50.0;
 const PLAYER_RADIUS: f32 = 0.5;
+/// Extra forgiveness on aim, as radians of cone that widen with distance.
+/// Zero means a shot has to actually pass through a fighter. A gamepad may
+/// earn a small positive value later; a mouse never should.
+const AIM_ASSIST_RADIANS: f32 = 0.0;
 const RESPAWN_DELAY_TICKS: u32 = 60;
 /// Ticks after a respawn during which a fighter cannot be hit (one second).
 pub const SPAWN_SHIELD_TICKS: u32 = 20;
@@ -1142,7 +1146,17 @@ impl GameState {
 
         for (shooter_idx, maybe_victim_idx) in hits {
             let weapon = self.players[shooter_idx].weapon;
-            let damage = weapon.damage();
+            // The scatter gun loses its bite with distance; the others do not.
+            let damage = match maybe_victim_idx {
+                Some(victim_idx) => {
+                    let shooter = &self.players[shooter_idx];
+                    let victim = &self.players[victim_idx];
+                    let dx = victim.x - shooter.x;
+                    let dz = victim.z - shooter.z;
+                    weapon.damage_at((dx * dx + dz * dz).sqrt())
+                }
+                None => weapon.damage(),
+            };
             let shooter_name = self.players[shooter_idx].name.clone();
             let shooter_id = self.players[shooter_idx].id;
 
@@ -1303,12 +1317,30 @@ impl GameState {
         self.reap_dead_boss();
     }
 
-    fn check_hitscan(&self, shooter_idx: usize) -> Option<usize> {
+    /// Resolve one shot. The barrel points somewhere inside the weapon's
+    /// dispersion cone, chosen from the seeded stream so a run reproduces, and
+    /// the shot lands only if that line passes within a fighter's radius.
+    ///
+    /// This used to be different, and the difference mattered: a target inside
+    /// the cone was hit outright, which made "spread" a forgiveness angle
+    /// rather than dispersion. The rail's cone was 2.3 degrees of free aim,
+    /// console-grade magnetism handed to a mouse. Aim assistance now has its
+    /// own knob, `AIM_ASSIST_RADIANS`, which is zero for everyone until the
+    /// gamepad work gives it a reason to exist.
+    fn check_hitscan(&mut self, shooter_idx: usize) -> Option<usize> {
         let shooter = &self.players[shooter_idx];
-        let spread = shooter.weapon.spread_radians();
-        let weapon_range = shooter.weapon.range_units().min(HITSCAN_RANGE);
-        let ray_dx = shooter.yaw.cos();
-        let ray_dz = shooter.yaw.sin();
+        let shooter_x = shooter.x;
+        let shooter_z = shooter.z;
+        let shooter_yaw = shooter.yaw;
+        let weapon = shooter.weapon;
+        let spread = weapon.spread_radians();
+        let weapon_range = weapon.range_units().min(HITSCAN_RANGE);
+
+        // Where this particular shot actually went.
+        let jitter = (self.next_f32() * 2.0 - 1.0) * spread;
+        let aim = shooter_yaw + jitter;
+        let ray_dx = aim.cos();
+        let ray_dz = aim.sin();
 
         let mut closest_dist = weapon_range;
         let mut closest_idx = None;
@@ -1321,42 +1353,32 @@ impl GameState {
                 continue;
             }
 
-            let dx = target.x - shooter.x;
-            let dz = target.z - shooter.z;
+            let dx = target.x - shooter_x;
+            let dz = target.z - shooter_z;
             let dist = (dx * dx + dz * dz).sqrt();
-
             if dist > closest_dist {
                 continue;
             }
 
-            let dot = dx * ray_dx + dz * ray_dz;
-            if dot <= 0.0 {
+            // Behind the shooter is never a hit.
+            let along = dx * ray_dx + dz * ray_dz;
+            if along <= 0.0 {
                 continue;
             }
 
-            let target_angle = dz.atan2(dx);
-            let mut angle_diff = target_angle - shooter.yaw;
-            while angle_diff > PI {
-                angle_diff -= 2.0 * PI;
-            }
-            while angle_diff < -PI {
-                angle_diff += 2.0 * PI;
+            // How far the shot passes from the fighter's centre.
+            let perp_x = dx - ray_dx * along;
+            let perp_z = dz - ray_dz * along;
+            let miss_by = (perp_x * perp_x + perp_z * perp_z).sqrt();
+            if miss_by > PLAYER_RADIUS + AIM_ASSIST_RADIANS * dist {
+                continue;
             }
 
-            if angle_diff.abs() <= spread {
-                let proj_dist = dot;
-                let perp_x = dx - ray_dx * proj_dist;
-                let perp_z = dz - ray_dz * proj_dist;
-                let perp_dist = (perp_x * perp_x + perp_z * perp_z).sqrt();
-
-                if perp_dist <= PLAYER_RADIUS * 2.0 {
-                    if ray_blocked_by_cover(self.map, shooter.x, shooter.z, ray_dx, ray_dz, dist) {
-                        continue;
-                    }
-                    closest_dist = dist;
-                    closest_idx = Some(i);
-                }
+            if ray_blocked_by_cover(self.map, shooter_x, shooter_z, ray_dx, ray_dz, dist) {
+                continue;
             }
+            closest_dist = dist;
+            closest_idx = Some(i);
         }
 
         closest_idx

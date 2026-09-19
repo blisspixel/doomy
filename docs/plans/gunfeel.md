@@ -1,6 +1,6 @@
 # Plan: gunfeel and aim
 
-**Status:** in flight (aim defaults shipped 2026-09-19)
+**Status:** in flight (aim defaults, weapon table, and real dispersion shipped 2026-09-19)
 **Branch:** `feat/gunfeel-*`
 **Spend:** $0.
 
@@ -61,6 +61,26 @@ Three findings, all stable across seeds:
 
 This is the case for rung 2 in numbers rather than in taste: the weapon table needs the scatter to hit harder and slower, the rail to be reachable inside the arena, and the flechette to stop being the answer to every distance.
 
+## After the weapon table and real dispersion (2026-09-19)
+
+Same three seeds, six reflex agents, after rungs 2 and 3 landed together:
+
+| Seed | Accuracy | Shots per kill | Time to kill p50 / p90 | Scatter shots / kills | Flechette | Rail |
+|---|---|---|---|---|---|---|
+| 1 | 16.5% | 22.0 | 1.30 / 5.45 s | 163 / 16 | 655 / 21 | 17 / 1 |
+| 7 | 17.7% | 18.0 | 1.30 / 4.00 s | 205 / 17 | 504 / 21 | 30 / 3 |
+| 42 | 15.3% | 22.6 | 0.90 / 7.60 s | 226 / 19 | 772 / 25 | 19 / 1 |
+
+What moved, and what did not:
+
+- **The median kill is faster and now lands at or near the target band**: 1.50 seconds before, 0.90 to 1.30 after, against a target of 0.6 to 1.2.
+- **All three weapons are used.** The rail went from never firing in any seed to 17 to 30 shots and 1 to 3 kills. It is still a small share, because fights above eighteen units remain rare, but it has stopped being dead weight.
+- **Accuracy fell from the high twenties and thirties to the mid teens, and that is the change working rather than a regression.** The old figure counted shots that landed because the target was inside a forgiveness cone; the new one counts shots that actually passed through a fighter. A number that drops when you remove free aim was measuring the free aim.
+- **The numbers now hang together.** About 3.2 hits per kill at 16 percent accuracy over roughly twenty shots matches a table designed around four flechette hits or three scatter hits. Internal consistency of that kind is the cheapest evidence that a change did what it said.
+- **The tail is still long**, four to seven and a half seconds at the ninetieth percentile. Some of that is the reflex agents holding the fire button through cover and across the map, which inflates the shot count; the planner tier and the movement work both have a claim on the rest.
+
+Two changes had to land together, which is worth recording. Changing the cone values alone would have been meaningless while a cone meant forgiveness rather than dispersion, and fixing the meaning alone would have left the rail needing a tenth of a degree of accuracy to hit anything. The before and after therefore measures both.
+
 ## Measuring it without human testers
 
 The playtest harness already sees every shot: the server publishes a shot result per fire with hit or miss and the damage. Three additions make the weapon triangle and the time to kill measurable from agents alone, and they need no new wire data:
@@ -76,8 +96,8 @@ Input-to-photon latency needs a camera or a light sensor and stays a manual meas
 ## Rungs
 
 1. **Shipped.** Aim defaults: Source-convention sensitivity with a sane default, raw motion, and the setting documented in the units other games use.
-2. Weapon table: the damage, interval, cone, range, falloff, and switch values above, behind one constants block the harness can sweep. Time to kill measured before and after.
-3. Dispersion separated from aim assist: a random cone per shot, the assist cone gamepad-only and smaller, both on the server.
+2. **Shipped.** Weapon table: damage, interval, cone, range, and the scatter gun's falloff. Time to kill measured before and after, above. Switch time and the constants block a sweep would need are still to come.
+3. **Shipped.** Dispersion separated from aim assist: a shot leaves the barrel somewhere inside the cone, drawn from the seeded stream, and lands only if it passes within a fighter's radius. Aim assistance is its own constant, zero for everyone until the gamepad work.
 4. Movement inaccuracy and the recovery constant; the split crosshair that shows it.
 5. Feedback: hit marker, muzzle flash, view kick, shake, bob, kill marker.
 6. Ground dodge with its cooldown and recovery penalty, in the shared movement step with golden vectors.
@@ -87,8 +107,8 @@ Input-to-photon latency needs a camera or a light sensor and stays a manual meas
 
 - [x] Default sensitivity within the 30 to 50 centimetres per 360 band at 800 counts per inch, stored in portable units.
 - [ ] Time to kill inside the target band, measured by the harness before and after.
-- [ ] Each weapon's kill distances peak in its own band, shown by the histogram.
-- [ ] Dispersion and aim assist are separate, and the assist is gamepad-only.
+- [ ] Each weapon's kill distances peak in its own band. All three are used now, but the rail is still only two to four percent of shots because long fights are rare.
+- [x] Dispersion and aim assist are separate. A shot now has to pass within a fighter's radius; `AIM_ASSIST_RADIANS` is a single knob, zero for everyone, waiting for the gamepad work to give it a reason.
 - [ ] Every feedback timing implemented and visible in a tour still.
 - [ ] The dodge exists, is in the golden vectors, and the playtests prefer it.
 
