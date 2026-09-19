@@ -41,7 +41,8 @@ Five guns join the three that exist. Every time to kill sits in or beside the 0.
 
 | Weapon | Role | Damage | Cooldown | Bare kill |
 |---|---|---|---|---|
-| Tack | Sidearm, always carried | 20 | 0.25 s | 5 hits, 1.00 s |
+| Fists | Melee, always carried | 20 | 0.40 s | 5 hits, 1.60 s |
+| Tack | Sidearm, found beside spawn | 20 | 0.25 s | 5 hits, 1.00 s |
 | Flechette | Mid workhorse | 25 | 0.20 s | 4 hits, 0.60 s |
 | Scatter | Close shred | 40 falling to 14 | 0.45 s | 3 hits, 0.90 s |
 | Rail | Long precision | 80 | 1.00 s | 2 hits, 1.00 s |
@@ -56,11 +57,17 @@ The arc earns its slot on a case the current triangle cannot answer. Against a f
 
 Three deliberate valves, because "limits that make sense, not an annoying limit on ammo" is the whole brief.
 
-**You spawn with a knife and a pistol, and nothing else.** Doom's contract, not Quake's. Everything above the sidearm is found, kept until you die, and lost when you do.
+**You spawn with your fists and nothing else.** Doom starts you with fists and a pistol; this keeps the fists and puts the pistol on the ground.
 
-The research recommended spawning with the flechette as well, on the grounds that the respawn delay is three seconds in a fifty metre arena where a rail covers the whole floor, and that a bare spawn would push spawn deaths through the threshold the harness enforces. That is a real risk and it is the wrong trade. A starter weapon you always have is a starter weapon nobody ever leaves, and the entire point of the economy is that walking to a gun is a decision.
+The research argued the opposite case and argued it well: the respawn delay is three seconds, the arena is fifty metres, a rail covers the whole floor, and a bare spawn will push spawn deaths through the threshold the harness enforces. That risk is real. It is answered by the maps rather than by the loadout.
 
-So the risk gets mitigated rather than designed around. Spawn protection already exists and can lengthen. The sidearm is deliberately usable rather than a joke, at a one second time to kill on a bare target, which is slower than everything else and never hopeless. And the spawn-death threshold is now judged on the interval rather than the raw ratio, so it will report a real regression here rather than noise, which is exactly the instrument this change needs.
+**There is a sidearm within about two seconds of every spawn point.** That is a map rule, it is checkable, and it is what turns a weaponless spawn from a death sentence into the first decision of a life. The pistol stops being something you have and becomes the first thing you do, every time.
+
+Three supports underneath it. Spawn protection already exists and covers the grab. The sidearm pad runs on the valve clock rather than the contested clock, because denying somebody the ability to fight at all is a different thing from beating them to a rail, and the first should not be possible. And the sidearm's ammunition trickles back, so nobody is ever reduced to their hands by arithmetic, only by circumstance.
+
+What this buys is a window. Every life has a few seconds in it where you are holding nothing, which makes a punch kill possible and makes anyone who catches you in that window feel like they earned it. It is also the only way the melee ladder means anything: if you always had a knife, finding a knife would not be a moment.
+
+If the measurements say it does not work, the fix is a shorter walk to the sidearm, not a weapon in the loadout. The spawn-death threshold now judges the interval rather than the raw ratio, so it will report a real regression here instead of noise, and time-to-first-shot after respawn is the number that says whether the walk is the right length.
 
 **The sidearm refills itself.** One tack every two seconds while below forty and while you have not fired for a second. Filling from empty takes eighty seconds, so it is a safety net across a round rather than a resupply. This is fragr's version of the chainsaw in Doom 2016: it is what lets the other three pools be genuinely tight without the game ever reaching a dead end. You can always fight. You frequently cannot fight the way you want to.
 
@@ -94,7 +101,7 @@ Raising the clock to twenty seconds and extending the loop to six pads makes the
 
 The rule that generalises to any map size, and which belongs in `map-scale.md`: **the clock must exceed the loop for contested items, and fall below it for the valve items.**
 
-Pads go on four rings: the signature weapon alone at centre where there is no cover, health and armour and the blade at eight metres, the four ammo pads at 12.5 metres tucked behind the low walls so resupply is contested by geometry already built, weapons at seventeen and nineteen metres, and two big crates in the deep corners on a thirty second clock, because the big refill should be a commitment.
+A sidearm pad sits beside every spawn point on an eight second clock, which is short enough that it is never worth contesting and is the support the whole starting loadout rests on. Beyond that, pads go on four rings: the signature weapon alone at centre where there is no cover, health and armour and the blade at eight metres, the four ammo pads at 12.5 metres tucked behind the low walls so resupply is contested by geometry already built, weapons at seventeen and nineteen metres, and two big crates in the deep corners on a thirty second clock, because the big refill should be a commitment.
 
 ## What the protocol has to add
 

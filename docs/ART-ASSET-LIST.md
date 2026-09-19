@@ -119,6 +119,7 @@ Melee does not exist yet and a boomer shooter is not complete without it.
 
 | Asset | Status | Frames |
 |---|---|---|
+| Fists view model | need | idle 1, swing 5, hit 2. The one melee everybody has, so it is seen more than any other view model in the game |
 | Wrench view model | need | idle 1, swing 5, hit 2 |
 | Blade view model | need | idle 1, swing 5, hit 2 |
 | Held sprites | need | 2 per direction |
