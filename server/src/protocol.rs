@@ -231,7 +231,8 @@ pub fn episode0_host_line_nods_tick(cleared: u32, goal: u32) -> String {
 }
 
 pub fn episode0_host_line_jammer() -> String {
-    "HOST: Jammer's up. Seize the dish or I go text-only. Value for value.".to_string()
+    "HOST: Jammer's up. Step onto the pad and seize it or I go text-only. Value for value."
+        .to_string()
 }
 
 pub fn episode0_host_line_auditor() -> String {
