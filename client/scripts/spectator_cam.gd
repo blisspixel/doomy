@@ -1,7 +1,14 @@
 extends Node3D
 
 @export var move_speed = 10.0
-@export var look_sensitivity = 0.003
+## Mouse look in the units every other shooter uses: degrees of turn per mouse
+## count at sensitivity 1.0. 0.022 is the Source convention, so a player can
+## paste a sensitivity number from another game and get the same hand movement.
+## At 800 counts per inch, sensitivity 1.5 is 34.7 cm per 360 degrees, inside
+## the band competitive players actually use. The old 0.003 radians per count
+## was 6.6 cm per 360, about six times faster than a Counter-Strike default.
+const DEGREES_PER_COUNT := 0.022
+@export var mouse_sensitivity := 1.5
 @export var stick_look_sensitivity = 2.2
 @export var stick_turn_scale = 18.0
 @export var stick_deadzone = 0.25
@@ -139,8 +146,9 @@ func _apply_stick_look(delta: float, apply_yaw_to_node: bool) -> void:
 
 func _free_fly(delta):
 	if mouse_motion.length() > 0:
-		rotation.y -= mouse_motion.x * look_sensitivity
-		rotation.x -= mouse_motion.y * look_sensitivity
+		var radians_per_count := _radians_per_count()
+		rotation.y -= mouse_motion.x * radians_per_count
+		rotation.x -= mouse_motion.y * radians_per_count
 		rotation.x = clamp(rotation.x, -PI / 2, PI / 2)
 		mouse_motion = Vector2.ZERO
 
@@ -254,8 +262,9 @@ func _follow_frag_target():
 func _process_fp(delta):
 	# Mouse look: yaw becomes turn bits for Action; pitch stays local.
 	if mouse_motion.length() > 0:
-		fp_yaw = wrapf(fp_yaw + mouse_motion.x * look_sensitivity, 0.0, TAU)
-		fp_pitch -= mouse_motion.y * look_sensitivity
+		var radians_per_count := _radians_per_count()
+		fp_yaw = wrapf(fp_yaw + mouse_motion.x * radians_per_count, 0.0, TAU)
+		fp_pitch -= mouse_motion.y * radians_per_count
 		fp_pitch = clamp(fp_pitch, -1.15, 1.15)
 		mouse_motion = Vector2.ZERO
 
@@ -280,6 +289,21 @@ func _process_fp(delta):
 	position = position.lerp(eye, min(1.0, 18.0 * delta))
 	rotation.y = yaw
 	rotation.x = fp_pitch
+
+## The absolute facing to send with this input, in the server's convention.
+## Radians of turn per mouse count at the current sensitivity.
+func _radians_per_count() -> float:
+	return deg_to_rad(DEGREES_PER_COUNT * mouse_sensitivity)
+
+
+## Centimetres of mouse travel for a full turn, the number players compare.
+## Pure arithmetic, so the harness can assert it without a mouse.
+static func cm_per_360(sensitivity: float, counts_per_inch: float) -> float:
+	var degrees_per_count := DEGREES_PER_COUNT * sensitivity
+	if degrees_per_count <= 0.0 or counts_per_inch <= 0.0:
+		return 0.0
+	return (360.0 / (degrees_per_count * counts_per_inch)) * 2.54
+
 
 ## The absolute facing to send with this input, in the server's convention.
 func consume_yaw() -> float:
