@@ -137,6 +137,28 @@ Off-tick callout / taunt from a human or agent. Not sticky Action. Control-plane
 - Named server rule bots may emit occasional Contested Frequency Speak events on frag/death/Warmup/killstreak via the same `try_speak` path (SPEAK_COOLDOWN applies; silent drop on rate-limit; Compliance boss excluded)
 
 
+#### MapInfo
+
+The arena's shape: its bounds and the solids that block movement and shots. Sent once to a fighter when it joins, and again to everyone when the map changes between rounds. Never per tick, because it does not change per tick.
+
+```json
+{
+  "type": "map_info",
+  "map_id": 1,
+  "map_name": "Arena Duel",
+  "half_extent": 25.0,
+  "solids": [
+    {"min_x": 5.75, "max_x": 8.25, "min_z": -8.25, "max_z": -5.75}
+  ]
+}
+```
+
+**Fields:**
+- `half_extent`: half the width of the square arena, centred on the origin, so the playable area is `-half_extent` to `half_extent` on both axes
+- `solids`: axis-aligned boxes in the XZ plane. The server uses exactly these to block movement and to decide whether a shot reaches its target, so an agent that tests a line against them gets the same answer the server will.
+
+Agents need this to tell a clear shot from a wall. Before it existed, the reference agents held the fire button through cover and their measured accuracy sat near 15 percent; with it, the same agents measure near 60. The Godot client has the same geometry in its scene and ignores the message. The MCP adapter stores it and returns it as `map` inside `observe`.
+
 #### Ack
 
 Unicast, once per tick, to a client whose input carried a `seq`. Carries the newest sequence the server applied to that client's fighter and the authoritative state it produced, which is what a predicting client reconciles against. Clients that send no `seq` (agents, spectators, older clients) never receive it.

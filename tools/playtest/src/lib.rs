@@ -4,6 +4,7 @@
 //! judge fun; this catches stuck agents, dead time, spawn deaths, and regressions
 //! in the numbers that make a round feel alive.
 
+use fragr_server::movement::Solid;
 use fragr_server::protocol::{
     Action, ClientMessage, GameEvent, LookAt, Role, ServerMessage, Snapshot, WeaponType,
 };
@@ -619,27 +620,29 @@ pub fn check_thresholds(report: &Report) -> Vec<String> {
 
 /// Reflex tier: face the nearest fighter, close in, fire in range. Same policy as
 /// the adapter's scripted bot, driven straight from the server's wire types.
-pub fn reflex_action(bot_id: Uuid, snapshot: &Snapshot) -> Action {
+pub fn reflex_action(bot_id: Uuid, snapshot: &Snapshot, arena: &Arena) -> Action {
     let Some(me) = snapshot.players.iter().find(|p| p.id == bot_id) else {
         return Action::default();
     };
-    let mut nearest: Option<(f32, Uuid)> = None;
+    let mut nearest: Option<(f32, Uuid, f32, f32)> = None;
     for other in &snapshot.players {
         if other.id == bot_id {
             continue;
         }
         let dist = ((other.x - me.x).powi(2) + (other.z - me.z).powi(2)).sqrt();
-        if nearest.is_none_or(|(d, _)| dist < d) {
-            nearest = Some((dist, other.id));
+        if nearest.is_none_or(|(d, _, _, _)| dist < d) {
+            nearest = Some((dist, other.id, other.x, other.z));
         }
     }
-    let Some((dist, target)) = nearest else {
+    let Some((dist, target, target_x, target_z)) = nearest else {
         return Action::default();
     };
     // Swap only when the right weapon is not already in hand, so the report
     // does not fill with pointless swaps.
     let wanted = weapon_for_distance(dist);
     let weapon_swap = (weapon_from_wire(&me.weapon) != Some(wanted)).then_some(wanted);
+    // Do not shoot the wall in front of the enemy.
+    let clear = arena.line_of_sight((me.x, me.z), (target_x, target_z));
     Action {
         look_at: Some(LookAt {
             player_id: Some(target),
@@ -647,7 +650,7 @@ pub fn reflex_action(bot_id: Uuid, snapshot: &Snapshot) -> Action {
             z: None,
         }),
         forward: dist > CLOSE_RANGE,
-        fire: dist < FIRE_RANGE,
+        fire: clear && dist < FIRE_RANGE,
         weapon_swap,
         ..Action::default()
     }
@@ -718,7 +721,7 @@ fn preferred_band(weapon: WeaponType) -> (f32, f32) {
 /// The planner: hold the range your weapon wants, heal when hurt, and pick up
 /// a weapon you do not have when one is close. Everything it knows comes from
 /// the same snapshot a reflex agent sees.
-pub fn planner_action(bot_id: Uuid, snapshot: &Snapshot) -> Action {
+pub fn planner_action(bot_id: Uuid, snapshot: &Snapshot, arena: &Arena) -> Action {
     let Some(me) = snapshot.players.iter().find(|p| p.id == bot_id) else {
         return Action::default();
     };
@@ -778,7 +781,7 @@ pub fn planner_action(bot_id: Uuid, snapshot: &Snapshot) -> Action {
         back: dist < comfortable,
         left: holding && snapshot.tick % 40 < 20,
         right: holding && snapshot.tick % 40 >= 20,
-        fire: dist < wanted.range_units(),
+        fire: arena.line_of_sight((me.x, me.z), (enemy.x, enemy.z)) && dist < wanted.range_units(),
         weapon_swap,
         ..Action::default()
     }
@@ -824,11 +827,58 @@ fn walk_to(
 }
 
 /// The action for one agent under its policy.
-pub fn policy_action(policy: Policy, bot_id: Uuid, snapshot: &Snapshot) -> Action {
+pub fn policy_action(policy: Policy, bot_id: Uuid, snapshot: &Snapshot, arena: &Arena) -> Action {
     match policy {
-        Policy::Reflex => reflex_action(bot_id, snapshot),
-        Policy::Planner => planner_action(bot_id, snapshot),
+        Policy::Reflex => reflex_action(bot_id, snapshot, arena),
+        Policy::Planner => planner_action(bot_id, snapshot, arena),
     }
+}
+
+/// The arena's solids, learned from the MapInfo the server sends on join.
+/// Without them an agent has no way to tell a clear shot from a wall, which
+/// is why the first combat reports showed accuracy near fifteen percent
+/// whatever the policy: the agents were firing through cover.
+#[derive(Debug, Clone, Default)]
+pub struct Arena {
+    pub solids: Vec<Solid>,
+}
+
+impl Arena {
+    /// Does a straight line from one point to another reach it without
+    /// crossing a solid? The same slab test the server uses to resolve a shot,
+    /// so an agent's idea of a clear line matches the one that decides hits.
+    pub fn line_of_sight(&self, from: (f32, f32), to: (f32, f32)) -> bool {
+        let dx = to.0 - from.0;
+        let dz = to.1 - from.1;
+        let distance = (dx * dx + dz * dz).sqrt();
+        if distance <= f32::EPSILON {
+            return true;
+        }
+        let (ux, uz) = (dx / distance, dz / distance);
+        !self
+            .solids
+            .iter()
+            .any(|solid| ray_hits_solid(from, (ux, uz), *solid).is_some_and(|t| t < distance))
+    }
+}
+
+/// Distance along a unit ray at which it first enters a box, if it does.
+fn ray_hits_solid(origin: (f32, f32), dir: (f32, f32), solid: Solid) -> Option<f32> {
+    let slab = |o: f32, d: f32, lo: f32, hi: f32| -> Option<(f32, f32)> {
+        if d.abs() < 1e-8 {
+            // Parallel: either always inside this slab or never.
+            return (o >= lo && o <= hi).then_some((f32::NEG_INFINITY, f32::INFINITY));
+        }
+        let inv = 1.0 / d;
+        let a = (lo - o) * inv;
+        let b = (hi - o) * inv;
+        Some((a.min(b), a.max(b)))
+    };
+    let (tx_min, tx_max) = slab(origin.0, dir.0, solid.min_x, solid.max_x)?;
+    let (tz_min, tz_max) = slab(origin.1, dir.1, solid.min_z, solid.max_z)?;
+    let enter = tx_min.max(tz_min);
+    let exit = tx_max.min(tz_max);
+    (exit >= enter && exit >= 0.0).then(|| enter.max(0.0))
 }
 
 fn transport<E: fmt::Display>(err: E) -> Error {
@@ -853,6 +903,7 @@ async fn agent_task(
     .await
     .map_err(transport)?;
     let mut player_id: Option<Uuid> = None;
+    let mut arena = Arena::default();
     while let Some(msg) = stream.next().await {
         if stop.load(Ordering::Relaxed) {
             break;
@@ -862,11 +913,12 @@ async fn agent_task(
         };
         match serde_json::from_str::<ServerMessage>(&text) {
             Ok(ServerMessage::Welcome { player_id: pid, .. }) => player_id = pid,
+            Ok(ServerMessage::MapInfo { solids, .. }) => arena = Arena { solids },
             Ok(ServerMessage::Snapshot(snapshot)) => {
                 let Some(id) = player_id else {
                     continue;
                 };
-                let action = ClientMessage::Action(policy_action(policy, id, &snapshot));
+                let action = ClientMessage::Action(policy_action(policy, id, &snapshot, &arena));
                 if sink
                     .send(Message::Text(
                         serde_json::to_string(&action).map_err(transport)?,
@@ -1077,13 +1129,17 @@ mod tests {
                 player("near", near, 5.0, 0.0, false),
             ],
         );
-        let action = reflex_action(me, &snap);
+        let action = reflex_action(me, &snap, &Arena::default());
         assert_eq!(action.look_at.unwrap().player_id, Some(near));
         assert!(action.forward);
         assert!(action.fire);
         let alone = snapshot(1, vec![player("me", me, 0.0, 0.0, false)]);
-        assert!(reflex_action(me, &alone).look_at.is_none());
-        assert!(reflex_action(Uuid::new_v4(), &snap).look_at.is_none());
+        assert!(reflex_action(me, &alone, &Arena::default())
+            .look_at
+            .is_none());
+        assert!(reflex_action(Uuid::new_v4(), &snap, &Arena::default())
+            .look_at
+            .is_none());
         let close = snapshot(
             1,
             vec![
@@ -1091,7 +1147,7 @@ mod tests {
                 player("near", near, 1.0, 0.0, false),
             ],
         );
-        let action = reflex_action(me, &close);
+        let action = reflex_action(me, &close, &Arena::default());
         assert!(!action.forward);
         assert!(action.fire);
     }
@@ -1607,7 +1663,7 @@ mod planner_tests {
             ],
             vec![],
         );
-        let action = planner_action(me, &far);
+        let action = planner_action(me, &far, &Arena::default());
         assert!(action.forward, "beyond every band: close in");
         assert!(!action.back);
         assert_eq!(
@@ -1620,13 +1676,13 @@ mod planner_tests {
         // At twenty five units the rail is already in its band, so it holds.
         let mut rail_band = far.clone();
         rail_band.players[1].x = 25.0;
-        let action = planner_action(me, &rail_band);
+        let action = planner_action(me, &rail_band, &Arena::default());
         assert!(!action.forward, "the rail is happy here: {action:?}");
         assert!(action.left || action.right);
 
         let mut holding = far.clone();
         holding.players[1].x = 10.0;
-        let action = planner_action(me, &holding);
+        let action = planner_action(me, &holding, &Arena::default());
         assert!(!action.forward, "in the band: stop closing");
         assert!(!action.back);
         assert!(
@@ -1637,13 +1693,13 @@ mod planner_tests {
 
         let mut hugged = far.clone();
         hugged.players[1].x = 1.0;
-        let action = planner_action(me, &hugged);
+        let action = planner_action(me, &hugged, &Arena::default());
         assert!(action.back, "far too close: back off");
         assert!(!action.forward);
 
         // A reflex agent in the same spot just keeps charging, which is the
         // behaviour that put every kill at knife range.
-        let reflex = reflex_action(me, &holding);
+        let reflex = reflex_action(me, &holding, &Arena::default());
         assert!(reflex.forward, "reflex closes whenever it can");
     }
 
@@ -1659,7 +1715,7 @@ mod planner_tests {
             ],
             vec![pad("health", "", 0.0, 8.0, true)],
         );
-        let action = planner_action(me, &hurt);
+        let action = planner_action(me, &hurt, &Arena::default());
         let look = action.look_at.as_ref().unwrap();
         assert_eq!(look.player_id, None, "it walks to the pad, not the enemy");
         assert_eq!(look.z, Some(8.0));
@@ -1668,19 +1724,19 @@ mod planner_tests {
         // With the pad taken, it goes back to fighting.
         let mut taken = hurt.clone();
         taken.pickups[0].available = false;
-        let action = planner_action(me, &taken);
+        let action = planner_action(me, &taken, &Arena::default());
         assert_eq!(action.look_at.as_ref().unwrap().player_id, Some(foe));
 
         // Healthy, it ignores the pad entirely.
         let mut healthy = hurt.clone();
         healthy.players[0].hp = 100;
-        let action = planner_action(me, &healthy);
+        let action = planner_action(me, &healthy, &Arena::default());
         assert_eq!(action.look_at.as_ref().unwrap().player_id, Some(foe));
 
         // A pad on the far side of the map is not worth the walk.
         let mut distant = hurt.clone();
         distant.pickups[0].z = 40.0;
-        let action = planner_action(me, &distant);
+        let action = planner_action(me, &distant, &Arena::default());
         assert_eq!(action.look_at.as_ref().unwrap().player_id, Some(foe));
     }
 
@@ -1696,7 +1752,7 @@ mod planner_tests {
             ],
             vec![pad("weapon", "Rail", 5.0, 0.0, true)],
         );
-        let action = planner_action(me, &quiet);
+        let action = planner_action(me, &quiet, &Arena::default());
         assert_eq!(
             action.look_at.as_ref().unwrap().x,
             Some(5.0),
@@ -1706,13 +1762,13 @@ mod planner_tests {
         // It does not detour for the weapon it is already holding.
         let mut same = quiet.clone();
         same.pickups[0].weapon = "Flechette".to_string();
-        let action = planner_action(me, &same);
+        let action = planner_action(me, &same, &Arena::default());
         assert_eq!(action.look_at.as_ref().unwrap().player_id, Some(foe));
 
         // Nor with an enemy in its face.
         let mut pressed = quiet.clone();
         pressed.players[1].x = 6.0;
-        let action = planner_action(me, &pressed);
+        let action = planner_action(me, &pressed, &Arena::default());
         assert_eq!(action.look_at.as_ref().unwrap().player_id, Some(foe));
     }
 
@@ -1724,15 +1780,15 @@ mod planner_tests {
             vec![player("me", me, 0.0, 0.0, 100, "flechette")],
             vec![pad("armor", "", 3.0, 0.0, true)],
         );
-        let action = planner_action(me, &alone);
+        let action = planner_action(me, &alone, &Arena::default());
         assert_eq!(action.look_at.as_ref().unwrap().x, Some(3.0));
         assert!(!action.fire, "nothing to shoot at");
 
         let empty = scene(0, vec![player("me", me, 0.0, 0.0, 100, "rail")], vec![]);
-        let action = planner_action(me, &empty);
+        let action = planner_action(me, &empty, &Arena::default());
         assert!(action.look_at.is_none() && !action.forward && !action.fire);
 
-        let absent = planner_action(Uuid::new_v4(), &alone);
+        let absent = planner_action(Uuid::new_v4(), &alone, &Arena::default());
         assert!(
             absent.look_at.is_none(),
             "a fighter not in the snapshot does nothing"
@@ -1747,7 +1803,9 @@ mod planner_tests {
             ],
             vec![],
         );
-        assert!(planner_action(me, &corpses).look_at.is_none());
+        assert!(planner_action(me, &corpses, &Arena::default())
+            .look_at
+            .is_none());
     }
 
     #[test]
@@ -1763,12 +1821,136 @@ mod planner_tests {
             vec![],
         );
         assert!(
-            policy_action(Policy::Reflex, me, &close).forward,
+            policy_action(Policy::Reflex, me, &close, &Arena::default()).forward,
             "reflex closes"
         );
         assert!(
-            !policy_action(Policy::Planner, me, &close).forward,
+            !policy_action(Policy::Planner, me, &close, &Arena::default()).forward,
             "the planner is already where it wants to be"
         );
+    }
+}
+
+#[cfg(test)]
+mod line_of_sight_tests {
+    use super::*;
+
+    fn box_at(cx: f32, cz: f32, half: f32) -> Solid {
+        Solid {
+            min_x: cx - half,
+            max_x: cx + half,
+            min_z: cz - half,
+            max_z: cz + half,
+        }
+    }
+
+    #[test]
+    fn a_wall_between_two_points_blocks_the_line() {
+        let arena = Arena {
+            solids: vec![box_at(5.0, 0.0, 1.0)],
+        };
+        assert!(
+            !arena.line_of_sight((0.0, 0.0), (10.0, 0.0)),
+            "straight through it"
+        );
+        assert!(
+            arena.line_of_sight((0.0, 0.0), (3.0, 0.0)),
+            "stopping short of it"
+        );
+        assert!(
+            arena.line_of_sight((0.0, 5.0), (10.0, 5.0)),
+            "passing above it"
+        );
+        assert!(
+            arena.line_of_sight((0.0, 0.0), (0.0, 10.0)),
+            "perpendicular to it"
+        );
+        // Standing in the doorway: the box starts at x=4, so a shot from 4.5
+        // to 10 begins inside it and is blocked.
+        assert!(!arena.line_of_sight((4.5, 0.0), (10.0, 0.0)));
+    }
+
+    #[test]
+    fn an_empty_arena_never_blocks_anything() {
+        let empty = Arena::default();
+        assert!(empty.line_of_sight((0.0, 0.0), (40.0, 40.0)));
+        assert!(
+            empty.line_of_sight((0.0, 0.0), (0.0, 0.0)),
+            "a point sees itself"
+        );
+        assert!(empty.line_of_sight((-20.0, 3.0), (20.0, -3.0)));
+    }
+
+    #[test]
+    fn the_line_only_counts_solids_before_the_target() {
+        let arena = Arena {
+            solids: vec![box_at(20.0, 0.0, 1.0)],
+        };
+        assert!(
+            arena.line_of_sight((0.0, 0.0), (10.0, 0.0)),
+            "a wall behind the target does not block the shot"
+        );
+        assert!(!arena.line_of_sight((0.0, 0.0), (30.0, 0.0)));
+    }
+
+    #[test]
+    fn agents_hold_fire_when_the_line_is_blocked() {
+        let me = Uuid::new_v4();
+        let foe = Uuid::new_v4();
+        let mut snap = Snapshot {
+            tick: 0,
+            players: vec![],
+            round_state: Some("Active".to_string()),
+            round_time_left: Some(60),
+            frag_limit: Some(10),
+            shot_results: Vec::new(),
+            mode_name: "Contested Frequency".to_string(),
+            playlist: "Arena Duel".to_string(),
+            pressure: None,
+            host_line: String::new(),
+            mvp: None,
+            mvp_frags: None,
+            pickups: Vec::new(),
+            map_id: 1,
+            map_name: "Arena Duel".to_string(),
+            episode_id: None,
+            episode_title: None,
+            episode_objective: None,
+            episode_progress: None,
+            episode_phase: None,
+            jammer_dish: None,
+        };
+        let mk = |id: Uuid, x: f32| fragr_server::protocol::PlayerState {
+            id,
+            name: format!("p{x}"),
+            x,
+            y: 1.0,
+            z: 0.0,
+            yaw: 0.0,
+            hp: 100,
+            armor: 0,
+            just_fired: false,
+            behavior: None,
+            score: 0,
+            weapon: "flechette".to_string(),
+        };
+        snap.players = vec![mk(me, 0.0), mk(foe, 10.0)];
+
+        let clear = Arena::default();
+        let blocked = Arena {
+            solids: vec![box_at(5.0, 0.0, 1.0)],
+        };
+        assert!(reflex_action(me, &snap, &clear).fire, "clear line: shoot");
+        assert!(
+            !reflex_action(me, &snap, &blocked).fire,
+            "wall in the way: hold"
+        );
+        assert!(planner_action(me, &snap, &clear).fire);
+        assert!(!planner_action(me, &snap, &blocked).fire);
+        // Holding fire does not mean standing still: the agent still aims and
+        // moves, so it can clear the corner.
+        let action = reflex_action(me, &snap, &blocked);
+        assert!(action.look_at.is_some());
+        assert_eq!(action.look_at.as_ref().unwrap().player_id, Some(foe));
     }
 }

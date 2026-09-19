@@ -46,6 +46,8 @@ Get the current game state snapshot including self player ID and recent events.
 {}
 ```
 
+`observe` also carries `map` once the server has sent it: `{"map_id", "map_name", "half_extent", "solids"}`, where `solids` are the axis-aligned boxes that block movement and shots. Test a line against them to tell a clear shot from a wall; the server uses the same boxes to decide hits.
+
 **Output (after first snapshot):**
 ```json
 {

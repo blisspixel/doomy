@@ -61,6 +61,12 @@ What it says:
 - **Fighting at range takes longer**, median time to kill rising from about one second to about two. That is not obviously wrong. A rail duel across a room should take longer than a shotgun in a doorway; the question the gunfeel plan now has to answer is whether the long tail is pacing or frustration.
 - **A mixed roster produces the most varied distances** and the best accuracy and shots per kill of the three. It is the better default for measuring anything, because it exercises the whole triangle rather than one corner of it.
 
+## Agents can see the walls (2026-09-19)
+
+The harness agents used to fire whenever an enemy was in range, because nothing on the wire told them where cover was. The server now sends `MapInfo` on join, the agents test the line before firing, and measured accuracy went from fifteen percent to sixty, with shots per kill falling from about twenty three to about five and a half. Time to kill did not move, which is the control. The table is in `plans/gunfeel.md`.
+
+Two consequences for this harness. First, every accuracy figure recorded before this change was measuring the agents' blindness rather than the guns, and is marked as such where it appears. Second, the same information is available to any MCP agent through `observe`, so an outside agent is not at a disadvantage the reference agents do not share.
+
 ## Rungs
 
 1. Harness boots a server on a free loopback port, connects N reflex agents, runs R rounds, writes the JSON report. CI runs it with four agents and one round.

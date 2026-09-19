@@ -16,6 +16,8 @@ pub struct GameSession {
     pub client_to_player: HashMap<Uuid, Uuid>,
     /// Player-targeted control messages (e.g. speak rate-limit Error). Drained by the game loop.
     pub pending_unicasts: Vec<(Uuid, ServerMessage)>,
+    /// The map the last MapInfo described, so a rotation resends it once.
+    last_map_sent: Option<crate::sim::MapKind>,
     /// Target rule-bot count. Solo scrap and empty-arena recovery refill up to this.
     pub min_bots: usize,
 }
@@ -31,6 +33,7 @@ impl GameSession {
             bots: Vec::new(),
             client_to_player: HashMap::new(),
             pending_unicasts: Vec::new(),
+            last_map_sent: None,
             min_bots: 0,
         }
     }
@@ -186,6 +189,9 @@ impl GameSession {
                         round_number: self.state.round_number,
                         player_count,
                     });
+                    // The arena's shape, once, so an agent can tell a clear
+                    // shot from a wall without guessing from misses.
+                    self.pending_unicasts.push((pid, self.state.map_info()));
                     tracing::info!(
                         "Player {} joined as {:?} (round {}, {} players)",
                         pid,
@@ -289,6 +295,11 @@ impl GameSession {
         self.pending_unicasts.extend(self.state.input_acks());
 
         let mut out = Vec::new();
+        // The map only ever changes between rounds, so this is not per-tick cost.
+        if self.last_map_sent != Some(self.state.map) {
+            self.last_map_sent = Some(self.state.map);
+            out.push(self.state.map_info());
+        }
         out.push(ServerMessage::Snapshot(self.state.snapshot()));
         for event in self.state.take_events() {
             out.push(ServerMessage::Event(event));
@@ -690,10 +701,16 @@ mod session_tests {
             session.state.take_events().is_empty(),
             "rate-limited speak must not emit"
         );
+        // Joining also queues a MapInfo, so look for the rejection rather
+        // than assuming it is the only unicast in the queue.
         let unicasts = session.take_unicasts();
-        assert_eq!(unicasts.len(), 1, "expected one speak Error unicast");
-        assert_eq!(unicasts[0].0, player_id);
-        match &unicasts[0].1 {
+        let errors: Vec<_> = unicasts
+            .iter()
+            .filter(|(_, m)| matches!(m, ServerMessage::Error { .. }))
+            .collect();
+        assert_eq!(errors.len(), 1, "expected one speak Error unicast");
+        assert_eq!(errors[0].0, player_id);
+        match &errors[0].1 {
             ServerMessage::Error { code, message } => {
                 assert_eq!(code, "speak_rate_limited");
                 assert!(message.contains("rate limited"), "{message}");
@@ -738,11 +755,10 @@ mod session_tests {
         assert!(session.state.take_events().is_empty());
         let u = session.take_unicasts();
         assert!(
-            matches!(
-                &u[..],
-                [(pid, ServerMessage::Error { code, .. })]
-                    if *pid == player_id && code == "speak_rejected"
-            ),
+            u.iter().any(|(pid, m)| matches!(
+                m,
+                ServerMessage::Error { code, .. } if *pid == player_id && code == "speak_rejected"
+            )),
             "empty speak must Error unicast, got {:?}",
             u
         );
