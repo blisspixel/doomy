@@ -24,6 +24,7 @@ signal host_spoke(seconds: float)
 @onready var on_air_badge = $OnAirBadge
 @onready var contested_frequency_badge = $ContestedFrequencyBadge
 @onready var hangar_candy_badge = $HangarCandyBadge
+var map_chip_label: Label = null
 @onready var warmup_tv = $WarmupTv
 var crosshair_hbar = null
 var crosshair_vbar = null
@@ -89,6 +90,7 @@ var warmup_tv_secs = 0
 var warmup_tv_host_line = ""
 
 func _ready():
+	_ensure_map_chip_label()
 	weapon_textures["Flechette"] = load("res://assets/weapons/32/flechette.png")
 	weapon_textures["Rail"] = load("res://assets/weapons/32/rail.png")
 	weapon_textures["Scatter"] = load("res://assets/weapons/32/scatter.png")
@@ -145,6 +147,44 @@ func _bind_warmup_tv() -> void:
 	warmup_tv_active = false
 	warmup_tv_linger_timer = 0.0
 
+
+func _ensure_map_chip_label() -> void:
+	# Bottom-left map chip must show Snapshot map_name (Larak Lot), never the
+	# static Hangar Candy brand texture strangers read as the map name.
+	if map_chip_label != null and is_instance_valid(map_chip_label):
+		return
+	map_chip_label = Label.new()
+	map_chip_label.name = "MapChipLabel"
+	map_chip_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	map_chip_label.add_theme_font_size_override("font_size", 18)
+	map_chip_label.add_theme_color_override("font_color", Color(0.96, 0.90, 0.72, 0.95))
+	map_chip_label.add_theme_color_override("font_outline_color", Color(0.05, 0.04, 0.03, 1))
+	map_chip_label.add_theme_constant_override("outline_size", 4)
+	map_chip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	map_chip_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	map_chip_label.anchor_top = 1.0
+	map_chip_label.anchor_bottom = 1.0
+	map_chip_label.anchor_left = 0.0
+	map_chip_label.anchor_right = 0.0
+	map_chip_label.offset_left = 16.0
+	map_chip_label.offset_top = -72.0
+	map_chip_label.offset_right = 280.0
+	map_chip_label.offset_bottom = -16.0
+	map_chip_label.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	add_child(map_chip_label)
+	_refresh_map_chip_badge()
+
+
+func _refresh_map_chip_badge() -> void:
+	_ensure_map_chip_label()
+	if map_chip_label:
+		map_chip_label.text = map_label.to_upper()
+		map_chip_label.visible = map_label != ""
+	# Hide brand Hangar Candy art so it cannot impersonate the map chip.
+	if hangar_candy_badge:
+		hangar_candy_badge.visible = false
+
+
 func set_status(text: String):
 	if status_label:
 		status_label.text = "Status: " + text
@@ -160,6 +200,7 @@ func set_league_identity(mode_name: String, playlist: String):
 func set_map_name(name: String):
 	if name != "":
 		map_label = name
+	_refresh_map_chip_badge()
 	_refresh_mode_label()
 
 func set_pressure(pressure: String):
@@ -426,10 +467,11 @@ func _update_broadcast_chrome(state: String) -> void:
 		contested_frequency_badge.visible = true
 		var ca = 0.95 if warm else (0.72 if live else 0.8)
 		contested_frequency_badge.modulate = Color(0.95, 0.95, 0.98, ca)
+	# Map chip is Snapshot map_name (see _refresh_map_chip_badge). Never re-show
+	# the Hangar Candy brand texture as if it were the map name.
 	if hangar_candy_badge:
-		hangar_candy_badge.visible = true
-		var ha = 0.85 if (warm or ended) else 0.75
-		hangar_candy_badge.modulate = Color(1, 1, 1, ha)
+		hangar_candy_badge.visible = false
+	_refresh_map_chip_badge()
 
 func flash_broadcast_chrome(kind: String = "host") -> void:
 	# Brief badge lift on Host / Warmup bumper without neon wash.
@@ -439,7 +481,9 @@ func flash_broadcast_chrome(kind: String = "host") -> void:
 		if on_air_badge:
 			on_air_badge.visible = true
 	elif kind == "hangar":
-		badge = hangar_candy_badge
+		# Pulse the Snapshot map chip, not the retired Hangar Candy brand art.
+		_refresh_map_chip_badge()
+		badge = map_chip_label
 	if badge == null:
 		return
 	var base_a = badge.modulate.a

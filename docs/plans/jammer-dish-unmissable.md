@@ -30,6 +30,9 @@ Spawn / parent path in `game_manager._sync_jammer_dish` is fine (arena child, vi
 
 ## Ship in this PR
 
+0. Map-chip honesty: HUD / playlist face uses Snapshot `map_name` (Larak Lot on Solo Broadcast). Hide static Hangar Candy brand badge that strangers read as the map name.
+
+
 1. Plan + plans README index row.
 2. Aggressive silhouette in `jammer_dish.gd`:
    - Much larger bowl / ring / mast mass (diameter floor well above #116).
