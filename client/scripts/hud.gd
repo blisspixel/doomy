@@ -15,11 +15,18 @@ signal host_spoke(seconds: float)
 @onready var round_message = $RoundMessage
 @onready var scoreboard = $Panel/VBoxContainer/Scoreboard
 @onready var weapon_icon = $WeaponIcon
+@onready var weapon_icon_bg = $WeaponIconBg
 @onready var crosshair = $Crosshair
 @onready var damage_flash = $DamageFlash
 @onready var spawn_flash = $SpawnFlash
 @onready var streak_flash = $StreakFlash
 @onready var fp_weapon = $FpWeapon
+@onready var fp_muzzle = $FpMuzzle
+@onready var vitals = $Vitals
+@onready var health_value = $Vitals/HealthValue
+@onready var health_bar = $Vitals/HealthBar
+@onready var armor_value = $Vitals/ArmorValue
+@onready var armor_bar = $Vitals/ArmorBar
 @onready var chrome_strip = $ChromeStrip
 @onready var on_air_badge = $OnAirBadge
 @onready var contested_frequency_badge = $ContestedFrequencyBadge
@@ -30,6 +37,11 @@ var crosshair_hbar = null
 var crosshair_vbar = null
 var crosshair_dot = null
 var crosshair_ring = null
+## Dark rectangles sitting behind each crosshair part. A cream crosshair over a
+## tan floor is invisible, which is how a one pixel plus disappeared exactly
+## where a player was aiming.
+var crosshair_edges: Dictionary = {}
+const CROSSHAIR_EDGE_PAD: float = 2.0
 var hit_marker = null
 var damage_numbers = null
 
@@ -45,6 +57,9 @@ var pressure_id = ""
 var sticky_host_line = ""
 var host_line_seen = false
 var client_mode = "SPECTATING"
+## Milliseconds the control legend stays up after joining, then it gets out of the way.
+const CONTROLS_HINT_MS: int = 8000
+var mode_entered_ms: int = 0
 var episode_id = ""
 var episode_title = ""
 var episode_objective = ""
@@ -72,8 +87,19 @@ var spawn_flash_timer = 0.0
 var streak_flash_timer = 0.0
 var hit_marker_timer = 0.0
 var fp_kick_timer = 0.0
+## Seconds the first-person muzzle flash stays up. Short: it is a flash, and a
+## player sees it for the frame or two that the shot leaves the barrel.
+var fp_muzzle_timer: float = 0.0
+var fp_muzzle_texture: Texture2D
 var fp_kick_amount = Vector2.ZERO
 var current_fp_weapon = ""
+const FP_MUZZLE_SECONDS: float = 0.07
+## Full width of the vitals bars, so a fill can be scaled against it.
+const HEALTH_BAR_WIDTH: float = 200.0
+const ARMOR_BAR_WIDTH: float = 100.0
+## What the server considers a full fighter.
+const PLAYER_MAX_HP: int = 100
+const PLAYER_MAX_ARMOR: int = 100
 var floating_damage_nodes = []
 
 # Full-frame Warmup Contested Frequency TV bumper (unmissable scrap open).
@@ -91,6 +117,12 @@ var warmup_tv_host_line = ""
 
 func _ready():
 	_ensure_map_chip_label()
+	if vitals:
+		vitals.visible = false
+	fp_muzzle_texture = load("res://assets/vfx/32/muzzle_flash.png")
+	if fp_muzzle:
+		fp_muzzle.texture = fp_muzzle_texture
+		fp_muzzle.visible = false
 	weapon_textures["Flechette"] = load("res://assets/weapons/32/flechette.png")
 	weapon_textures["Rail"] = load("res://assets/weapons/32/rail.png")
 	weapon_textures["Scatter"] = load("res://assets/weapons/32/scatter.png")
@@ -98,6 +130,12 @@ func _ready():
 	crosshair_vbar = get_node_or_null("Crosshair/VBar")
 	crosshair_dot = get_node_or_null("Crosshair/Dot")
 	crosshair_ring = get_node_or_null("Crosshair/RingBorder")
+	crosshair_edges = {
+		crosshair_hbar: get_node_or_null("Crosshair/HBarEdge"),
+		crosshair_vbar: get_node_or_null("Crosshair/VBarEdge"),
+		crosshair_dot: get_node_or_null("Crosshair/DotEdge"),
+		crosshair_ring: get_node_or_null("Crosshair/RingEdge"),
+	}
 	hit_marker = get_node_or_null("HitMarker")
 	damage_numbers = get_node_or_null("DamageNumbers")
 
@@ -110,6 +148,8 @@ func _ready():
 		weapon_label.text = ""
 	if weapon_icon:
 		weapon_icon.visible = false
+		if weapon_icon_bg:
+			weapon_icon_bg.visible = false
 	set_mode("SPECTATING")
 	update_scoreboard()
 	if crosshair:
@@ -179,16 +219,20 @@ func _refresh_map_chip_badge() -> void:
 	_ensure_map_chip_label()
 	if map_chip_label:
 		map_chip_label.text = map_label.to_upper()
-		map_chip_label.visible = map_label != ""
+		# The venue, in the corner the vitals now own. A player behind a gun
+		# knows which map they are on; a spectator tuning in does not, so the
+		# chip belongs to the spectator view and to the round bumper.
+		map_chip_label.visible = map_label != "" and client_mode == "SPECTATING"
 	# Hide brand Hangar Candy art so it cannot impersonate the map chip.
 	if hangar_candy_badge:
 		hangar_candy_badge.visible = false
 	# chrome_strip_hud.png bakes Hangar Candy as a third top chip. During Solo
 	# Broadcast (Larak Lot) that reads as a second map name beside MapChipLabel.
-	# Keep OnAir + ContestedFrequency badges; strip off when map is Larak Lot.
+	# The strip is also spectator furniture, so it never comes back while a
+	# person is playing; this used to re-show it after the chrome decided not to.
 	if chrome_strip:
 		var solo_larak = map_label.strip_edges().to_lower() == "larak lot"
-		chrome_strip.visible = not solo_larak
+		chrome_strip.visible = not solo_larak and client_mode == "SPECTATING"
 
 
 func set_status(text: String):
@@ -214,35 +258,70 @@ func set_pressure(pressure: String):
 	_refresh_mode_label()
 
 func set_mode(mode: String):
+	if mode != client_mode:
+		mode_entered_ms = Time.get_ticks_msec()
 	client_mode = mode
 	_refresh_mode_label()
+	_refresh_telemetry_lines()
+	_refresh_map_chip_badge()
+	_update_broadcast_chrome(round_chrome_state)
+
+## Connection status, wall clock, and head count are for whoever is debugging
+## the client, not for someone in a firefight. The round line already carries
+## the clock and the scoreboard already carries the head count, so while a
+## player is playing these three lines are three copies of nothing.
+func _refresh_telemetry_lines() -> void:
+	var playing: bool = client_mode != "SPECTATING"
+	for node in [status_label, tick_label, player_count_label]:
+		if node:
+			node.visible = not playing
 
 func _refresh_mode_label():
 	if not mode_label:
 		return
-	var league = league_mode_name.to_upper() + " // " + league_playlist.to_upper()
-	var map_chip = "\nMAP: " + map_label.to_upper()
+	# The league and the playlist are how a spectator knows what they tuned
+	# into. A player picked the match and is standing in it.
+	var league = ""
+	if client_mode == "SPECTATING":
+		league = league_mode_name.to_upper() + " // " + league_playlist.to_upper()
+	# The map name is already on screen as its own chip. It used to be here as
+	# well, and inside the playlist above, so the first visual QA tour
+	# photographed three copies of "ARENA DUEL" in a single frame.
 	var host_chip = ""
 	if sticky_host_line != "":
-		host_chip = "\n" + sticky_host_line
+		host_chip = "
+" + sticky_host_line
+	# A spectator needs to know how to join. A player who has joined needs the
+	# screen. The legend shows for a few seconds after joining and then gets out
+	# of the way; it belongs in a settings screen once there is one.
 	var controls = ""
 	if client_mode == "SPECTATING":
-		controls = "SPECTATING (J/A: Join, F/D-pad: Cycle, V/Back: Free-fly, R/N/M or D-pad: Radio, ESC: Mouse) | Pad OK"
-	else:
-		controls = client_mode + " (L/Start: Leave, sticks move/look, RT/A: Fire, LB/RB: Weapon, Y/T: Speak, R/N/M or D-pad: Radio) | Pad OK"
+		controls = "
+SPECTATING (J/A: Join, F/D-pad: Cycle, V/Back: Free-fly, R/N/M or D-pad: Radio, ESC: Mouse) | Pad OK"
+	elif Time.get_ticks_msec() - mode_entered_ms < CONTROLS_HINT_MS:
+		controls = "
+" + client_mode + " (L/Start: Leave, sticks move/look, RT/A: Fire, LB/RB: Weapon, Y/T: Speak, R/N/M or D-pad: Radio) | Pad OK"
+	# The Host line already says a drone is on deck, in its own words, directly
+	# above. Saying it again underneath is the same sentence twice.
 	var pressure_chip = ""
-	if pressure_id == "compliance_drone":
-		pressure_chip = "\nPRESSURE: CONTINUANCE COMPLIANCE DRONE"
-	elif pressure_id == "compliance":
-		pressure_chip = "\nPRESSURE: CONTINUANCE COMPLIANCE"
+	if sticky_host_line == "":
+		if pressure_id == "compliance_drone":
+			pressure_chip = "
+PRESSURE: CONTINUANCE COMPLIANCE DRONE"
+		elif pressure_id == "compliance":
+			pressure_chip = "
+PRESSURE: CONTINUANCE COMPLIANCE"
 	var episode_chip = ""
 	if episode_title != "":
-		episode_chip = "\n" + episode_title.to_upper()
+		episode_chip = "
+" + episode_title.to_upper()
 		if episode_objective != "":
-			episode_chip += "\nOBJ: " + episode_objective
+			episode_chip += "
+OBJ: " + episode_objective
 		if episode_progress != "":
-			episode_chip += "\n" + episode_progress
-	mode_label.text = league + map_chip + host_chip + "\n" + controls + pressure_chip + episode_chip
+			episode_chip += "
+" + episode_progress
+	mode_label.text = league + host_chip + controls + pressure_chip + episode_chip
 
 func set_tick(tick: int):
 	if tick_label:
@@ -265,15 +344,16 @@ func set_round_info(state: String, time_left: int, frag_limit: int):
 			if time_left > 0:
 				text += " | " + str(time_left) + "s"
 		elif frag_limit > 0:
-			text = "ARENA DUEL // FIRST TO " + str(frag_limit)
+			# The map name is its own chip in the corner. This line is the race,
+			# not the venue.
+			text = "FIRST TO " + str(frag_limit)
 			if time_left > 0:
 				text += " | " + str(time_left) + "s"
 		elif time_left > 0:
 			text += " | Time: " + str(time_left) + "s"
-		if leader_name != "":
-			text += "\nLEADER: " + leader_name
-		if ghost_rival != "":
-			text += " | RIVAL: " + ghost_rival
+		# Who is leading is the first row of the scoreboard directly below, and
+		# so is the rival. Spelling both out here was two lines of the panel
+		# repeating the two lines under them.
 		if pressure_id == "compliance_drone":
 			text += "\nARTICLE 7 ENFORCEMENT"
 		elif pressure_id == "compliance":
@@ -294,6 +374,8 @@ func set_player_count(count: int):
 	if player_count_label:
 		player_count_label.text = "Fighters: " + str(count)
 
+const HUD_SCOREBOARD_ROWS: int = 4
+
 func update_scoreboard():
 	if not scoreboard:
 		return
@@ -301,15 +383,21 @@ func update_scoreboard():
 	for player in scores.keys():
 		sorted_scores.append({"name": player, "kills": scores[player]})
 	sorted_scores.sort_custom(func(a, b): return a.kills > b.kills)
-	var text = "SCRAP LEAGUE\n" + league_mode_name.to_upper() + "\n"
-	for i in range(min(8, len(sorted_scores))):
+	# No headers. The league and the playlist are already the first line of
+	# the panel, so repeating them above the names was two more lines saying
+	# what the player had just read.
+	var text = ""
+	# Four names, not the whole roster. Eight ran the panel off the bottom of
+	# the window, which the first visual QA tour caught, and a standing HUD is
+	# for who is winning. The full table belongs on the scoreboard screen.
+	for i in range(min(HUD_SCOREBOARD_ROWS, len(sorted_scores))):
 		var entry = sorted_scores[i]
 		var chip = ""
 		if behaviors.has(entry.name):
 			chip = " [" + _short_behavior(behaviors[entry.name]) + "]"
 		var marker = "*" if i == 0 and entry.kills > 0 else " "
 		text += str(i + 1) + "." + marker + entry.name + chip + ": " + str(entry.kills) + "\n"
-	scoreboard.text = text if len(sorted_scores) > 0 else "SCRAP LEAGUE\n" + league_mode_name.to_upper() + "\n(waiting for scrap)"
+	scoreboard.text = text if len(sorted_scores) > 0 else "(waiting for scrap)"
 
 func _short_behavior(behavior: String) -> String:
 	return StanceChipScript.short(behavior)
@@ -460,19 +548,30 @@ func _update_broadcast_chrome(state: String) -> void:
 	var warm = state == "Warmup"
 	var live = state == "Active"
 	var ended = state == "Ended"
+	# Do not re-show the Hangar Candy strip during Solo Broadcast / Larak Lot.
+	var solo_larak = map_label.strip_edges().to_lower() == "larak lot"
+	# The station is a thread through the world, not the world. Watching a
+	# broadcast is the point of the spectator view and the round bumper, so
+	# the strip lives there. A person behind a gun gets the world, and the
+	# highest-contrast thing on their screen should not be a network ident
+	# parked where the killfeed belongs.
+	var spectating = client_mode == "SPECTATING"
+	var strip_shown = chrome_strip != null and not solo_larak and spectating
 	if chrome_strip:
-		# Do not re-show the Hangar Candy strip during Solo Broadcast / Larak Lot.
-		var solo_larak = map_label.strip_edges().to_lower() == "larak lot"
-		chrome_strip.visible = not solo_larak
+		chrome_strip.visible = strip_shown
 		var a = 0.92 if live else (0.88 if warm else 0.7)
 		chrome_strip.modulate = Color(1, 1, 1, a)
+	# The strip already bakes ON AIR and Contested Frequency, the same way it
+	# bakes Hangar Candy. Drawing the loose badges underneath it put both marks
+	# on screen twice, which the first visual QA tour caught. They are the
+	# fallback for when the strip is not up, not a second copy of it.
 	if on_air_badge:
-		on_air_badge.visible = live
-		if live:
+		on_air_badge.visible = live and not strip_shown and spectating
+		if on_air_badge.visible:
 			on_air_badge.modulate = Color(1, 1, 1, 0.95)
 	if contested_frequency_badge:
 		# Warm on Warmup / Host face; quieter while live so ON AIR owns the scrap.
-		contested_frequency_badge.visible = true
+		contested_frequency_badge.visible = not strip_shown and spectating
 		var ca = 0.95 if warm else (0.72 if live else 0.8)
 		contested_frequency_badge.modulate = Color(0.95, 0.95, 0.98, ca)
 	# Map chip is Snapshot map_name (see _refresh_map_chip_badge). Never re-show
@@ -809,6 +908,8 @@ func show_round_end(mvp_name: String, reason: String, mvp_frags: int = 0, host_l
 		weapon_label.text = ""
 	if weapon_icon:
 		weapon_icon.visible = false
+		if weapon_icon_bg:
+			weapon_icon_bg.visible = false
 
 	followed_player_name = ""
 
@@ -914,16 +1015,33 @@ func set_followed_weapon(weapon_name: String, player_name: String = "", behavior
 		weapon_label.text = ""
 		weapon_label.remove_theme_color_override("font_color")
 		weapon_icon.visible = false
+		if weapon_icon_bg:
+			weapon_icon_bg.visible = false
 		return
 
-	weapon_label.text = StanceChipScript.follow_line(player_name, behavior, weapon_desc)
+	# "FOLLOWING: Human Player" is what a player was told about themselves.
+	# The line is for a spectator watching someone else.
+	if client_mode != "SPECTATING":
+		# The gun is already in the player's hands, drawn large. Naming it in
+		# the corner as well is the third copy of the same fact.
+		weapon_label.text = ""
+	else:
+		weapon_label.text = StanceChipScript.follow_line(player_name, behavior, weapon_desc)
 	weapon_label.add_theme_color_override("font_color", StanceChipScript.accent_color(behavior != ""))
-	if has_weapon:
+	# A player already has the gun in their hands, drawn large in the corner
+	# this icon sits in. Two pictures of the same weapon, one of them in a
+	# dark box, is one too many. The icon is how a spectator knows what the
+	# fighter they are watching is holding.
+	if has_weapon and client_mode == "SPECTATING":
 		weapon_icon.texture = weapon_textures[weapon_name]
 		weapon_icon.modulate = Color(1.15, 1.1, 1.05, 1)
 		weapon_icon.visible = true
+		if weapon_icon_bg:
+			weapon_icon_bg.visible = true
 	else:
 		weapon_icon.visible = false
+		if weapon_icon_bg:
+			weapon_icon_bg.visible = false
 
 func _process(delta):
 	if warmup_tv_linger_timer > 0:
@@ -964,6 +1082,15 @@ func _process(delta):
 			hit_marker.modulate.a = 0.0
 	if fp_kick_timer > 0:
 		fp_kick_timer -= delta
+	if fp_muzzle_timer > 0:
+		fp_muzzle_timer -= delta
+		if fp_muzzle:
+			# Fades and shrinks over its short life rather than blinking off.
+			var m: float = clampf(fp_muzzle_timer / FP_MUZZLE_SECONDS, 0.0, 1.0)
+			fp_muzzle.modulate.a = m
+			fp_muzzle.scale = Vector2.ONE * (0.75 + 0.35 * m)
+		if fp_muzzle_timer <= 0 and fp_muzzle:
+			fp_muzzle.visible = false
 	_update_floating_damage(delta)
 	if fp_juice_enabled and fp_weapon and fp_weapon.visible:
 		fp_bob_t += delta * 9.0
@@ -1035,6 +1162,21 @@ func set_fp_weapon(weapon_name: String) -> void:
 		_apply_crosshair_for_weapon(weapon_name)
 	fp_weapon.visible = true
 
+## Keep every crosshair edge matching the part it sits behind: same visibility,
+## same rectangle grown by a couple of pixels on each side.
+func _sync_crosshair_edges() -> void:
+	for part in crosshair_edges:
+		var edge = crosshair_edges[part]
+		if part == null or edge == null:
+			continue
+		edge.visible = part.visible
+		if not edge.visible:
+			continue
+		edge.offset_left = part.offset_left - CROSSHAIR_EDGE_PAD
+		edge.offset_top = part.offset_top - CROSSHAIR_EDGE_PAD
+		edge.offset_right = part.offset_right + CROSSHAIR_EDGE_PAD
+		edge.offset_bottom = part.offset_bottom + CROSSHAIR_EDGE_PAD
+
 func _apply_crosshair_for_weapon(weapon_name: String) -> void:
 	if not crosshair or not fp_juice_enabled:
 		return
@@ -1083,15 +1225,18 @@ func _apply_crosshair_for_weapon(weapon_name: String) -> void:
 				crosshair_ring.color = Color(0.78, 0.55, 0.32, 0.22)
 		_:
 			if crosshair_hbar:
-				crosshair_hbar.offset_left = -10.0
-				crosshair_hbar.offset_right = 10.0
-				crosshair_hbar.offset_top = -1.0
-				crosshair_hbar.offset_bottom = 1.0
+				crosshair_hbar.offset_left = -11.0
+				crosshair_hbar.offset_right = 11.0
+				crosshair_hbar.offset_top = -1.5
+				crosshair_hbar.offset_bottom = 1.5
 			if crosshair_vbar:
-				crosshair_vbar.offset_top = -10.0
-				crosshair_vbar.offset_bottom = 10.0
-				crosshair_vbar.offset_left = -1.0
-				crosshair_vbar.offset_right = 1.0
+				crosshair_vbar.offset_top = -11.0
+				crosshair_vbar.offset_bottom = 11.0
+				crosshair_vbar.offset_left = -1.5
+				crosshair_vbar.offset_right = 1.5
+	# Whatever shape this weapon chose, put a dark edge behind it. A cream
+	# crosshair over a tan floor is a crosshair nobody can see.
+	_sync_crosshair_edges()
 
 func show_hit_marker(damage: int = 0, weapon_name: String = "") -> void:
 	# Light grit confirm when local / followed player scores a hit.
@@ -1117,12 +1262,55 @@ func show_hit_marker(damage: int = 0, weapon_name: String = "") -> void:
 	# Fire kick on confirm sells the shot.
 	_fp_fire_kick(weapon_name)
 
+## How close a player is to dying, which is the one thing the HUD never said.
+## A number for the exact figure and a bar for the glance, in the corner, read
+## without looking away from the crosshair.
+func set_vitals(hp: int, armor: int) -> void:
+	if not vitals:
+		return
+	vitals.visible = client_mode != "SPECTATING"
+	var hp_shown: int = maxi(hp, 0)
+	if health_value:
+		health_value.text = str(hp_shown)
+		# Low health is the one place the HUD is allowed to shout.
+		health_value.modulate = Color(1, 0.55, 0.55) if hp_shown <= 35 else Color.WHITE
+	if health_bar:
+		var hp_fill: float = clampf(float(hp_shown) / float(PLAYER_MAX_HP), 0.0, 1.0)
+		health_bar.size.x = HEALTH_BAR_WIDTH * hp_fill
+	var armor_shown: int = maxi(armor, 0)
+	if armor_value:
+		armor_value.text = str(armor_shown)
+		# Armour at zero is not worth the ink.
+		armor_value.modulate.a = 1.0 if armor_shown > 0 else 0.35
+	if armor_bar:
+		var armor_fill: float = clampf(float(armor_shown) / float(PLAYER_MAX_ARMOR), 0.0, 1.0)
+		armor_bar.size.x = ARMOR_BAR_WIDTH * armor_fill
+
 func show_fire_juice(weapon_name: String = "") -> void:
 	_fp_fire_kick(weapon_name if weapon_name != "" else current_fp_weapon)
+
+## The flash a player sees for their own shot. The pawn has had one all along,
+## but in first person the pawn is not what anyone is looking at, so until now
+## the only feedback for pulling the trigger was the sound.
+func _fp_muzzle_flash(weapon_name: String) -> void:
+	if not fp_juice_enabled or not fp_muzzle or fp_muzzle_texture == null:
+		return
+	# Same colours the fighter's own flash uses, so the two read as one weapon.
+	match weapon_name:
+		"Rail":
+			fp_muzzle.modulate = Color(0.72, 0.78, 0.82, 1.0)
+		"Scatter":
+			fp_muzzle.modulate = Color(0.95, 0.55, 0.28, 1.0)
+		_:
+			fp_muzzle.modulate = Color(0.92, 0.78, 0.55, 1.0)
+	fp_muzzle.scale = Vector2.ONE * 1.1
+	fp_muzzle.visible = true
+	fp_muzzle_timer = FP_MUZZLE_SECONDS
 
 func _fp_fire_kick(weapon_name: String) -> void:
 	if not fp_juice_enabled:
 		return
+	_fp_muzzle_flash(weapon_name)
 	fp_kick_timer = 0.12
 	match weapon_name:
 		"Rail":

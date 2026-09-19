@@ -62,4 +62,7 @@ fi
 "$GODOT_BIN" --path "$ROOT/client" --rendering-driver opengl3 --quit-after 30000 \
   --script res://scripts/tip_capture.gd
 
+# Orange footprint gate: refuse empty hangar jammer stills (Soft Prison orange≈0.01 miss).
+python3 "$ROOT/tools/gate_tip_jammer_orange.py" "$OUT_DIR"
+
 echo "Tip capture finished. Inspect PNGs under $OUT_DIR"

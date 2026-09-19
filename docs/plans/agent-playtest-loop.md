@@ -37,7 +37,7 @@ Three findings:
 3. **The weapon triangle was untested, because only one weapon was used.** The reflex agents never swapped, so scatter and rail produced no data at all. Fixed the same day: the reflex policy now holds the shotgun inside ten units, the railgun beyond thirty, and the needle gun between. The follow-up runs are in `plans/gunfeel.md`, and they found that the rail is still never fired in any seed, because chasing agents close the distance before a fight starts.
 
 - Report fields shipped: time to first frag, frags per minute per agent, deaths, longest gap without a frag, Host beats, spawn deaths within two seconds, stuck detection (no movement and no fire during an Active round), weapon usage, bytes per snapshot, and the combat block: time to kill as a distribution, shots and hits with a Wilson interval on accuracy, shots per kill, per-weapon accuracy, damage, kills, hit distance and kill distance, and a kill-distance histogram. Planned: pickup contention, idle ticks per agent, route metrics, tick time percentiles from the status line.
-- Frustration signals become assertions with thresholds in CI: no agent stuck for more than five seconds, no spawn death rate above ten percent, at least one frag per minute at four agents.
+- Frustration signals become assertions with thresholds in CI: no agent stuck for more than five seconds, no spawn death rate above ten percent, at least one frag per minute at four agents. Sticky flechette/rail/scatter table TTK (0.5 to 1.2 s clean-hit) is asserted on the same `--assert` path; see [`ttk-feel-harness-proof.md`](./ttk-feel-harness-proof.md).
 - Output lands under gitignored `.agents/playtest/`; the summary table for a change under test goes into that change's plan doc, except brain results, which stay in `.agents/` per TypeSafe's terms.
 
 ## The planner tier, measured (2026-09-19)
@@ -60,6 +60,22 @@ What it says:
 - **Accuracy and shots per kill are unchanged**, which is the result that makes the first two trustworthy: the planner is not winning by shooting more or better, it is fighting somewhere else.
 - **Fighting at range takes longer**, median time to kill rising from about one second to about two. That is not obviously wrong. A rail duel across a room should take longer than a shotgun in a doorway; the question the gunfeel plan now has to answer is whether the long tail is pacing or frustration.
 - **A mixed roster produces the most varied distances** and the best accuracy and shots per kill of the three. It is the better default for measuring anything, because it exercises the whole triangle rather than one corner of it.
+
+## Agents can see the walls (2026-09-19)
+
+The harness agents used to fire whenever an enemy was in range, because nothing on the wire told them where cover was. The server now sends `MapInfo` on join, the agents test the line before firing, and measured accuracy went from fifteen percent to sixty, with shots per kill falling from about twenty three to about five and a half. Time to kill did not move, which is the control. The table is in `plans/gunfeel.md`.
+
+Two consequences for this harness. First, every accuracy figure recorded before this change was measuring the agents' blindness rather than the guns, and is marked as such where it appears. Second, the same information is available to any MCP agent through `observe`, so an outside agent is not at a disadvantage the reference agents do not share.
+
+## Standing still, and what the number was really counting (2026-09-19)
+
+The stuck threshold fired in CI and not on a developer machine, which usually means a flaky test and this time meant two real faults behind one ambiguous number.
+
+The first was the number itself. The protocol has no corpse: a fighter waiting to respawn is simply absent from the snapshot. The observer kept the last position it saw across that gap, so a short stall before a death and the stall after the respawn were spliced into one long one, and a three second respawn could be billed to the agent. Stall time and time off the field are now separate figures. The report carries both, with the tick and the spot the longest stall began on, so a failure names a place on the map instead of only a duration. Time off the field has its own threshold at six seconds, double the respawn delay, which catches a fighter the server forgot: a failure the old number was accidentally hiding inside the stall count.
+
+The second was the agents. Both policies stood perfectly still when nobody was in sight, which happens whenever every other fighter is briefly dead. A fighter alone now patrols, sweeping a slow circle offset per fighter so two of them do not walk the same ground in step. The longest stall in the smoke configuration fell from 2.5 s to 0.4 s, twelve times under the threshold rather than twice.
+
+Keeping the threshold and fixing the behaviour was the right way round. Measured over three seeds of the six agent mixed roster afterwards: accuracy 62 to 64 percent, 5.7 to 5.9 shots per kill, longest time off the field exactly 3.0 seconds on every seed, which is the respawn delay reading true.
 
 ## Rungs
 
