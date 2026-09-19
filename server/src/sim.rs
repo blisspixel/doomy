@@ -578,6 +578,11 @@ impl ArenaPickup {
 }
 
 pub struct GameState {
+    /// Deterministic random state. Seeded from `seed()`; every draw in the sim
+    /// goes through it, so a run can be reproduced and two runs compared.
+    /// The generator lives here rather than in a crate so the value stream
+    /// cannot change under a dependency upgrade.
+    pub rng_state: u64,
     pub tick: u64,
     pub players: Vec<Player>,
     pub events: Vec<GameEvent>,
@@ -650,6 +655,32 @@ pub struct Player {
 impl GameState {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Fix the random stream. Two states with the same seed that are given the
+    /// same inputs produce the same match.
+    pub fn seed(&mut self, seed: u64) {
+        // Any non-zero state works; mixing keeps small seeds from starting cold.
+        self.rng_state = seed ^ 0x9E37_79B9_7F4A_7C15;
+        if self.rng_state == 0 {
+            self.rng_state = 0x2545_F491_4F6C_DD1D;
+        }
+    }
+
+    /// xorshift64star: one multiply and three shifts, a long period, and a
+    /// value stream that belongs to this repository rather than to a crate.
+    pub fn next_u64(&mut self) -> u64 {
+        let mut x = self.rng_state;
+        x ^= x >> 12;
+        x ^= x << 25;
+        x ^= x >> 27;
+        self.rng_state = x;
+        x.wrapping_mul(0x2545_F491_4F6C_DD1D)
+    }
+
+    /// A random number in `[0, 1)`, from the top 24 bits so it is uniform.
+    pub fn next_f32(&mut self) -> f32 {
+        ((self.next_u64() >> 40) as f32) / (1u32 << 24) as f32
     }
 
     pub fn with_map(map: MapKind, map_rotate: bool) -> Self {
@@ -1332,7 +1363,7 @@ impl GameState {
     }
 
     /// Ring slot farthest from every living fighter, so a respawn never lands in a fight.
-    fn farthest_spawn_angle(&self, player_id: Uuid) -> f32 {
+    fn farthest_spawn_angle(&mut self, player_id: Uuid) -> f32 {
         let others: Vec<(f32, f32)> = self
             .players
             .iter()
@@ -1340,7 +1371,7 @@ impl GameState {
             .map(|p| (p.x, p.z))
             .collect();
         if others.is_empty() {
-            return rand::random::<f32>() * 2.0 * PI;
+            return self.next_f32() * 2.0 * PI;
         }
         let mut best_angle = 0.0;
         let mut best_gap = f32::MIN;
@@ -2128,6 +2159,7 @@ impl GameState {
 impl Default for GameState {
     fn default() -> Self {
         Self {
+            rng_state: 0x2545_F491_4F6C_DD1D,
             tick: 0,
             players: Vec::new(),
             events: Vec::new(),

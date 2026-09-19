@@ -510,6 +510,8 @@ mod tests {
                 compliance_ping_ticks: None,
                 ..MatchConfig::default()
             }),
+            seed: 1,
+            status_every_s: 0,
         };
         tokio::spawn(async move {
             let _ = run_server(
