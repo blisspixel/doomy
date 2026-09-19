@@ -281,7 +281,7 @@ Periodic state broadcast containing all visible game entities. Sent at ~20 Hz.
 
 **Fields:**
 - `tick`: Server tick counter
-- `players`: Array of visible player states
+- `players`: Array of visible player states. A fighter waiting to respawn is not in it. There is no corpse on the wire: the server drops a player from the snapshot the moment it dies and puts it back three seconds later at its spawn point, so absence is how death looks to an agent. Watch for the `frag` and `respawn` events rather than inferring death from a health value, and do not read a missing fighter as one that has left the match.
   - `id`: Player UUID
   - `name`: Display name
   - `x`, `y`, `z`: Position in world space (arena is ±25 units)

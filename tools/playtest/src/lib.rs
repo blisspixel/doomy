@@ -59,6 +59,9 @@ fn weapon_from_wire(name: &str) -> Option<WeaponType> {
 }
 /// Movement smaller than this between snapshots counts as idle.
 const IDLE_EPSILON: f32 = 0.01;
+/// Radians the patrol sweep turns per tick: a full circle in about five
+/// seconds, slow enough to actually cross ground rather than spin on the spot.
+const PATROL_TURN_PER_TICK: f32 = 0.06;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -241,9 +244,27 @@ pub struct AgentTrack {
     pub ticks_present: u64,
     /// Ticks without movement while a round is active.
     pub idle_ticks: u64,
-    /// Longest run of active-round ticks with no movement and no fire.
+    /// Longest run of active-round ticks where a *living* fighter neither
+    /// moved nor fired. Death is excluded deliberately: the server freezes a
+    /// corpse in place for the respawn delay, so counting it made a short
+    /// wedge next to a death read as one long stall, and the number could not
+    /// tell a wedged agent from a dead one. Dead time is `dead_max_ticks`.
     pub stuck_max_ticks: u64,
     stuck_run: u64,
+    /// Longest unbroken run of ticks spent off the field. The protocol has no
+    /// corpse: the server drops a fighter from the snapshot until it respawns,
+    /// so absence is how death looks from the outside. Three seconds is the
+    /// respawn delay; far more than that is a fighter that never came back.
+    pub dead_max_ticks: u64,
+    dead_run: u64,
+    /// Where and when the longest stall began, so a failure names a place on
+    /// the map instead of only a duration.
+    pub stuck_from_tick: u64,
+    pub stuck_at: (f32, f32),
+    stuck_run_from: u64,
+    /// Set while a fighter is away, so the stall run breaks across a death
+    /// instead of splicing the seconds before it to the seconds after.
+    off_field: bool,
     last_pos: Option<(f32, f32)>,
     pub fire_ticks: u64,
     pub weapon_fire_ticks: BTreeMap<String, u64>,
@@ -281,23 +302,52 @@ impl Observation {
         }
         self.last_tick = self.last_tick.max(snapshot.tick);
         let active = snapshot.round_state.as_deref() == Some("Active");
+        // The protocol has no corpse. A fighter waiting to respawn is simply
+        // absent from the snapshot, so absence is the only way to see death
+        // from out here, and a fighter that is not on the field is not one
+        // standing still on it.
+        let present: std::collections::BTreeSet<&str> =
+            snapshot.players.iter().map(|p| p.name.as_str()).collect();
+        for (name, track) in self.tracks.iter_mut() {
+            if present.contains(name.as_str()) {
+                continue;
+            }
+            track.stuck_run = 0;
+            // The last known position stays: a frag names the victim on the
+            // snapshot after it leaves the field, and the kill distance is
+            // measured from where the two of them were standing.
+            track.off_field = true;
+            if active {
+                track.dead_run += 1;
+                track.dead_max_ticks = track.dead_max_ticks.max(track.dead_run);
+            }
+        }
         for player in &snapshot.players {
             let track = self.tracks.entry(player.name.clone()).or_default();
             track.ticks_present += 1;
             let pos = (player.x, player.z);
+            track.dead_run = 0;
             if let Some((lx, lz)) = track.last_pos {
                 let moved = ((pos.0 - lx).powi(2) + (pos.1 - lz).powi(2)).sqrt();
-                if !active || moved >= IDLE_EPSILON || player.just_fired {
-                    // Moving, fighting, or between rounds is not stuck.
+                if !active || moved >= IDLE_EPSILON || player.just_fired || track.off_field {
+                    // Moving, fighting, freshly respawned, or between rounds.
                     track.stuck_run = 0;
                 } else {
+                    if track.stuck_run == 0 {
+                        track.stuck_run_from = snapshot.tick;
+                    }
                     track.stuck_run += 1;
-                    track.stuck_max_ticks = track.stuck_max_ticks.max(track.stuck_run);
+                    if track.stuck_run > track.stuck_max_ticks {
+                        track.stuck_max_ticks = track.stuck_run;
+                        track.stuck_from_tick = track.stuck_run_from;
+                        track.stuck_at = pos;
+                    }
                 }
                 if active && moved < IDLE_EPSILON {
                     track.idle_ticks += 1;
                 }
             }
+            track.off_field = false;
             track.last_pos = Some(pos);
             track.last_weapon = Some(player.weapon.clone());
             if player.just_fired {
@@ -455,6 +505,15 @@ pub struct AgentReport {
     pub deaths_per_minute: f64,
     pub idle_ratio: f64,
     pub stuck_max_s: f64,
+    /// Longest unbroken stretch spent off the field, which is how the
+    /// protocol shows death. The respawn delay is three seconds, so anything
+    /// far above that is a fighter that did not come back.
+    pub dead_max_s: f64,
+    /// The tick the longest stall began on and the spot it happened at, so a
+    /// failure in CI names a place to look rather than only a duration.
+    pub stuck_from_tick: u64,
+    pub stuck_at_x: f32,
+    pub stuck_at_z: f32,
     pub fire_ticks: u64,
     pub weapon_fire_ticks: BTreeMap<String, u64>,
 }
@@ -505,6 +564,10 @@ pub fn compute_report(obs: &Observation, agents: usize) -> Report {
                     track.idle_ticks as f64 / track.ticks_present as f64
                 },
                 stuck_max_s: seconds(track.stuck_max_ticks),
+                dead_max_s: seconds(track.dead_max_ticks),
+                stuck_from_tick: track.stuck_from_tick,
+                stuck_at_x: track.stuck_at.0,
+                stuck_at_z: track.stuck_at.1,
                 fire_ticks: track.fire_ticks,
                 weapon_fire_ticks: track.weapon_fire_ticks.clone(),
                 ..AgentReport::default()
@@ -600,7 +663,18 @@ pub fn check_thresholds(report: &Report) -> Vec<String> {
     }
     for (name, agent) in &report.per_agent {
         if agent.stuck_max_s > 5.0 {
-            problems.push(format!("{name} stuck for {:.1} s", agent.stuck_max_s));
+            problems.push(format!(
+                "{name} stuck for {:.1} s from tick {} at ({:.1}, {:.1})",
+                agent.stuck_max_s, agent.stuck_from_tick, agent.stuck_at_x, agent.stuck_at_z
+            ));
+        }
+        // Three seconds is the respawn delay. Twice that is a fighter the
+        // server forgot, which no amount of agent cleverness can fix.
+        if agent.dead_max_s > 6.0 {
+            problems.push(format!(
+                "{name} dead for {:.1} s without respawning",
+                agent.dead_max_s
+            ));
         }
     }
     if report.frags >= 10 && report.spawn_deaths as f64 / report.frags as f64 > 0.10 {
@@ -620,6 +694,26 @@ pub fn check_thresholds(report: &Report) -> Vec<String> {
 
 /// Reflex tier: face the nearest fighter, close in, fire in range. Same policy as
 /// the adapter's scripted bot, driven straight from the server's wire types.
+/// Nobody in sight. A fighter that has the map to itself goes looking rather
+/// than standing where it last saw someone, which is both what a player does
+/// and what keeps an empty stretch of a round from reading as a stuck agent.
+/// The sweep is offset per fighter so two of them do not walk the same circle
+/// in step and meet nobody.
+pub fn patrol_action(me: &fragr_server::protocol::PlayerState, tick: u64, arena: &Arena) -> Action {
+    let radius = arena.half_extent * 0.6;
+    let offset = (me.id.as_u128() % 628) as f32 / 100.0;
+    let angle = offset + tick as f32 * PATROL_TURN_PER_TICK;
+    Action {
+        look_at: Some(LookAt {
+            player_id: None,
+            x: Some(angle.cos() * radius),
+            z: Some(angle.sin() * radius),
+        }),
+        forward: true,
+        ..Action::default()
+    }
+}
+
 pub fn reflex_action(bot_id: Uuid, snapshot: &Snapshot, arena: &Arena) -> Action {
     let Some(me) = snapshot.players.iter().find(|p| p.id == bot_id) else {
         return Action::default();
@@ -635,7 +729,7 @@ pub fn reflex_action(bot_id: Uuid, snapshot: &Snapshot, arena: &Arena) -> Action
         }
     }
     let Some((dist, target, target_x, target_z)) = nearest else {
-        return Action::default();
+        return patrol_action(me, snapshot.tick, arena);
     };
     // Swap only when the right weapon is not already in hand, so the report
     // does not fill with pointless swaps.
@@ -758,7 +852,7 @@ pub fn planner_action(bot_id: Uuid, snapshot: &Snapshot, arena: &Arena) -> Actio
         if let Some(pad) = nearest_pickup(snapshot, me, |p| p.kind != "health") {
             return walk_to(pad, me, None);
         }
-        return Action::default();
+        return patrol_action(me, snapshot.tick, arena);
     };
 
     // A weapon this fighter is not carrying, close by, and no enemy breathing
@@ -848,9 +942,20 @@ pub fn policy_action(policy: Policy, bot_id: Uuid, snapshot: &Snapshot, arena: &
 /// Without them an agent has no way to tell a clear shot from a wall, which
 /// is why the first combat reports showed accuracy near fifteen percent
 /// whatever the policy: the agents were firing through cover.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Arena {
     pub solids: Vec<Solid>,
+    /// Half the width of the square, centred on the origin.
+    pub half_extent: f32,
+}
+
+impl Default for Arena {
+    fn default() -> Self {
+        Self {
+            solids: Vec::new(),
+            half_extent: 25.0,
+        }
+    }
 }
 
 impl Arena {
@@ -891,6 +996,31 @@ fn ray_hits_solid(origin: (f32, f32), dir: (f32, f32), solid: Solid) -> Option<f
     (exit >= enter && exit >= 0.0).then(|| enter.max(0.0))
 }
 
+/// Ticks of no movement before an agent decides it is wedged and tries
+/// something else. Half a second: long enough not to fire on a pause at a
+/// pad, short enough that a corner never becomes a five second stand.
+pub const WEDGED_TICKS: u64 = 10;
+
+/// Rewrite an action for a fighter that has stopped moving while trying to.
+/// Walking into a pillar looks exactly like standing still, and a policy that
+/// only knows this tick cannot tell the difference, so the agent keeps its own
+/// count and cycles through directions until one frees it.
+pub fn unstick(action: Action, stuck_ticks: u64) -> Action {
+    if stuck_ticks < WEDGED_TICKS {
+        return action;
+    }
+    // A new direction every half second: forward, left, back, right.
+    let phase = ((stuck_ticks - WEDGED_TICKS) / WEDGED_TICKS) % 4;
+    Action {
+        forward: phase == 0,
+        left: phase == 1,
+        back: phase == 2,
+        right: phase == 3,
+        // Keep aiming and keep the trigger discipline the policy chose.
+        ..action
+    }
+}
+
 fn transport<E: fmt::Display>(err: E) -> Error {
     Error::Transport(err.to_string())
 }
@@ -914,6 +1044,9 @@ async fn agent_task(
     .map_err(transport)?;
     let mut player_id: Option<Uuid> = None;
     let mut arena = Arena::default();
+    // The agent's own memory of whether it is actually getting anywhere.
+    let mut last_pos: Option<(f32, f32)> = None;
+    let mut stuck_ticks = 0u64;
     while let Some(msg) = stream.next().await {
         if stop.load(Ordering::Relaxed) {
             break;
@@ -923,12 +1056,34 @@ async fn agent_task(
         };
         match serde_json::from_str::<ServerMessage>(&text) {
             Ok(ServerMessage::Welcome { player_id: pid, .. }) => player_id = pid,
-            Ok(ServerMessage::MapInfo { solids, .. }) => arena = Arena { solids },
+            Ok(ServerMessage::MapInfo {
+                solids, half_extent, ..
+            }) => {
+                arena = Arena {
+                    solids,
+                    half_extent,
+                }
+            }
             Ok(ServerMessage::Snapshot(snapshot)) => {
                 let Some(id) = player_id else {
                     continue;
                 };
-                let action = ClientMessage::Action(policy_action(policy, id, &snapshot, &arena));
+                let wanted = policy_action(policy, id, &snapshot, &arena);
+                // Count ticks where the fighter meant to move and did not.
+                if let Some(me) = snapshot.players.iter().find(|p| p.id == id) {
+                    let pos = (me.x, me.z);
+                    let moving = wanted.forward || wanted.back || wanted.left || wanted.right;
+                    let travelled = last_pos
+                        .map(|(lx, lz)| ((pos.0 - lx).powi(2) + (pos.1 - lz).powi(2)).sqrt())
+                        .unwrap_or(f32::MAX);
+                    stuck_ticks = if moving && travelled < 0.02 {
+                        stuck_ticks + 1
+                    } else {
+                        0
+                    };
+                    last_pos = Some(pos);
+                }
+                let action = ClientMessage::Action(unstick(wanted, stuck_ticks));
                 if sink
                     .send(Message::Text(
                         serde_json::to_string(&action).map_err(transport)?,
@@ -1143,10 +1298,14 @@ mod tests {
         assert_eq!(action.look_at.unwrap().player_id, Some(near));
         assert!(action.forward);
         assert!(action.fire);
+        // Alone on the map it patrols rather than standing there. Standing
+        // there is what made an empty stretch of a round read as a stuck agent.
         let alone = snapshot(1, vec![player("me", me, 0.0, 0.0, false)]);
-        assert!(reflex_action(me, &alone, &Arena::default())
-            .look_at
-            .is_none());
+        let patrolling = reflex_action(me, &alone, &Arena::default());
+        assert!(patrolling.forward, "it goes looking");
+        assert!(!patrolling.fire, "at nothing in particular");
+        let aim = patrolling.look_at.expect("it aims where it is going");
+        assert!(aim.player_id.is_none() && aim.x.is_some() && aim.z.is_some());
         assert!(reflex_action(Uuid::new_v4(), &snap, &Arena::default())
             .look_at
             .is_none());
@@ -1190,6 +1349,141 @@ mod tests {
         assert_eq!(track.stuck_max_ticks, 1);
         assert_eq!(track.idle_ticks, 3);
         assert_eq!(track.ticks_present, 20);
+    }
+
+    /// A corpse is frozen by the server for the respawn delay. That is the
+    /// rules working, not an agent that has stopped playing, and the harness
+    /// used to report it as the latter.
+    #[test]
+    fn a_dead_fighter_is_counted_as_dead_not_stuck() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let mut obs = Observation::default();
+        // Both on the field, then "a" dies and drops out of the snapshot.
+        obs.ingest_snapshot(
+            &snapshot(
+                1,
+                vec![
+                    player("a", a, 3.0, 4.0, false),
+                    player("b", b, 9.0, 9.0, false),
+                ],
+            ),
+            100,
+        );
+        for tick in 2..=61 {
+            obs.ingest_snapshot(&snapshot(tick, vec![player("b", b, 9.0, 9.0, false)]), 100);
+        }
+        let track = &obs.tracks["a"];
+        assert_eq!(track.stuck_max_ticks, 0, "a corpse is not a stuck agent");
+        assert_eq!(track.dead_max_ticks, 60, "three seconds of respawn delay");
+    }
+
+    /// The bug this splits apart: a brief wedge that happened to end in a
+    /// death used to be reported as one long stall, so the number blamed the
+    /// agent for the seconds it spent dead.
+    #[test]
+    fn a_wedge_and_a_death_are_not_one_long_stall() {
+        let a = Uuid::new_v4();
+        let mut obs = Observation::default();
+        let b = Uuid::new_v4();
+        let both = |tick: u64| {
+            snapshot(
+                tick,
+                vec![
+                    player("a", a, 3.0, 4.0, false),
+                    player("b", b, 9.0, 9.0, false),
+                ],
+            )
+        };
+        // Alive and not moving for forty ticks: a genuine two second wedge.
+        for tick in 1..=41 {
+            obs.ingest_snapshot(&both(tick), 100);
+        }
+        // Then it dies and waits out the respawn, off the snapshot entirely.
+        for tick in 42..=101 {
+            obs.ingest_snapshot(&snapshot(tick, vec![player("b", b, 9.0, 9.0, false)]), 100);
+        }
+        // And comes back to the very spot it died on, which used to splice the
+        // two stalls into one because the tracker never noticed it had left.
+        for tick in 102..=111 {
+            obs.ingest_snapshot(&both(tick), 100);
+        }
+        let track = &obs.tracks["a"];
+        assert_eq!(
+            track.stuck_max_ticks, 40,
+            "the wedge is reported at its real length, not the length plus the funeral"
+        );
+        assert_eq!(track.dead_max_ticks, 60);
+        assert_eq!(track.stuck_from_tick, 2, "and it says where the stall began");
+        assert_eq!(track.stuck_at, (3.0, 4.0));
+    }
+
+    /// The victim of a frag is already off the snapshot when the event
+    /// arrives, because the server drops it the moment it dies. The kill
+    /// distance is measured from the last place the two of them stood, so the
+    /// tracker has to keep that position after a fighter leaves the field.
+    #[test]
+    fn a_kill_is_still_measured_after_the_victim_leaves_the_field() {
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let mut obs = Observation::default();
+        obs.ingest_snapshot(
+            &snapshot(
+                1,
+                vec![
+                    player("killer", a, 0.0, 0.0, false),
+                    player("victim", b, 8.0, 0.0, false),
+                ],
+            ),
+            100,
+        );
+        // The victim dies: gone from the snapshot, then the frag lands.
+        obs.ingest_snapshot(&snapshot(2, vec![player("killer", a, 0.0, 0.0, false)]), 100);
+        obs.ingest_event(GameEvent::Frag {
+            killer: "killer".to_string(),
+            victim: "victim".to_string(),
+            killer_score: 1,
+        });
+        let report = obs.combat_report();
+        let kills: u64 = report.by_weapon.values().map(|w| w.kills).sum();
+        assert_eq!(kills, 1, "the kill is attributed to the weapon in hand");
+        assert_eq!(
+            report.kill_distance_buckets.iter().sum::<u64>(),
+            1,
+            "and lands in a distance bucket"
+        );
+        assert_eq!(report.by_weapon["Flechette"].kill_distance.max, 8.0);
+    }
+
+    #[test]
+    fn a_fighter_that_never_respawns_is_flagged() {
+        let mut report = Report {
+            rounds_completed: 1,
+            agents: 1,
+            ..Report::default()
+        };
+        report.per_agent.insert(
+            "Probe-1".to_string(),
+            AgentReport {
+                dead_max_s: 9.0,
+                ..AgentReport::default()
+            },
+        );
+        let problems = check_thresholds(&report);
+        assert!(
+            problems
+                .iter()
+                .any(|p| p.contains("Probe-1 dead for 9.0 s without respawning")),
+            "got {problems:?}"
+        );
+        // Waiting out the normal three second delay is not a problem.
+        report.per_agent.get_mut("Probe-1").unwrap().dead_max_s = 3.0;
+        assert!(
+            !check_thresholds(&report)
+                .iter()
+                .any(|p| p.contains("dead for")),
+            "the respawn delay itself is not a failure"
+        );
     }
 
     #[test]
@@ -1796,7 +2090,8 @@ mod planner_tests {
 
         let empty = scene(0, vec![player("me", me, 0.0, 0.0, 100, "rail")], vec![]);
         let action = planner_action(me, &empty, &Arena::default());
-        assert!(action.look_at.is_none() && !action.forward && !action.fire);
+        assert!(action.forward && !action.fire, "nothing to fetch: patrol");
+        assert!(action.look_at.as_ref().unwrap().player_id.is_none());
 
         let absent = planner_action(Uuid::new_v4(), &alone, &Arena::default());
         assert!(
@@ -1813,9 +2108,11 @@ mod planner_tests {
             ],
             vec![],
         );
-        assert!(planner_action(me, &corpses, &Arena::default())
-            .look_at
-            .is_none());
+        // A fighter with zero health is not a target. Nothing left to fight,
+        // so it patrols instead of aiming at a body.
+        let action = planner_action(me, &corpses, &Arena::default());
+        assert!(action.look_at.as_ref().unwrap().player_id.is_none());
+        assert!(action.forward && !action.fire);
     }
 
     #[test]
@@ -1858,6 +2155,7 @@ mod line_of_sight_tests {
     fn a_wall_between_two_points_blocks_the_line() {
         let arena = Arena {
             solids: vec![box_at(5.0, 0.0, 1.0)],
+            ..Arena::default()
         };
         assert!(
             !arena.line_of_sight((0.0, 0.0), (10.0, 0.0)),
@@ -1895,6 +2193,7 @@ mod line_of_sight_tests {
     fn the_line_only_counts_solids_before_the_target() {
         let arena = Arena {
             solids: vec![box_at(20.0, 0.0, 1.0)],
+            ..Arena::default()
         };
         assert!(
             arena.line_of_sight((0.0, 0.0), (10.0, 0.0)),
@@ -1949,6 +2248,7 @@ mod line_of_sight_tests {
         let clear = Arena::default();
         let blocked = Arena {
             solids: vec![box_at(5.0, 0.0, 1.0)],
+            ..Arena::default()
         };
         assert!(reflex_action(me, &snap, &clear).fire, "clear line: shoot");
         assert!(
@@ -1972,5 +2272,139 @@ mod line_of_sight_tests {
         let holding = planner_action(me, &snap, &clear);
         assert!(!holding.forward, "ten units is the flechette band");
         assert!(holding.left || holding.right);
+    }
+}
+
+#[cfg(test)]
+mod unstick_tests {
+    use super::*;
+
+    fn wanting_forward() -> Action {
+        Action {
+            forward: true,
+            fire: true,
+            look_at: Some(LookAt {
+                player_id: Some(Uuid::new_v4()),
+                x: None,
+                z: None,
+            }),
+            ..Action::default()
+        }
+    }
+
+    #[test]
+    fn an_agent_that_is_getting_somewhere_is_left_alone() {
+        let wanted = wanting_forward();
+        for ticks in 0..WEDGED_TICKS {
+            let action = unstick(wanted.clone(), ticks);
+            assert!(action.forward, "still trying forward at {ticks}");
+            assert!(!action.left && !action.right && !action.back);
+        }
+    }
+
+    #[test]
+    fn a_wedged_agent_cycles_through_directions() {
+        let wanted = wanting_forward();
+        let directions: Vec<(bool, bool, bool, bool)> = (0..4)
+            .map(|phase| {
+                let a = unstick(wanted.clone(), WEDGED_TICKS + phase * WEDGED_TICKS);
+                (a.forward, a.left, a.back, a.right)
+            })
+            .collect();
+        assert_eq!(
+            directions,
+            vec![
+                (true, false, false, false),
+                (false, true, false, false),
+                (false, false, true, false),
+                (false, false, false, true),
+            ],
+            "forward, left, back, right, half a second each"
+        );
+        // And it comes back round rather than giving up.
+        let a = unstick(wanted.clone(), WEDGED_TICKS + 4 * WEDGED_TICKS);
+        assert!(a.forward);
+    }
+
+    #[test]
+    fn unsticking_keeps_the_aim_and_the_trigger_discipline() {
+        let wanted = wanting_forward();
+        let freed = unstick(wanted.clone(), WEDGED_TICKS + WEDGED_TICKS);
+        assert_eq!(
+            freed.look_at.as_ref().unwrap().player_id,
+            wanted.look_at.as_ref().unwrap().player_id,
+            "it keeps looking where the policy aimed"
+        );
+        assert!(freed.fire, "and keeps shooting if the policy said to");
+        let holding = Action {
+            fire: false,
+            ..wanting_forward()
+        };
+        assert!(
+            !unstick(holding, WEDGED_TICKS * 3).fire,
+            "and holds fire if the policy said to"
+        );
+    }
+}
+
+#[cfg(test)]
+mod patrol_tests {
+    use super::*;
+
+    fn lone(id: Uuid) -> fragr_server::protocol::PlayerState {
+        fragr_server::protocol::PlayerState {
+            id,
+            name: "lone".to_string(),
+            x: 0.0,
+            y: 1.0,
+            z: 0.0,
+            yaw: 0.0,
+            hp: 100,
+            armor: 0,
+            just_fired: false,
+            behavior: None,
+            score: 0,
+            weapon: "Flechette".to_string(),
+        }
+    }
+
+    #[test]
+    fn a_patrol_always_moves_and_aims_inside_the_arena() {
+        let arena = Arena::default();
+        let me = lone(Uuid::new_v4());
+        for tick in (0..600).step_by(7) {
+            let action = patrol_action(&me, tick, &arena);
+            assert!(action.forward, "a patrol never stands still");
+            let aim = action.look_at.expect("it aims somewhere");
+            let (x, z) = (aim.x.unwrap(), aim.z.unwrap());
+            assert!(
+                x.abs() <= arena.half_extent && z.abs() <= arena.half_extent,
+                "aimed off the map at tick {tick}: ({x}, {z})"
+            );
+        }
+    }
+
+    #[test]
+    fn the_sweep_actually_sweeps() {
+        let arena = Arena::default();
+        let me = lone(Uuid::new_v4());
+        let first = patrol_action(&me, 0, &arena).look_at.unwrap();
+        let later = patrol_action(&me, 60, &arena).look_at.unwrap();
+        let moved = (first.x.unwrap() - later.x.unwrap()).abs()
+            + (first.z.unwrap() - later.z.unwrap()).abs();
+        assert!(moved > 1.0, "three seconds should change where it is headed");
+    }
+
+    #[test]
+    fn two_fighters_do_not_walk_the_same_circle() {
+        let arena = Arena::default();
+        let a = patrol_action(&lone(Uuid::from_u128(1)), 0, &arena)
+            .look_at
+            .unwrap();
+        let b = patrol_action(&lone(Uuid::from_u128(200)), 0, &arena)
+            .look_at
+            .unwrap();
+        let apart = (a.x.unwrap() - b.x.unwrap()).abs() + (a.z.unwrap() - b.z.unwrap()).abs();
+        assert!(apart > 0.5, "two agents alone should search different ground");
     }
 }
