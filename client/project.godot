@@ -12,6 +12,10 @@ config_version=5
 
 config/name="fragr Client"
 run/main_scene="res://scenes/boot_menu.tscn"
+boot_splash/bg_color=Color(0.04, 0.04, 0.05, 1)
+boot_splash/image="res://assets/ui/boot_splash.png"
+boot_splash/fullsize=false
+boot_splash/use_filter=false
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
