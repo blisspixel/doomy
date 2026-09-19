@@ -49,15 +49,16 @@
       "camera": "first_person",
       "join": "human",
       "trigger": "fire",
-      "strip_frames": 8,
-      "note": "Eight consecutive frames from pulling the trigger. Muzzle flash, tracer, impact, hit feedback. A still at a fixed second never catches a sixty millisecond effect, so this is the only place effects can be judged."
+      "strip_frames": 12,
+      "note": "Eight consecutive frames from pulling the trigger. Muzzle flash, tracer, impact, hit feedback. A still at a fixed second never catches a sixty millisecond effect, so this is the only place effects can be judged.",
+      "probe": "FpMuzzle"
     },
     {
       "name": "shot_effects_third_person",
       "at_seconds": 22.0,
       "camera": "follow",
       "trigger": "fire",
-      "strip_frames": 8,
+      "strip_frames": 12,
       "note": "The same trigger pull watched from outside. The muzzle flash lives on the fighter's pawn, so this is where it shows; compare with the first-person strip above."
     },
     {
