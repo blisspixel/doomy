@@ -3,7 +3,7 @@
 **Repo:** https://github.com/blisspixel/fragr
 **Branch:** `feat/tip-capture-dish-gate`
 **Spend:** $0. Loopback. No Cloud Agent. No dish-claim tag until Testy re-Casino.
-**Status:** in flight.
+**Status:** shipped (#129).
 **Tip base:** main `3f86a27` (#127 README embeds on #125 stills). Soft Prison on #125 / `cc4eff9`: amazement YES, Hangar Candy CLEAR, live tip_capture dish still OPEN/missable (orange≈0.01 on live re-run; committed docs stills showed dish).
 
 ## Goal
