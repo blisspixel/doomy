@@ -1202,7 +1202,7 @@ impl GameState {
                             );
                         }
                     } else {
-                        self.note_nods_frag(shooter_id);
+                        self.note_nods_frag(shooter_id, target_id);
                         tracing::info!(
                             "FRAG: {} -> {} (score: {})",
                             shooter_name,
@@ -1449,6 +1449,33 @@ impl GameState {
             } else {
                 None
             },
+            jammer_dish: self.jammer_dish_state(),
+        }
+    }
+
+    fn jammer_dish_state(&self) -> Option<crate::protocol::JammerDishState> {
+        if !self.solo_broadcast.enabled {
+            return None;
+        }
+        let sb = &self.solo_broadcast;
+        match sb.phase {
+            EpisodePhase::Jammer => Some(crate::protocol::JammerDishState {
+                x: 0.0,
+                y: 0.35,
+                z: 0.0,
+                live: true,
+                seized: false,
+            }),
+            EpisodePhase::Auditor | EpisodePhase::Won if sb.jammer_seized => {
+                Some(crate::protocol::JammerDishState {
+                    x: 0.0,
+                    y: 0.35,
+                    z: 0.0,
+                    live: false,
+                    seized: true,
+                })
+            }
+            _ => None,
         }
     }
 
@@ -1506,7 +1533,9 @@ impl GameState {
     }
 
     fn display_map_name(&self) -> String {
-        if self.solo_broadcast.enabled {
+        // Episode 0 face "Larak Lot" only when geometry is Arena Duel (map 1).
+        // Compliance Yard (map 2) must not lie as Larak Lot.
+        if self.solo_broadcast.enabled && self.map == MapKind::ArenaDuel {
             EPISODE_MAP_LARAK_LOT.to_string()
         } else {
             self.map.name().to_string()
@@ -1547,22 +1576,54 @@ impl GameState {
             title: EPISODE_TITLE_EP0.to_string(),
             objective: episode0_objective_chip(),
             host_line: episode0_host_line_cold_open(),
-            map_name: EPISODE_MAP_LARAK_LOT.to_string(),
+            map_name: self.display_map_name(),
         });
-        tracing::info!("Solo Broadcast Episode 0 started (Calibration / Larak Lot)");
+        tracing::info!(
+            "Solo Broadcast Episode 0 started (Calibration / {})",
+            self.display_map_name()
+        );
     }
 
-    pub(crate) fn note_nods_frag(&mut self, killer_id: Uuid) {
+    /// True when `id` is a server rule-bot controller (not MCP/Agent meatbag).
+    fn is_rule_bot(&self, id: Uuid) -> bool {
+        self.bots.iter().any(|b| b.player_id == id)
+    }
+
+    /// Meatbag scrap path: Human, or Agent that is not a rule bot / Auditor.
+    fn is_meatbag_id(&self, id: Uuid) -> bool {
+        let Some(player) = self.players.iter().find(|p| p.id == id) else {
+            return false;
+        };
+        match player.role {
+            Role::Human => true,
+            Role::Agent => !player.is_boss && !self.is_rule_bot(id),
+            Role::Spectator => false,
+        }
+    }
+
+    /// NODS rule-bot victim: NODS-* name or bot controller, never boss/Auditor.
+    fn is_nods_victim_id(&self, id: Uuid) -> bool {
+        let Some(player) = self.players.iter().find(|p| p.id == id) else {
+            return false;
+        };
+        if player.is_boss {
+            return false;
+        }
+        player.name.starts_with("NODS-") || self.is_rule_bot(id)
+    }
+
+    /// Credit Calibration NODS progress for a meatbag frag of a NODS victim.
+    pub(crate) fn note_nods_frag(&mut self, killer_id: Uuid, victim_id: Uuid) {
         if !self.solo_broadcast.enabled {
             return;
         }
         if self.solo_broadcast.phase != EpisodePhase::Nods {
             return;
         }
-        let Some(killer) = self.players.iter().find(|p| p.id == killer_id) else {
+        if !self.is_meatbag_id(killer_id) {
             return;
-        };
-        if killer.role != Role::Human {
+        }
+        if !self.is_nods_victim_id(victim_id) {
             return;
         }
         self.solo_broadcast.nods_cleared = self.solo_broadcast.nods_cleared.saturating_add(1);
@@ -1580,12 +1641,17 @@ impl GameState {
         if !self.solo_broadcast.enabled || self.solo_broadcast.phase != EpisodePhase::Jammer {
             return;
         }
-        let human_near = self.players.iter().any(|p| {
-            p.role == Role::Human
-                && p.respawn_timer.is_none()
-                && (p.x * p.x + p.z * p.z).sqrt() <= EP0_JAMMER_RADIUS
-        });
-        if !human_near {
+        let meatbag_near = self
+            .players
+            .iter()
+            .filter(|p| p.respawn_timer.is_none())
+            .filter(|p| (p.x * p.x + p.z * p.z).sqrt() <= EP0_JAMMER_RADIUS)
+            .any(|p| match p.role {
+                Role::Human => true,
+                Role::Agent => !p.is_boss && !self.bots.iter().any(|b| b.player_id == p.id),
+                Role::Spectator => false,
+            });
+        if !meatbag_near {
             return;
         }
         self.solo_broadcast.jammer_seized = true;

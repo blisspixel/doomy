@@ -10,6 +10,7 @@ extends Node
 
 var players = {}
 var pickups = {}
+var jammer_dish_node = null
 var pickup_scene = preload("res://scenes/weapon_pickup.tscn")
 var player_scene = preload("res://scenes/player.tscn")
 var arena_duel_scene = preload("res://scenes/arena.tscn")
@@ -236,6 +237,9 @@ func _clear_world() -> void:
 		if is_instance_valid(pickups[pid]):
 			pickups[pid].queue_free()
 	pickups.clear()
+	if jammer_dish_node != null and is_instance_valid(jammer_dish_node):
+		jammer_dish_node.queue_free()
+	jammer_dish_node = null
 	if camera:
 		camera.set_available_targets([])
 
@@ -333,6 +337,7 @@ func _on_snapshot_received(data):
 	
 	_update_followed_weapon()
 	_sync_pickups(data.get("pickups", []))
+	_sync_jammer_dish(data.get("jammer_dish", null))
 	if is_human_player:
 		_refresh_fp_target()
 		_update_local_fp_hud(data.get("players", []))
@@ -533,6 +538,87 @@ func _sync_pickups(pickup_list):
 			if is_instance_valid(pickups[pid]):
 				pickups[pid].queue_free()
 			pickups.erase(pid)
+
+
+func _sync_jammer_dish(dish):
+	# Solo Broadcast jammer dish silhouette: visible world marker while phase is jammer (and after seize).
+	if dish == null:
+		if jammer_dish_node != null and is_instance_valid(jammer_dish_node):
+			jammer_dish_node.visible = false
+		return
+	if jammer_dish_node == null or not is_instance_valid(jammer_dish_node):
+		jammer_dish_node = _make_jammer_dish()
+		if arena != null and is_instance_valid(arena):
+			arena.add_child(jammer_dish_node)
+		else:
+			add_child(jammer_dish_node)
+	var live = bool(dish.get("live", false)) if typeof(dish) == TYPE_DICTIONARY else false
+	var seized = bool(dish.get("seized", false)) if typeof(dish) == TYPE_DICTIONARY else false
+	var x = float(dish.get("x", 0.0)) if typeof(dish) == TYPE_DICTIONARY else 0.0
+	var y = float(dish.get("y", 0.35)) if typeof(dish) == TYPE_DICTIONARY else 0.35
+	var z = float(dish.get("z", 0.0)) if typeof(dish) == TYPE_DICTIONARY else 0.0
+	jammer_dish_node.position = Vector3(x, y, z)
+	jammer_dish_node.visible = true
+	_tint_jammer_dish(live, seized)
+
+func _make_jammer_dish() -> Node3D:
+	var root = Node3D.new()
+	root.name = "JammerDish"
+	# Pedestal
+	var pedestal = MeshInstance3D.new()
+	var cyl = CylinderMesh.new()
+	cyl.top_radius = 0.55
+	cyl.bottom_radius = 0.7
+	cyl.height = 0.45
+	pedestal.mesh = cyl
+	pedestal.position = Vector3(0, 0.0, 0)
+	root.add_child(pedestal)
+	# Dish dish (flattened sphere / capsule stand-in)
+	var dish = MeshInstance3D.new()
+	var sphere = SphereMesh.new()
+	sphere.radius = 1.1
+	sphere.height = 0.55
+	dish.mesh = sphere
+	dish.position = Vector3(0, 0.55, 0)
+	dish.name = "DishMesh"
+	root.add_child(dish)
+	# Label
+	var label = Label3D.new()
+	label.name = "DishLabel"
+	label.text = "JAMMER DISH"
+	label.font_size = 48
+	label.position = Vector3(0, 1.35, 0)
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.modulate = Color(0.86, 0.78, 0.55)
+	root.add_child(label)
+	return root
+
+func _tint_jammer_dish(live: bool, seized: bool) -> void:
+	if jammer_dish_node == null:
+		return
+	var tint = Color(0.55, 0.52, 0.42)
+	var glow = 0.12
+	var label_text = "JAMMER"
+	if live:
+		tint = Color(0.92, 0.72, 0.28)  # amber seize-me
+		glow = 0.45
+		label_text = "SEIZE JAMMER"
+	elif seized:
+		tint = Color(0.42, 0.62, 0.48)  # muted ok
+		glow = 0.2
+		label_text = "JAMMER OK"
+	for child in jammer_dish_node.get_children():
+		if child is MeshInstance3D:
+			var mat = StandardMaterial3D.new()
+			mat.albedo_color = tint.darkened(0.15)
+			mat.emission_enabled = true
+			mat.emission = tint * glow
+			mat.emission_energy_multiplier = 1.2 if live else 0.6
+			child.set_surface_override_material(0, mat)
+		elif child is Label3D:
+			child.text = label_text
+			child.modulate = tint
+
 
 func _update_followed_weapon():
 	if not camera or not hud:

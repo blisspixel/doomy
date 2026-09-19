@@ -131,3 +131,7 @@ $0. No secrets. No attribution, emoji, or em/en dashes in commits, PR text, or d
 
 1. **Solo Broadcast Episode 0** (this plan) - Calibration face on Larak Lot
 2. HOLD: full campaign maps, cutscenes, AGI theater, GCP apply, look_at reopen
+
+## Follow-up: NODS progress fix
+
+See [`ep0-nods-progress-fix.md`](./ep0-nods-progress-fix.md). Calibration NODS clears now credit Human and non-rule-bot Agent frags of NODS victims; jammer dish gets a world silhouette; map face matches MapKind.
