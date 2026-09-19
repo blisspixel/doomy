@@ -555,6 +555,7 @@ mod tests {
             episode_objective: None,
             episode_progress: None,
             episode_phase: None,
+            jammer_dish: None,
         }
     }
 

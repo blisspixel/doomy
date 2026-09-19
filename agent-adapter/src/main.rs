@@ -843,6 +843,7 @@ mod tests {
             episode_objective: None,
             episode_progress: None,
             episode_phase: None,
+            jammer_dish: None,
         };
 
         let json = serde_json::to_value(&snapshot).unwrap();
@@ -882,6 +883,7 @@ mod tests {
             episode_objective: None,
             episode_progress: None,
             episode_phase: None,
+            jammer_dish: None,
         };
         let json = serde_json::to_value(&snap).unwrap();
         assert_eq!(json["host_line"], protocol::default_host_line());
@@ -955,6 +957,7 @@ mod tests {
             episode_objective: None,
             episode_progress: None,
             episode_phase: None,
+            jammer_dish: None,
         };
 
         let json = serde_json::to_value(&snapshot).unwrap();
@@ -1269,6 +1272,7 @@ mod tests {
             episode_objective: None,
             episode_progress: None,
             episode_phase: None,
+            jammer_dish: None,
         };
         let action = compute_bot_action(bot_id, &snapshot);
         let look = action.look_at.expect("look_at toward nearest");
