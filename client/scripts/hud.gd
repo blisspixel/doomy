@@ -15,6 +15,7 @@ signal host_spoke(seconds: float)
 @onready var round_message = $RoundMessage
 @onready var scoreboard = $Panel/VBoxContainer/Scoreboard
 @onready var weapon_icon = $WeaponIcon
+@onready var weapon_icon_bg = $WeaponIconBg
 @onready var crosshair = $Crosshair
 @onready var damage_flash = $DamageFlash
 @onready var spawn_flash = $SpawnFlash
@@ -45,6 +46,9 @@ var pressure_id = ""
 var sticky_host_line = ""
 var host_line_seen = false
 var client_mode = "SPECTATING"
+## Milliseconds the control legend stays up after joining, then it gets out of the way.
+const CONTROLS_HINT_MS: int = 8000
+var mode_entered_ms: int = 0
 var episode_id = ""
 var episode_title = ""
 var episode_objective = ""
@@ -110,6 +114,8 @@ func _ready():
 		weapon_label.text = ""
 	if weapon_icon:
 		weapon_icon.visible = false
+		if weapon_icon_bg:
+			weapon_icon_bg.visible = false
 	set_mode("SPECTATING")
 	update_scoreboard()
 	if crosshair:
@@ -214,35 +220,64 @@ func set_pressure(pressure: String):
 	_refresh_mode_label()
 
 func set_mode(mode: String):
+	if mode != client_mode:
+		mode_entered_ms = Time.get_ticks_msec()
 	client_mode = mode
 	_refresh_mode_label()
+	_refresh_telemetry_lines()
+
+## Connection status, wall clock, and head count are for whoever is debugging
+## the client, not for someone in a firefight. The round line already carries
+## the clock and the scoreboard already carries the head count, so while a
+## player is playing these three lines are three copies of nothing.
+func _refresh_telemetry_lines() -> void:
+	var playing: bool = client_mode != "SPECTATING"
+	for node in [status_label, tick_label, player_count_label]:
+		if node:
+			node.visible = not playing
 
 func _refresh_mode_label():
 	if not mode_label:
 		return
 	var league = league_mode_name.to_upper() + " // " + league_playlist.to_upper()
-	var map_chip = "\nMAP: " + map_label.to_upper()
+	# The map name is already on screen as its own chip. It used to be here as
+	# well, and inside the playlist above, so the first visual QA tour
+	# photographed three copies of "ARENA DUEL" in a single frame.
 	var host_chip = ""
 	if sticky_host_line != "":
-		host_chip = "\n" + sticky_host_line
+		host_chip = "
+" + sticky_host_line
+	# A spectator needs to know how to join. A player who has joined needs the
+	# screen. The legend shows for a few seconds after joining and then gets out
+	# of the way; it belongs in a settings screen once there is one.
 	var controls = ""
 	if client_mode == "SPECTATING":
-		controls = "SPECTATING (J/A: Join, F/D-pad: Cycle, V/Back: Free-fly, R/N/M or D-pad: Radio, ESC: Mouse) | Pad OK"
-	else:
-		controls = client_mode + " (L/Start: Leave, sticks move/look, RT/A: Fire, LB/RB: Weapon, Y/T: Speak, R/N/M or D-pad: Radio) | Pad OK"
+		controls = "
+SPECTATING (J/A: Join, F/D-pad: Cycle, V/Back: Free-fly, R/N/M or D-pad: Radio, ESC: Mouse) | Pad OK"
+	elif Time.get_ticks_msec() - mode_entered_ms < CONTROLS_HINT_MS:
+		controls = "
+" + client_mode + " (L/Start: Leave, sticks move/look, RT/A: Fire, LB/RB: Weapon, Y/T: Speak, R/N/M or D-pad: Radio) | Pad OK"
+	# The Host line already says a drone is on deck, in its own words, directly
+	# above. Saying it again underneath is the same sentence twice.
 	var pressure_chip = ""
-	if pressure_id == "compliance_drone":
-		pressure_chip = "\nPRESSURE: CONTINUANCE COMPLIANCE DRONE"
-	elif pressure_id == "compliance":
-		pressure_chip = "\nPRESSURE: CONTINUANCE COMPLIANCE"
+	if sticky_host_line == "":
+		if pressure_id == "compliance_drone":
+			pressure_chip = "
+PRESSURE: CONTINUANCE COMPLIANCE DRONE"
+		elif pressure_id == "compliance":
+			pressure_chip = "
+PRESSURE: CONTINUANCE COMPLIANCE"
 	var episode_chip = ""
 	if episode_title != "":
-		episode_chip = "\n" + episode_title.to_upper()
+		episode_chip = "
+" + episode_title.to_upper()
 		if episode_objective != "":
-			episode_chip += "\nOBJ: " + episode_objective
+			episode_chip += "
+OBJ: " + episode_objective
 		if episode_progress != "":
-			episode_chip += "\n" + episode_progress
-	mode_label.text = league + map_chip + host_chip + "\n" + controls + pressure_chip + episode_chip
+			episode_chip += "
+" + episode_progress
+	mode_label.text = league + host_chip + controls + pressure_chip + episode_chip
 
 func set_tick(tick: int):
 	if tick_label:
@@ -265,15 +300,16 @@ func set_round_info(state: String, time_left: int, frag_limit: int):
 			if time_left > 0:
 				text += " | " + str(time_left) + "s"
 		elif frag_limit > 0:
-			text = "ARENA DUEL // FIRST TO " + str(frag_limit)
+			# The map name is its own chip in the corner. This line is the race,
+			# not the venue.
+			text = "FIRST TO " + str(frag_limit)
 			if time_left > 0:
 				text += " | " + str(time_left) + "s"
 		elif time_left > 0:
 			text += " | Time: " + str(time_left) + "s"
-		if leader_name != "":
-			text += "\nLEADER: " + leader_name
-		if ghost_rival != "":
-			text += " | RIVAL: " + ghost_rival
+		# Who is leading is the first row of the scoreboard directly below, and
+		# so is the rival. Spelling both out here was two lines of the panel
+		# repeating the two lines under them.
 		if pressure_id == "compliance_drone":
 			text += "\nARTICLE 7 ENFORCEMENT"
 		elif pressure_id == "compliance":
@@ -294,6 +330,8 @@ func set_player_count(count: int):
 	if player_count_label:
 		player_count_label.text = "Fighters: " + str(count)
 
+const HUD_SCOREBOARD_ROWS: int = 4
+
 func update_scoreboard():
 	if not scoreboard:
 		return
@@ -301,15 +339,21 @@ func update_scoreboard():
 	for player in scores.keys():
 		sorted_scores.append({"name": player, "kills": scores[player]})
 	sorted_scores.sort_custom(func(a, b): return a.kills > b.kills)
-	var text = "SCRAP LEAGUE\n" + league_mode_name.to_upper() + "\n"
-	for i in range(min(8, len(sorted_scores))):
+	# No headers. The league and the playlist are already the first line of
+	# the panel, so repeating them above the names was two more lines saying
+	# what the player had just read.
+	var text = ""
+	# Four names, not the whole roster. Eight ran the panel off the bottom of
+	# the window, which the first visual QA tour caught, and a standing HUD is
+	# for who is winning. The full table belongs on the scoreboard screen.
+	for i in range(min(HUD_SCOREBOARD_ROWS, len(sorted_scores))):
 		var entry = sorted_scores[i]
 		var chip = ""
 		if behaviors.has(entry.name):
 			chip = " [" + _short_behavior(behaviors[entry.name]) + "]"
 		var marker = "*" if i == 0 and entry.kills > 0 else " "
 		text += str(i + 1) + "." + marker + entry.name + chip + ": " + str(entry.kills) + "\n"
-	scoreboard.text = text if len(sorted_scores) > 0 else "SCRAP LEAGUE\n" + league_mode_name.to_upper() + "\n(waiting for scrap)"
+	scoreboard.text = text if len(sorted_scores) > 0 else "(waiting for scrap)"
 
 func _short_behavior(behavior: String) -> String:
 	return StanceChipScript.short(behavior)
@@ -460,19 +504,24 @@ func _update_broadcast_chrome(state: String) -> void:
 	var warm = state == "Warmup"
 	var live = state == "Active"
 	var ended = state == "Ended"
+	# Do not re-show the Hangar Candy strip during Solo Broadcast / Larak Lot.
+	var solo_larak = map_label.strip_edges().to_lower() == "larak lot"
+	var strip_shown = chrome_strip != null and not solo_larak
 	if chrome_strip:
-		# Do not re-show the Hangar Candy strip during Solo Broadcast / Larak Lot.
-		var solo_larak = map_label.strip_edges().to_lower() == "larak lot"
-		chrome_strip.visible = not solo_larak
+		chrome_strip.visible = strip_shown
 		var a = 0.92 if live else (0.88 if warm else 0.7)
 		chrome_strip.modulate = Color(1, 1, 1, a)
+	# The strip already bakes ON AIR and Contested Frequency, the same way it
+	# bakes Hangar Candy. Drawing the loose badges underneath it put both marks
+	# on screen twice, which the first visual QA tour caught. They are the
+	# fallback for when the strip is not up, not a second copy of it.
 	if on_air_badge:
-		on_air_badge.visible = live
-		if live:
+		on_air_badge.visible = live and not strip_shown
+		if on_air_badge.visible:
 			on_air_badge.modulate = Color(1, 1, 1, 0.95)
 	if contested_frequency_badge:
 		# Warm on Warmup / Host face; quieter while live so ON AIR owns the scrap.
-		contested_frequency_badge.visible = true
+		contested_frequency_badge.visible = not strip_shown
 		var ca = 0.95 if warm else (0.72 if live else 0.8)
 		contested_frequency_badge.modulate = Color(0.95, 0.95, 0.98, ca)
 	# Map chip is Snapshot map_name (see _refresh_map_chip_badge). Never re-show
@@ -809,6 +858,8 @@ func show_round_end(mvp_name: String, reason: String, mvp_frags: int = 0, host_l
 		weapon_label.text = ""
 	if weapon_icon:
 		weapon_icon.visible = false
+		if weapon_icon_bg:
+			weapon_icon_bg.visible = false
 
 	followed_player_name = ""
 
@@ -914,6 +965,8 @@ func set_followed_weapon(weapon_name: String, player_name: String = "", behavior
 		weapon_label.text = ""
 		weapon_label.remove_theme_color_override("font_color")
 		weapon_icon.visible = false
+		if weapon_icon_bg:
+			weapon_icon_bg.visible = false
 		return
 
 	weapon_label.text = StanceChipScript.follow_line(player_name, behavior, weapon_desc)
@@ -922,8 +975,12 @@ func set_followed_weapon(weapon_name: String, player_name: String = "", behavior
 		weapon_icon.texture = weapon_textures[weapon_name]
 		weapon_icon.modulate = Color(1.15, 1.1, 1.05, 1)
 		weapon_icon.visible = true
+		if weapon_icon_bg:
+			weapon_icon_bg.visible = true
 	else:
 		weapon_icon.visible = false
+		if weapon_icon_bg:
+			weapon_icon_bg.visible = false
 
 func _process(delta):
 	if warmup_tv_linger_timer > 0:
