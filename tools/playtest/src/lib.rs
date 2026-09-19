@@ -87,6 +87,116 @@ pub struct TimedEvent {
     pub event: GameEvent,
 }
 
+/// Width of an engagement-distance bucket, in world units. Five units is
+/// about a third of the scatter gun's reach and a twelfth of the rail's, so
+/// the three weapons land in visibly different buckets.
+pub const DISTANCE_BUCKET: f32 = 5.0;
+/// Buckets kept; the last one is everything beyond fifty units, which is a
+/// corner-to-corner shot in a fifty unit arena.
+pub const DISTANCE_BUCKETS: usize = 11;
+
+/// A distribution reported the honest way: the shape, not just the middle,
+/// and always with the sample size that earned it.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct Quantiles {
+    pub count: u64,
+    pub min: f64,
+    pub p50: f64,
+    pub p90: f64,
+    pub max: f64,
+    pub mean: f64,
+}
+
+impl Quantiles {
+    /// From values in any order. Empty gives zeros and a count of zero, which
+    /// is how a reader knows there is nothing to read.
+    pub fn from_values(values: &[f64]) -> Self {
+        let mut sorted: Vec<f64> = values.iter().copied().filter(|v| v.is_finite()).collect();
+        if sorted.is_empty() {
+            return Quantiles::default();
+        }
+        sorted.sort_by(|a, b| a.total_cmp(b));
+        let pick = |q: f64| -> f64 {
+            let idx = ((sorted.len() as f64 - 1.0) * q).round() as usize;
+            sorted[idx.min(sorted.len() - 1)]
+        };
+        Quantiles {
+            count: sorted.len() as u64,
+            min: sorted[0],
+            p50: pick(0.5),
+            p90: pick(0.9),
+            max: sorted[sorted.len() - 1],
+            mean: sorted.iter().sum::<f64>() / sorted.len() as f64,
+        }
+    }
+}
+
+/// Wilson score interval for a proportion at about ninety five percent
+/// confidence. A hit rate from nine shots and one from nine hundred are not
+/// the same claim, and this is what says so. Zero trials gives the full range.
+pub fn wilson_interval(hits: u64, trials: u64) -> (f64, f64) {
+    if trials == 0 {
+        return (0.0, 1.0);
+    }
+    let z = 1.96f64;
+    let n = trials as f64;
+    let p = hits as f64 / n;
+    let denom = 1.0 + z * z / n;
+    let centre = p + z * z / (2.0 * n);
+    let margin = z * ((p * (1.0 - p) / n) + (z * z / (4.0 * n * n))).sqrt();
+    (
+        ((centre - margin) / denom).clamp(0.0, 1.0),
+        ((centre + margin) / denom).clamp(0.0, 1.0),
+    )
+}
+
+/// What one weapon did: how often it fired, how often that landed, how far
+/// away, and how much damage it dealt.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct WeaponReport {
+    pub shots: u64,
+    pub hits: u64,
+    pub accuracy: f64,
+    /// The interval on that accuracy, so a small sample admits it.
+    pub accuracy_lo: f64,
+    pub accuracy_hi: f64,
+    pub damage: i64,
+    pub kills: u64,
+    /// Distance at which its shots landed.
+    pub hit_distance: Quantiles,
+    /// Distance at which it killed. The weapon triangle works when these peak
+    /// in different places.
+    pub kill_distance: Quantiles,
+}
+
+/// The combat picture: how long a kill takes, how often shots land, and at
+/// what range each weapon does its work.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct CombatReport {
+    /// Seconds from the first damage on a victim to their death.
+    pub time_to_kill_s: Quantiles,
+    pub shots: u64,
+    pub hits: u64,
+    pub accuracy: f64,
+    pub accuracy_lo: f64,
+    pub accuracy_hi: f64,
+    pub shots_per_kill: f64,
+    /// Kills per five unit bucket, the last holding everything beyond.
+    pub kill_distance_buckets: Vec<u64>,
+    pub by_weapon: BTreeMap<String, WeaponReport>,
+}
+
+/// Running tallies for one weapon while a run is in flight.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct WeaponTally {
+    pub shots: u64,
+    pub hits: u64,
+    pub damage: i64,
+    pub kills: u64,
+    pub hit_distances: Vec<f64>,
+    pub kill_distances: Vec<f64>,
+}
+
 /// Per-fighter movement and fire bookkeeping from snapshots.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct AgentTrack {
@@ -99,6 +209,8 @@ pub struct AgentTrack {
     last_pos: Option<(f32, f32)>,
     pub fire_ticks: u64,
     pub weapon_fire_ticks: BTreeMap<String, u64>,
+    /// Weapon held on the newest snapshot, for attributing a frag.
+    pub last_weapon: Option<String>,
 }
 
 /// Everything the observer keeps. Snapshots are folded in as they arrive so a
@@ -111,6 +223,15 @@ pub struct Observation {
     pub snapshot_bytes: u64,
     pub events: Vec<TimedEvent>,
     pub tracks: BTreeMap<String, AgentTrack>,
+    /// Per weapon, what it fired and what landed.
+    pub weapons: BTreeMap<String, WeaponTally>,
+    /// Victim name to the tick their engagement started, so a death can be
+    /// timed from the first damage that led to it.
+    pub engagement_start: BTreeMap<String, u64>,
+    /// Seconds from first damage to death, one per kill that had an opening hit.
+    pub time_to_kill_s: Vec<f64>,
+    /// Distance of every kill, for the histogram.
+    pub kill_distances: Vec<f64>,
 }
 
 impl Observation {
@@ -140,6 +261,7 @@ impl Observation {
                 }
             }
             track.last_pos = Some(pos);
+            track.last_weapon = Some(player.weapon.clone());
             if player.just_fired {
                 track.fire_ticks += 1;
                 *track
@@ -148,13 +270,134 @@ impl Observation {
                     .or_default() += 1;
             }
         }
+        self.ingest_shots(snapshot);
+    }
+
+    /// Every shot resolved on this tick, with the distance it travelled. The
+    /// server publishes hits and misses, so accuracy is exact rather than
+    /// inferred from fire ticks.
+    fn ingest_shots(&mut self, snapshot: &Snapshot) {
+        if snapshot.shot_results.is_empty() {
+            return;
+        }
+        let by_id: BTreeMap<Uuid, (String, f32, f32)> = snapshot
+            .players
+            .iter()
+            .map(|p| (p.id, (p.weapon.clone(), p.x, p.z)))
+            .collect();
+        for shot in &snapshot.shot_results {
+            let Some((weapon, sx, sz)) = by_id.get(&shot.shooter_id).cloned() else {
+                continue;
+            };
+            let tally = self.weapons.entry(weapon).or_default();
+            tally.shots += 1;
+            if !shot.hit {
+                continue;
+            }
+            tally.hits += 1;
+            tally.damage += shot.damage as i64;
+            if let Some((_, tx, tz)) = shot.target_id.and_then(|id| by_id.get(&id)).cloned() {
+                let distance = ((tx - sx).powi(2) + (tz - sz).powi(2)).sqrt() as f64;
+                tally.hit_distances.push(distance);
+            }
+        }
     }
 
     pub fn ingest_event(&mut self, event: GameEvent) {
+        match &event {
+            // The clock on a death starts at the first damage that led to it.
+            GameEvent::Hit { target, .. } => {
+                self.engagement_start
+                    .entry(target.clone())
+                    .or_insert(self.last_tick);
+            }
+            GameEvent::Frag { killer, victim, .. } => {
+                if let Some(start) = self.engagement_start.remove(victim) {
+                    let ticks = self.last_tick.saturating_sub(start);
+                    self.time_to_kill_s.push(ticks as f64 / TICKS_PER_SECOND);
+                }
+                let killer_track = self.tracks.get(killer);
+                let killer_pos = killer_track.and_then(|t| t.last_pos);
+                let killer_weapon = killer_track.and_then(|t| t.last_weapon.clone());
+                let victim_pos = self.tracks.get(victim).and_then(|t| t.last_pos);
+                if let (Some((kx, kz)), Some((vx, vz))) = (killer_pos, victim_pos) {
+                    let distance = ((vx - kx).powi(2) + (vz - kz).powi(2)).sqrt() as f64;
+                    self.kill_distances.push(distance);
+                    if let Some(weapon) = killer_weapon {
+                        let tally = self.weapons.entry(weapon).or_default();
+                        tally.kills += 1;
+                        tally.kill_distances.push(distance);
+                    }
+                }
+            }
+            // A fighter who respawned is not still in their last engagement.
+            GameEvent::Respawn { player } => {
+                self.engagement_start.remove(player);
+            }
+            _ => {}
+        }
         self.events.push(TimedEvent {
             tick: self.last_tick,
             event,
         });
+    }
+
+    /// Fold the running tallies into the combat picture.
+    pub fn combat_report(&self) -> CombatReport {
+        let mut shots = 0u64;
+        let mut hits = 0u64;
+        let mut kills = 0u64;
+        let mut by_weapon = BTreeMap::new();
+        for (weapon, tally) in &self.weapons {
+            shots += tally.shots;
+            hits += tally.hits;
+            kills += tally.kills;
+            let accuracy = if tally.shots == 0 {
+                0.0
+            } else {
+                tally.hits as f64 / tally.shots as f64
+            };
+            let (lo, hi) = wilson_interval(tally.hits, tally.shots);
+            by_weapon.insert(
+                weapon.clone(),
+                WeaponReport {
+                    shots: tally.shots,
+                    hits: tally.hits,
+                    accuracy,
+                    accuracy_lo: lo,
+                    accuracy_hi: hi,
+                    damage: tally.damage,
+                    kills: tally.kills,
+                    hit_distance: Quantiles::from_values(&tally.hit_distances),
+                    kill_distance: Quantiles::from_values(&tally.kill_distances),
+                },
+            );
+        }
+        let mut buckets = vec![0u64; DISTANCE_BUCKETS];
+        for distance in &self.kill_distances {
+            let index = ((distance / DISTANCE_BUCKET as f64) as usize).min(DISTANCE_BUCKETS - 1);
+            buckets[index] += 1;
+        }
+        let (lo, hi) = wilson_interval(hits, shots);
+        CombatReport {
+            time_to_kill_s: Quantiles::from_values(&self.time_to_kill_s),
+            shots,
+            hits,
+            accuracy: if shots == 0 {
+                0.0
+            } else {
+                hits as f64 / shots as f64
+            },
+            accuracy_lo: lo,
+            accuracy_hi: hi,
+            shots_per_kill: if kills == 0 {
+                0.0
+            } else {
+                shots as f64 / kills as f64
+            },
+            kill_distance_buckets: buckets,
+            by_weapon,
+        }
     }
 
     pub fn rounds_completed(&self) -> u32 {
@@ -192,6 +435,9 @@ pub struct Report {
     pub pickups: u64,
     pub spawn_deaths: u64,
     pub snapshot_bytes_per_tick: f64,
+    /// How the fighting actually went: time to kill, accuracy with intervals,
+    /// and where each weapon does its work.
+    pub combat: CombatReport,
     pub per_agent: BTreeMap<String, AgentReport>,
 }
 
@@ -303,6 +549,7 @@ pub fn compute_report(obs: &Observation, agents: usize) -> Report {
         } else {
             obs.snapshot_bytes as f64 / obs.snapshots_seen as f64
         },
+        combat: obs.combat_report(),
         per_agent,
     }
 }
@@ -764,5 +1011,243 @@ mod tests {
             report.per_agent.keys()
         );
         assert!(report.snapshot_bytes_per_tick > 0.0);
+    }
+}
+
+#[cfg(test)]
+mod combat_tests {
+    use super::*;
+    use fragr_server::protocol::{PlayerState, ShotResult};
+
+    fn player(name: &str, id: Uuid, x: f32, z: f32, weapon: &str) -> PlayerState {
+        PlayerState {
+            id,
+            name: name.to_string(),
+            x,
+            y: 1.0,
+            z,
+            yaw: 0.0,
+            hp: 100,
+            armor: 0,
+            just_fired: false,
+            behavior: None,
+            score: 0,
+            weapon: weapon.to_string(),
+        }
+    }
+
+    fn frame(tick: u64, players: Vec<PlayerState>, shots: Vec<ShotResult>) -> Snapshot {
+        Snapshot {
+            tick,
+            players,
+            round_state: Some("Active".to_string()),
+            round_time_left: Some(60),
+            frag_limit: Some(10),
+            shot_results: shots,
+            mode_name: "Contested Frequency".to_string(),
+            playlist: "Arena Duel".to_string(),
+            pressure: None,
+            host_line: String::new(),
+            mvp: None,
+            mvp_frags: None,
+            pickups: Vec::new(),
+            map_id: 1,
+            map_name: "Arena Duel".to_string(),
+            episode_id: None,
+            episode_title: None,
+            episode_objective: None,
+            episode_progress: None,
+            episode_phase: None,
+            jammer_dish: None,
+        }
+    }
+
+    fn shot(shooter: Uuid, hit: bool, target: Option<Uuid>, damage: i32) -> ShotResult {
+        ShotResult {
+            shooter_id: shooter,
+            shooter: "S".to_string(),
+            hit,
+            target_id: target,
+            target: target.map(|_| "T".to_string()),
+            damage,
+            target_hp_after: hit.then_some(75),
+        }
+    }
+
+    #[test]
+    fn quantiles_describe_a_distribution_and_survive_nothing() {
+        let empty = Quantiles::from_values(&[]);
+        assert_eq!(empty.count, 0);
+        assert_eq!(empty.p50, 0.0);
+        let all_bad = Quantiles::from_values(&[f64::NAN, f64::INFINITY]);
+        assert_eq!(all_bad.count, 0, "nonsense values never become a statistic");
+        let q = Quantiles::from_values(&[5.0, 1.0, 3.0, 2.0, 4.0]);
+        assert_eq!(q.count, 5);
+        assert_eq!((q.min, q.p50, q.max), (1.0, 3.0, 5.0));
+        assert!((q.mean - 3.0).abs() < 1e-9);
+        assert!(q.p90 >= q.p50 && q.p90 <= q.max);
+        let one = Quantiles::from_values(&[7.5]);
+        assert_eq!((one.count, one.min, one.p50, one.max), (1, 7.5, 7.5, 7.5));
+    }
+
+    #[test]
+    fn wilson_says_how_little_a_small_sample_means() {
+        assert_eq!(wilson_interval(0, 0), (0.0, 1.0), "no trials, no claim");
+        let (lo, hi) = wilson_interval(1, 1);
+        assert!(
+            lo > 0.0 && hi == 1.0,
+            "one hit from one shot is not certainty: {lo} {hi}"
+        );
+        assert!(lo < 0.3, "and it is a weak claim: {lo}");
+        let (lo_small, hi_small) = wilson_interval(5, 10);
+        let (lo_big, hi_big) = wilson_interval(500, 1000);
+        assert!(
+            (hi_small - lo_small) > (hi_big - lo_big) * 5.0,
+            "ten shots say far less than a thousand: {lo_small}..{hi_small} vs {lo_big}..{hi_big}"
+        );
+        for (lo, hi) in [wilson_interval(0, 20), wilson_interval(20, 20)] {
+            assert!((0.0..=1.0).contains(&lo) && (0.0..=1.0).contains(&hi));
+        }
+    }
+
+    #[test]
+    fn shots_are_counted_by_weapon_with_the_distance_they_travelled() {
+        let mut obs = Observation::default();
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        obs.ingest_snapshot(
+            &frame(
+                1,
+                vec![
+                    player("A", a, 0.0, 0.0, "rail"),
+                    player("B", b, 12.0, 0.0, "scatter"),
+                ],
+                vec![shot(a, true, Some(b), 75), shot(a, false, None, 0)],
+            ),
+            100,
+        );
+        let report = obs.combat_report();
+        assert_eq!(report.shots, 2);
+        assert_eq!(report.hits, 1);
+        assert!((report.accuracy - 0.5).abs() < 1e-9);
+        assert!(
+            report.accuracy_lo < 0.5 && report.accuracy_hi > 0.5,
+            "{report:?}"
+        );
+        let rail = &report.by_weapon["rail"];
+        assert_eq!((rail.shots, rail.hits, rail.damage), (2, 1, 75));
+        assert!(
+            (rail.hit_distance.p50 - 12.0).abs() < 1e-4,
+            "{:?}",
+            rail.hit_distance
+        );
+        assert!(!report.by_weapon.contains_key("scatter"), "B never fired");
+        obs.ingest_snapshot(
+            &frame(
+                2,
+                vec![player("A", a, 0.0, 0.0, "rail")],
+                vec![shot(Uuid::new_v4(), true, None, 10)],
+            ),
+            100,
+        );
+        assert_eq!(
+            obs.combat_report().shots,
+            2,
+            "a shot from someone absent is dropped, not guessed at"
+        );
+    }
+
+    #[test]
+    fn time_to_kill_runs_from_the_first_damage_to_the_death() {
+        let mut obs = Observation::default();
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        let scene = |tick: u64| {
+            frame(
+                tick,
+                vec![
+                    player("A", a, 0.0, 0.0, "flechette"),
+                    player("B", b, 6.0, 0.0, "scatter"),
+                ],
+                vec![],
+            )
+        };
+        let hit = || GameEvent::Hit {
+            shooter: "A".into(),
+            shooter_id: a,
+            target: "B".into(),
+            target_id: b,
+            damage: 25,
+            target_hp_after: 75,
+        };
+        obs.ingest_snapshot(&scene(100), 50);
+        obs.ingest_event(hit());
+        obs.ingest_snapshot(&scene(110), 50);
+        obs.ingest_event(hit());
+        obs.ingest_snapshot(&scene(120), 50);
+        obs.ingest_event(GameEvent::Frag {
+            killer: "A".into(),
+            victim: "B".into(),
+            killer_score: 1,
+        });
+        let report = obs.combat_report();
+        assert_eq!(report.time_to_kill_s.count, 1);
+        assert!(
+            (report.time_to_kill_s.p50 - 1.0).abs() < 1e-6,
+            "twenty ticks at twenty a second is one second, and the second hit did not restart it: {:?}",
+            report.time_to_kill_s
+        );
+        let flechette = &report.by_weapon["flechette"];
+        assert_eq!(flechette.kills, 1);
+        assert!((flechette.kill_distance.p50 - 6.0).abs() < 1e-4);
+        assert_eq!(
+            report.kill_distance_buckets[1], 1,
+            "six units falls in the second bucket"
+        );
+        assert_eq!(report.kill_distance_buckets.iter().sum::<u64>(), 1);
+
+        obs.ingest_event(GameEvent::Respawn { player: "B".into() });
+        obs.ingest_snapshot(&scene(200), 50);
+        obs.ingest_event(GameEvent::Frag {
+            killer: "A".into(),
+            victim: "B".into(),
+            killer_score: 2,
+        });
+        let report = obs.combat_report();
+        assert_eq!(
+            report.time_to_kill_s.count, 1,
+            "a death with no opening hit is left untimed rather than timed wrongly"
+        );
+        assert_eq!(report.by_weapon["flechette"].kills, 2);
+    }
+
+    #[test]
+    fn distance_buckets_hold_the_far_tail() {
+        let obs = Observation {
+            kill_distances: vec![0.0, 4.9, 5.0, 49.9, 50.0, 500.0],
+            ..Observation::default()
+        };
+        let report = obs.combat_report();
+        assert_eq!(report.kill_distance_buckets.len(), DISTANCE_BUCKETS);
+        assert_eq!(report.kill_distance_buckets[0], 2, "under five units");
+        assert_eq!(report.kill_distance_buckets[1], 1);
+        assert_eq!(report.kill_distance_buckets[9], 1, "forty five to fifty");
+        assert_eq!(
+            report.kill_distance_buckets[DISTANCE_BUCKETS - 1],
+            2,
+            "fifty and beyond share the last bucket"
+        );
+    }
+
+    #[test]
+    fn an_empty_run_reports_nothing_rather_than_nonsense() {
+        let report = Observation::default().combat_report();
+        assert_eq!((report.shots, report.hits), (0, 0));
+        assert_eq!(report.accuracy, 0.0);
+        assert_eq!((report.accuracy_lo, report.accuracy_hi), (0.0, 1.0));
+        assert_eq!(report.shots_per_kill, 0.0);
+        assert_eq!(report.time_to_kill_s.count, 0);
+        assert!(report.by_weapon.is_empty());
+        assert_eq!(report.kill_distance_buckets.len(), DISTANCE_BUCKETS);
     }
 }

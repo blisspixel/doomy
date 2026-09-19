@@ -18,7 +18,25 @@ Local agents play the game and file structured feedback so most iteration does n
 - Crate: `tools/playtest` (`fragr-playtest`), Rust, workspace member, takes wire types straight from `fragr-server` and boots the server in-process through `run_server`.
 - Command today: `fragr-playtest --agents 4 --rounds 1 --map 1 --frag-limit 3 --time-limit-seconds 45 --assert --report .agents/playtest/ci.json`. Planned: `--tiers reflex,planner,brain`.
 - Agent policies (all the same agent on the wire): `reflex` (chase nearest, fire when facing; shipped), `planner` (observe every few ticks, pick a pickup or a target, path by waypoints), and `brain` (the decision-brain client under a cap, from `plans/decision-brain.md`).
-- Report fields shipped: time to first frag, frags per minute per agent, deaths, longest gap without a frag, Host beats, spawn deaths within two seconds, stuck detection (no movement and no fire during an Active round), weapon usage, bytes per snapshot. Planned: pickup contention, idle ticks per agent, route metrics, tick time percentiles from the status line.
+## First combat numbers (2026-09-19)
+
+Six reflex agents, one round, 76.5 seconds, Arena Duel. The combat report earns its place immediately, because three of these were invisible before it:
+
+| Measure | Value |
+|---|---|
+| Shots, hits | 605, 203 |
+| Accuracy | 33.6 percent (interval 29.9 to 37.4) |
+| Shots per kill | 11.6 |
+| Time to kill | p50 1.50 s, p90 6.00 s, max 15.15 s, n=52 |
+| Kill distance | p50 3.0 units; buckets of five units: 30, 9, 11, 2, then nothing |
+
+Three findings:
+
+1. **Time to kill is far outside the target.** `plans/gunfeel.md` asks for 0.6 to 1.2 seconds bare; the median is 1.5 and the ninetieth percentile is six. That is the Quake-slow pacing the research flagged, now measured rather than argued.
+2. **Everything happens at knife range.** Three quarters of kills land inside ten units, in an arena fifty across, with a weapon that reaches forty two. Either the reflex policy has no reason to hold range or the map funnels fighters together. The planner tier and the look pass both have a stake in this.
+3. **The weapon triangle is untested, because only one weapon was used.** The reflex agents never swap, so scatter and rail produced no data at all. The harness cannot measure a triangle its agents refuse to use: the planner tier must seek and use pickups, or the triangle stays an assertion.
+
+- Report fields shipped: time to first frag, frags per minute per agent, deaths, longest gap without a frag, Host beats, spawn deaths within two seconds, stuck detection (no movement and no fire during an Active round), weapon usage, bytes per snapshot, and the combat block: time to kill as a distribution, shots and hits with a Wilson interval on accuracy, shots per kill, per-weapon accuracy, damage, kills, hit distance and kill distance, and a kill-distance histogram. Planned: pickup contention, idle ticks per agent, route metrics, tick time percentiles from the status line.
 - Frustration signals become assertions with thresholds in CI: no agent stuck for more than five seconds, no spawn death rate above ten percent, at least one frag per minute at four agents.
 - Output lands under gitignored `.agents/playtest/`; the summary table for a change under test goes into that change's plan doc, except brain results, which stay in `.agents/` per TypeSafe's terms.
 
