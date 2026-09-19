@@ -329,6 +329,12 @@ pub async fn run_bot(
                     }
                     // The brain does not predict, so an ack is nothing to act on.
                     Ok(ServerMessage::Ack { .. }) => {}
+                    // The arena's shape. The brain reasons in range buckets
+                    // rather than geometry today, so it notes the map and does
+                    // nothing with it; cover-aware questions are a later rung.
+                    Ok(ServerMessage::MapInfo { map_name, .. }) => {
+                        tracing::debug!("map: {map_name}");
+                    }
                     Ok(ServerMessage::Error { code, message }) => {
                         tracing::warn!("server rejected: {code}: {message}");
                     }

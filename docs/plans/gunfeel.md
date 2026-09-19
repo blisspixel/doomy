@@ -85,7 +85,20 @@ Two changes had to land together, which is worth recording. Changing the cone va
 
 Agents that hold the range their weapon wants, rather than charging, move the fight without changing the guns: kills at nought to five units fall from fifteen to nineteen per run to nought or one, the rail goes from one kill to as many as seven, and accuracy and shots per kill stay where they were. The full table is in `plans/agent-playtest-loop.md`.
 
-The open question this leaves is worth stating plainly. Accuracy sits near fifteen percent whichever tier plays, while a flechette at its ideal twelve units should land more than nine shots in ten on a stationary target. The gap is not dispersion; it is that these agents hold the fire button through walls, around corners, and while their target is behind cover. Firing discipline, not the cone, is what the accuracy number is currently measuring, and any weapon tuning read off that number alone would be tuning the wrong thing.
+The open question this left was firing discipline, and it has now been answered. Accuracy sat near fifteen percent whichever tier played, while a flechette at its ideal twelve units should land more than nine shots in ten. The cause was not dispersion: the agents had no way to know where the walls were, so they held the fire button through cover. The server now tells every joining fighter the arena's solids, and the reference agents check the line before firing.
+
+| | Firing blind | Checking the line |
+|---|---|---|
+| Accuracy | 15 to 17% | 54 to 64% |
+| Shots per kill | 22 to 25 | 5.3 to 6.9 |
+| Shots fired per run | 650 to 1570 | 234 to 348 |
+| Time to kill p50 | 0.90 to 2.05 s | 1.05 to 1.65 s |
+
+Giving agents the map changed their movement as well as their trigger, and the first attempt made them worse at one thing: an agent that could not see its target stood still, which the harness correctly flagged as stuck. Holding fire cannot mean standing there. Both policies now keep moving while blind, sliding left and right in turn so a pillar is something they go around rather than walk into, and the stuck threshold passes on every seed.
+
+The weapon table is vindicated by the second column rather than the first. A kill needs three to four clean hits; at sixty percent accuracy that is about five point eight shots, and the measurement says five to six. Time to kill did not move, which is the control: the guns did not change, only what the agents chose to shoot at.
+
+The lesson is worth keeping. For weeks of measurement the accuracy number was reporting the agents' ignorance of the map, not the weapons' dispersion, and any balance decision read off it would have been a decision about the wrong thing.
 
 ## Measuring it without human testers
 

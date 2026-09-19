@@ -224,21 +224,35 @@ mod tests {
         assert_eq!(v["type"], "welcome");
         assert!(v["player_id"].is_string(), "player_id={}", v["player_id"]);
 
-        // Session tick should broadcast at least one snapshot/event after join.
-        let tick_msg = tokio::time::timeout(Duration::from_secs(2), stream.next())
-            .await
-            .expect("tick timeout")
-            .expect("tick msg")
-            .expect("tick ok");
-        let Message::Text(tick_text) = tick_msg else {
-            panic!("expected text tick broadcast, got {tick_msg:?}");
-        };
-        let tick_v: serde_json::Value = serde_json::from_str(&tick_text).expect("tick json");
-        let tick_type = tick_v["type"].as_str().unwrap_or("");
-        assert!(
-            tick_type == "snapshot" || tick_type == "event",
-            "unexpected tick type: {tick_text}"
-        );
+        // A joiner is told the arena's shape once, then the tick broadcasts
+        // begin. Read a few messages so the test does not depend on the order.
+        let mut saw_map = false;
+        let mut saw_tick = false;
+        for _ in 0..8 {
+            let msg = tokio::time::timeout(Duration::from_secs(2), stream.next())
+                .await
+                .expect("tick timeout")
+                .expect("tick msg")
+                .expect("tick ok");
+            let Message::Text(text) = msg else {
+                panic!("expected text broadcast, got {msg:?}");
+            };
+            let v: serde_json::Value = serde_json::from_str(&text).expect("json");
+            match v["type"].as_str().unwrap_or("") {
+                "map_info" => {
+                    assert!(v["solids"].is_array(), "map_info carries solids: {text}");
+                    assert!(v["half_extent"].as_f64().unwrap_or(0.0) > 0.0);
+                    saw_map = true;
+                }
+                "snapshot" | "event" => saw_tick = true,
+                other => panic!("unexpected message type {other}: {text}"),
+            }
+            if saw_map && saw_tick {
+                break;
+            }
+        }
+        assert!(saw_map, "a joining fighter should be told the map");
+        assert!(saw_tick, "and then receive tick broadcasts");
 
         let _ = shutdown_tx.send(());
         let result = tokio::time::timeout(Duration::from_secs(2), server)
