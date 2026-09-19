@@ -5,9 +5,9 @@ use crate::protocol::{
     episode0_host_line_jammer, episode0_host_line_nods, episode0_host_line_win,
     episode0_objective_chip, episode0_unlock_teaser, killstreak_host_line, mvp_host_line,
     roster_host_line, round_open_host_line, rule_bot_taunt_line, warmup_host_line, Action,
-    BotTauntKind, GameEvent, PickupState, PlayerScore, PlayerState, Role, ShotResult, Snapshot,
-    WeaponType, AUDITOR_NAME, BOSS_NAME, EPISODE_ID_EP0, EPISODE_MAP_LARAK_LOT, EPISODE_TITLE_EP0,
-    MODE_NAME, PLAYLIST_NAME,
+    BotTauntKind, GameEvent, PickupState, PlayerScore, PlayerState, Role, ServerMessage,
+    ShotResult, Snapshot, WeaponType, AUDITOR_NAME, BOSS_NAME, EPISODE_ID_EP0,
+    EPISODE_MAP_LARAK_LOT, EPISODE_TITLE_EP0, MODE_NAME, PLAYLIST_NAME,
 };
 use std::collections::HashMap;
 use std::f32::consts::PI;
@@ -643,6 +643,8 @@ pub struct Player {
     pub killstreak: u32,
     /// Agent-set observe chip (never used for combat). Rule bots use BotController.
     pub display_behavior: Option<String>,
+    /// Newest input sequence applied to this fighter, echoed in the Ack.
+    pub last_input_seq: Option<u32>,
 }
 
 impl GameState {
@@ -816,6 +818,7 @@ impl GameState {
             is_boss: false,
             killstreak: 0,
             display_behavior: None,
+            last_input_seq: None,
         });
 
         self.scores.entry(id).or_insert(0);
@@ -866,6 +869,29 @@ impl GameState {
         }
         player.display_behavior = Some(trimmed);
         true
+    }
+
+    /// One Ack per fighter whose client numbers its inputs. Built after a
+    /// tick so the state it carries is the state that input produced.
+    pub fn input_acks(&self) -> Vec<(Uuid, ServerMessage)> {
+        self.players
+            .iter()
+            .filter(|p| p.role == Role::Human)
+            .filter_map(|p| {
+                p.last_input_seq.map(|seq| {
+                    (
+                        p.id,
+                        ServerMessage::Ack {
+                            seq,
+                            tick: self.tick,
+                            x: p.x,
+                            z: p.z,
+                            yaw: p.yaw,
+                        },
+                    )
+                })
+            })
+            .collect()
     }
 
     pub fn tick(&mut self, dt: f32) {
@@ -968,6 +994,19 @@ impl GameState {
                 player.weapon = new_weapon;
             }
 
+            if let Some(seq) = action.seq {
+                player.last_input_seq = Some(seq);
+            }
+
+            // Client-owned yaw wins and is applied before the move, so the
+            // fighter travels in the direction the client predicted for this
+            // same input. Without it, the turn bits still turn at a fixed rate
+            // after the move, which is how agents and older clients aim.
+            let client_yaw = action.yaw.filter(|y| y.is_finite());
+            if let Some(yaw) = client_yaw {
+                player.yaw = crate::movement::normalize_yaw(yaw);
+            }
+
             let mut dx = 0.0;
             let mut dz = 0.0;
             if action.forward {
@@ -1001,11 +1040,13 @@ impl GameState {
             player.x = rx;
             player.z = rz;
 
-            if action.turn_left {
-                player.yaw -= TURN_SPEED * dt;
-            }
-            if action.turn_right {
-                player.yaw += TURN_SPEED * dt;
+            if client_yaw.is_none() {
+                if action.turn_left {
+                    player.yaw -= TURN_SPEED * dt;
+                }
+                if action.turn_right {
+                    player.yaw += TURN_SPEED * dt;
+                }
             }
 
             while player.yaw < 0.0 {
@@ -1690,6 +1731,7 @@ impl GameState {
             is_boss: true,
             killstreak: 0,
             display_behavior: None,
+            last_input_seq: None,
         });
         self.bots
             .push(BotController::new(id, BotBehavior::Compliance));
@@ -1885,6 +1927,7 @@ impl GameState {
             is_boss: true,
             killstreak: 0,
             display_behavior: None,
+            last_input_seq: None,
         });
         self.bots
             .push(BotController::new(id, BotBehavior::Compliance));

@@ -4,6 +4,8 @@ signal connected_to_server
 signal disconnected_from_server
 signal snapshot_received(data)
 signal event_received(data)
+## Per-tick acknowledgement of the newest input the server applied to us.
+signal ack_received(data)
 
 var socket = WebSocketPeer.new()
 var connection_state = WebSocketPeer.STATE_CLOSED
@@ -87,6 +89,12 @@ func send_action(action: Dictionary):
 	var swap = action.get("weapon_swap", null)
 	if swap != null and str(swap) != "":
 		msg["weapon_swap"] = str(swap)
+	# Client-owned facing and the input number the server acknowledges. Both are
+	# optional on the wire; agents and older clients send neither.
+	if action.has("yaw"):
+		msg["yaw"] = float(action["yaw"])
+	if action.has("seq"):
+		msg["seq"] = int(action["seq"])
 	send_json(msg)
 
 func send_speak(text: String) -> void:
@@ -140,6 +148,9 @@ func _handle_message(text: String):
 		
 		"snapshot":
 			snapshot_received.emit(data)
+		
+		"ack":
+			ack_received.emit(data)
 		
 		"event":
 			event_received.emit(data)
