@@ -118,6 +118,7 @@ Three problems decide whether the rest is possible, because they cross the langu
 - **Netcode for buttery controls** (`plans/buttery-controls.md`, design detail): one movement step written in Rust and GDScript against committed golden vectors, numbered bundled inputs with an `ack` message, reconciliation with a visual offset, timeline interpolation, bounded lag compensation, and a 60 Hz movement step under 20 Hz snapshots.
 - **Maps as data and monsters as tables** (`plans/campaign-continuance.md`, framework detail): a versioned map manifest built from TrenchBroom files by a Rust tool, convex solids shared by collision and sight, three-bit skill placement, a monster row schema with Doom's rules in seconds, triggers, doors, keys, secrets, exits, and saves.
 - **Snapshots at scale** (`plans/massive-arenas.md`): a seeded sim, a spatial grid, interest sets, delta snapshots with acknowledgement, a binary wire format, a tick budget model, and a measured scale ladder.
+- **Art without a hand that draws** (`plans/art-pipeline.md`): two pixel-art-native services chosen on output terms and native eight-direction support, a Rust post-processor that makes every frame conform to the palette and grid, provenance in a manifest, and a spend gate.
 
 ## Plan coverage and order
 
@@ -127,7 +128,7 @@ Every item above maps to a plan or says "plan needed". The order of the next PRs
 |---|---|---|
 | Phase 0: one protocol crate | the adapter moves onto `fragr-server` types (wire changes in `plans/buttery-controls.md` are edited once) | 3 |
 | Phase 1.1: movement and gunfeel | `plans/buttery-controls.md` | 5 (stage 1), then stage 2 after 4 |
-| Phase 1.2: look pass | `plans/look-pass-boomer.md` | 8 |
+| Phase 1.2: look pass | `plans/look-pass-boomer.md`, assets from `plans/art-pipeline.md` | 8 (stage 1); art rung 1 (the Rust tool) any time, paid rungs after written approval |
 | Phase 1.3: sound and music | `plans/radio-stations.md` (shipped; bumpers and Host voice remain) | |
 | Phase 1.4: bots that read as players | plan needed | after campaign rung 2 |
 | Phase 1.5: reference agents and the door | `plans/decision-brain.md` (shipped), `plans/agent-door-2026.md` | 7 |
