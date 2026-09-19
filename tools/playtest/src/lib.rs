@@ -1148,7 +1148,9 @@ async fn agent_task(
         match serde_json::from_str::<ServerMessage>(&text) {
             Ok(ServerMessage::Welcome { player_id: pid, .. }) => player_id = pid,
             Ok(ServerMessage::MapInfo {
-                solids, half_extent, ..
+                solids,
+                half_extent,
+                ..
             }) => {
                 arena = Arena {
                     solids,
@@ -1505,7 +1507,10 @@ mod tests {
             "the wedge is reported at its real length, not the length plus the funeral"
         );
         assert_eq!(track.dead_max_ticks, 60);
-        assert_eq!(track.stuck_from_tick, 2, "and it says where the stall began");
+        assert_eq!(
+            track.stuck_from_tick, 2,
+            "and it says where the stall began"
+        );
         assert_eq!(track.stuck_at, (3.0, 4.0));
     }
 
@@ -1529,7 +1534,10 @@ mod tests {
             100,
         );
         // The victim dies: gone from the snapshot, then the frag lands.
-        obs.ingest_snapshot(&snapshot(2, vec![player("killer", a, 0.0, 0.0, false)]), 100);
+        obs.ingest_snapshot(
+            &snapshot(2, vec![player("killer", a, 0.0, 0.0, false)]),
+            100,
+        );
         obs.ingest_event(GameEvent::Frag {
             killer: "killer".to_string(),
             victim: "victim".to_string(),
@@ -2539,7 +2547,10 @@ mod patrol_tests {
         let later = patrol_action(&me, 60, &arena).look_at.unwrap();
         let moved = (first.x.unwrap() - later.x.unwrap()).abs()
             + (first.z.unwrap() - later.z.unwrap()).abs();
-        assert!(moved > 1.0, "three seconds should change where it is headed");
+        assert!(
+            moved > 1.0,
+            "three seconds should change where it is headed"
+        );
     }
 
     #[test]
@@ -2552,6 +2563,9 @@ mod patrol_tests {
             .look_at
             .unwrap();
         let apart = (a.x.unwrap() - b.x.unwrap()).abs() + (a.z.unwrap() - b.z.unwrap()).abs();
-        assert!(apart > 0.5, "two agents alone should search different ground");
+        assert!(
+            apart > 0.5,
+            "two agents alone should search different ground"
+        );
     }
 }
