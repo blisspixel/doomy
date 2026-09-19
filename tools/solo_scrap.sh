@@ -57,7 +57,13 @@ if [ "$SOLO_BROADCAST" = "1" ] || [ "$SOLO_BROADCAST" = "true" ]; then
   MAP_ARGS+=(--solo-broadcast)
 fi
 
-echo "Starting Solo Broadcast server on $BIND with $BOTS NODS (map face=Larak Lot, map=$MAP)..."
+# Map face must match geometry: map 1 Arena Duel faces as Larak Lot; map 2 stays Compliance Yard.
+if [ "$MAP" = "1" ] || [ "$MAP" = "arena" ] || [ "$MAP" = "arena-duel" ]; then
+  MAP_FACE="Larak Lot"
+else
+  MAP_FACE="Compliance Yard (map $MAP)"
+fi
+echo "Starting Solo Broadcast server on $BIND with $BOTS NODS (map face=$MAP_FACE, map=$MAP)..."
 "$SERVER_BIN" --bind "$BIND" --bots "$BOTS" "${MAP_ARGS[@]}" >/tmp/fragr-solo-server.log 2>&1 &
 SERVER_PID=$!
 

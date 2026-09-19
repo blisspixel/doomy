@@ -458,6 +458,18 @@ pub struct PickupState {
     pub respawn_in: Option<u32>,
 }
 
+/// Solo Broadcast jammer dish world marker (arena center soft-touch).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct JammerDishState {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    /// True while phase is jammer and the dish is seizeable.
+    pub live: bool,
+    /// True after soft-touch seize.
+    pub seized: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Snapshot {
     pub tick: u64,
@@ -513,6 +525,9 @@ pub struct Snapshot {
     /// Phase: nods / jammer / auditor / won / failed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub episode_phase: Option<String>,
+    /// Jammer dish world marker while Solo Broadcast episode is live on jammer/seize.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jammer_dish: Option<JammerDishState>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -775,6 +790,7 @@ mod protocol_tests {
             episode_objective: None,
             episode_progress: None,
             episode_phase: None,
+            jammer_dish: None,
         };
         let v = serde_json::to_value(&snap).unwrap();
         assert_eq!(v["shot_results"][0]["hit"], true);
@@ -944,6 +960,7 @@ mod protocol_tests {
             episode_objective: None,
             episode_progress: None,
             episode_phase: None,
+            jammer_dish: None,
         };
         let v = serde_json::to_value(&snap).unwrap();
         assert_eq!(v["pickups"][0]["id"], "pad_rail");

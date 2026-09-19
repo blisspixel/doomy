@@ -277,6 +277,7 @@ fn test_protocol_snapshot_serialization() {
         episode_objective: None,
         episode_progress: None,
         episode_phase: None,
+        jammer_dish: None,
     };
     let json = serde_json::to_value(&snapshot).unwrap();
     assert_eq!(json["tick"], 123);
@@ -306,6 +307,7 @@ fn test_protocol_snapshot_empty_players() {
         episode_objective: None,
         episode_progress: None,
         episode_phase: None,
+        jammer_dish: None,
     };
     let json = serde_json::to_string(&snapshot).unwrap();
     assert!(json.contains(r#""tick":0"#));
@@ -2192,6 +2194,7 @@ async fn test_net_ws_action_forwarded_for_agent() {
             episode_objective: None,
             episode_progress: None,
             episode_phase: None,
+            jammer_dish: None,
         });
         broadcast_to_clients(&clients, &[snap]).await;
         let msg = tokio::time::timeout(std::time::Duration::from_secs(2), stream.next())
@@ -4287,8 +4290,10 @@ fn solo_broadcast_ep0_win_path() {
         .collect();
     assert!(!nods.is_empty(), "expected NODS labels after enable");
 
+    let mut nods_cycle = nods.iter().cycle();
     while session.state.solo_broadcast.nods_cleared < session.state.solo_broadcast.nods_goal {
-        session.state.note_nods_frag(human);
+        let victim = *nods_cycle.next().expect("NODS roster");
+        session.state.note_nods_frag(human, victim);
     }
     assert_eq!(session.state.solo_broadcast.phase, EpisodePhase::Jammer);
 
@@ -4353,6 +4358,195 @@ fn solo_broadcast_ep0_fail_on_timeout() {
             .any(|e| matches!(e, GameEvent::EpisodeFail { .. })),
         "expected EpisodeFail, got {events:?}"
     );
+}
+
+#[test]
+fn note_nods_frag_credits_human_and_agent_meatbag_not_rule_bot() {
+    let mut session = GameSession::new();
+    session.spawn_bots(2);
+    session.enable_solo_broadcast_ep0();
+    session.state.start_round();
+
+    let nods: Vec<_> = session
+        .state
+        .players
+        .iter()
+        .filter(|p| p.name.starts_with("NODS-") && !p.is_boss)
+        .map(|p| p.id)
+        .collect();
+    assert!(!nods.is_empty());
+    let victim = nods[0];
+
+    let human = Uuid::new_v4();
+    session
+        .state
+        .add_player(human, "Meatbag".to_string(), Role::Human);
+    session.state.note_nods_frag(human, victim);
+    assert_eq!(session.state.solo_broadcast.nods_cleared, 1);
+
+    let agent = Uuid::new_v4();
+    session
+        .state
+        .add_player(agent, "MCP-Agent".to_string(), Role::Agent);
+    session.state.note_nods_frag(agent, victim);
+    assert_eq!(session.state.solo_broadcast.nods_cleared, 2);
+
+    // Rule bot frag must not credit.
+    let rule_bot = session.state.bots[0].player_id;
+    let before = session.state.solo_broadcast.nods_cleared;
+    session.state.note_nods_frag(rule_bot, victim);
+    assert_eq!(session.state.solo_broadcast.nods_cleared, before);
+
+    // Non-NODS human victim must not credit.
+    let bystander = Uuid::new_v4();
+    session
+        .state
+        .add_player(bystander, "Bystander".to_string(), Role::Human);
+    session.state.note_nods_frag(human, bystander);
+    assert_eq!(session.state.solo_broadcast.nods_cleared, before);
+}
+
+#[test]
+fn note_nods_frag_via_lethal_hitscan_path() {
+    let mut state = GameState::new();
+    state.enable_solo_broadcast_ep0();
+    state.start_round();
+
+    let agent = Uuid::new_v4();
+    let victim = Uuid::new_v4();
+    state.add_player(agent, "MCP-Agent".to_string(), Role::Agent);
+    state.add_player(victim, "NODS-01".to_string(), Role::Agent);
+    // Victim is a rule bot (NODS), killer is Agent meatbag (not in bots).
+    state
+        .bots
+        .push(BotController::new(victim, BotBehavior::Balanced));
+
+    let (ai, vi) = {
+        let ai = state.players.iter().position(|p| p.id == agent).unwrap();
+        let vi = state.players.iter().position(|p| p.id == victim).unwrap();
+        (ai, vi)
+    };
+    state.players[ai].x = 0.0;
+    state.players[ai].z = 0.0;
+    state.players[ai].yaw = 0.0;
+    state.players[ai].weapon = WeaponType::Rail;
+    state.players[vi].x = 4.0;
+    state.players[vi].z = 0.0;
+    state.players[vi].hp = 50; // one Rail (75) kills
+
+    assert_eq!(state.solo_broadcast.nods_cleared, 0);
+    state.set_action(
+        agent,
+        Action {
+            fire: true,
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+    assert_eq!(
+        state.solo_broadcast.nods_cleared, 1,
+        "Agent meatbag Rail frag of NODS must credit via lethal path"
+    );
+    assert!(state.players[vi].respawn_timer.is_some() || state.players[vi].hp <= 0);
+
+    // Rule-bot killer must not credit.
+    let bot_killer = Uuid::new_v4();
+    let nods2 = Uuid::new_v4();
+    state.add_player(bot_killer, "NODS-02".to_string(), Role::Agent);
+    state.add_player(nods2, "NODS-03".to_string(), Role::Agent);
+    state
+        .bots
+        .push(BotController::new(bot_killer, BotBehavior::Aggressive));
+    state
+        .bots
+        .push(BotController::new(nods2, BotBehavior::Defensive));
+    let (bi, ni) = {
+        let bi = state
+            .players
+            .iter()
+            .position(|p| p.id == bot_killer)
+            .unwrap();
+        let ni = state.players.iter().position(|p| p.id == nods2).unwrap();
+        (bi, ni)
+    };
+    state.players[bi].x = 0.0;
+    state.players[bi].z = 8.0;
+    state.players[bi].yaw = 0.0;
+    state.players[bi].weapon = WeaponType::Rail;
+    state.players[bi].fire_cooldown = 0;
+    state.players[ni].x = 4.0;
+    state.players[ni].z = 8.0;
+    state.players[ni].hp = 50;
+    state.set_action(
+        bot_killer,
+        Action {
+            fire: true,
+            ..Default::default()
+        },
+    );
+    state.tick(0.05);
+    assert_eq!(
+        state.solo_broadcast.nods_cleared, 1,
+        "rule-bot frag of NODS must not credit"
+    );
+}
+
+#[test]
+fn solo_broadcast_map_name_matches_map_kind() {
+    let mut arena = GameState::with_map(MapKind::ArenaDuel, false);
+    arena.enable_solo_broadcast_ep0();
+    assert_eq!(arena.snapshot().map_name, EPISODE_MAP_LARAK_LOT);
+    assert_eq!(arena.snapshot().map_id, 1);
+
+    let mut yard = GameState::with_map(MapKind::ComplianceYard, false);
+    yard.enable_solo_broadcast_ep0();
+    let snap = yard.snapshot();
+    assert_eq!(snap.map_id, 2);
+    assert_eq!(snap.map_name, MapKind::ComplianceYard.name());
+    assert_ne!(snap.map_name, EPISODE_MAP_LARAK_LOT);
+}
+
+#[test]
+fn jammer_dish_appears_on_snapshot_in_jammer_phase() {
+    let mut session = GameSession::new();
+    session.spawn_bots(2);
+    session.enable_solo_broadcast_ep0();
+    session.state.start_round();
+    let human = Uuid::new_v4();
+    session
+        .state
+        .add_player(human, "Meatbag".to_string(), Role::Human);
+    let victim = session
+        .state
+        .players
+        .iter()
+        .find(|p| p.name.starts_with("NODS-"))
+        .map(|p| p.id)
+        .expect("NODS");
+    assert!(session.state.snapshot().jammer_dish.is_none());
+    while session.state.solo_broadcast.nods_cleared < session.state.solo_broadcast.nods_goal {
+        session.state.note_nods_frag(human, victim);
+    }
+    let dish = session
+        .state
+        .snapshot()
+        .jammer_dish
+        .expect("jammer dish live in jammer phase");
+    assert!(dish.live);
+    assert!(!dish.seized);
+    if let Some(p) = session.state.players.iter_mut().find(|p| p.id == human) {
+        p.x = 0.0;
+        p.z = 0.0;
+        p.respawn_timer = None;
+    }
+    session.state.try_seize_jammer();
+    let seized = session
+        .state
+        .snapshot()
+        .jammer_dish
+        .expect("jammer dish seized marker");
+    assert!(!seized.live);
+    assert!(seized.seized);
 }
 
 #[test]

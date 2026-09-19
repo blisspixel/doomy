@@ -19,6 +19,7 @@ Status words: **planned**, **in flight**, **shipped** (merged to `main`, PR numb
 |---|---|---|
 | [`solo-story-episodes.md`](./solo-story-episodes.md) | **shipped** (#106) | Solo Broadcast Episode 0 Calibration / Larak Lot face + juice bar. |
 | [`tip-stills-ep0.md`](./tip-stills-ep0.md) | **shipped** (#110) | Recapture tip stills + README Solo Broadcast face after Episode 0. |
+| [`ep0-nods-progress-fix.md`](./ep0-nods-progress-fix.md) | **shipped** (#111) | Calibration NODS credit for meatbags, jammer dish silhouette, map_name honesty. |
 | [`massive-arenas.md`](./massive-arenas.md) | **planned** | Seeded sim, spatial grid, interest sets, delta snapshots, binary wire, tick budget, and the measured scale ladder to hundreds of fighters. |
 | [`visual-qa-tour.md`](./visual-qa-tour.md) | **planned** | Manifest-driven tour of every player-facing state with stills, a contact sheet, and feel probes for the agent developer to critique. |
 | [`buttery-controls.md`](./buttery-controls.md) | **planned** | Client-owned yaw, prediction and reconciliation, timeline interpolation, 60 Hz sim, lag compensation, gamepad curves, transport spike, all with pass numbers. |
