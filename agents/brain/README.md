@@ -1,10 +1,10 @@
 # fragr-brain
 
-An example agent whose intent comes from a decision model and whose reflexes stay local. It is the third rung of the agent ladder: the scripted bot reacts, the playtest reflex agents react, and this one asks a brain what to do a few times a second while a local controller keeps playing every tick.
+A reference agent whose intent comes from a decision model and whose reflexes stay local. An agent in fragr is one participant on the wire, however it thinks: server-run rule bots, any MCP client through the adapter, a scripted client, or this one, which asks a decision model what to do a few times a second while a local controller keeps playing every tick. One agent can combine a language model, other ML, and a decision model; the server sees one fighter either way.
 
 The brain is Jev, TypeSafe AI's decision model, reached either at TypeSafe's own endpoint or through OpenRouter. Jev does not generate text. It answers typed questions (a choice between named options, a yes-or-no probability, a score on an ordered scale) with calibrated confidence, in a few hundred milliseconds, for about four cents per million input tokens. That shape fits a shooter far better than a chat model: no prose to parse, no invalid actions to guard against, no warm-up.
 
-Traditional agents keep their door. Any MCP client still drives a fighter through `agent-adapter`; this crate is a separate, optional client on the same wire protocol.
+The MCP door is unchanged. Any MCP client still drives a fighter through `agent-adapter`; this crate is a separate, optional client on the same wire protocol, and the two can be mixed inside one agent.
 
 ## Run it for free
 
@@ -34,54 +34,64 @@ cargo run -p fragr-brain -- --provider typesafe --max-spend-usd 5 play --name Je
 cargo run -p fragr-brain -- --provider openrouter --max-spend-usd 5 play --name Jev-2
 ```
 
-Both providers send the same body: a `state` string, a `model`, and a `questions` map. TypeSafe expects `jev-latest` at `https://api.typesafe.ai/v1/systemone`. OpenRouter expects `typesafe/jev-1.13` at `https://openrouter.ai/api/alpha/decisions` and gets the app attribution headers pointing at this repository. Override the model with `--model`.
+Both providers send the same body: a `state` object, a `model`, and a `questions` map. TypeSafe gets `jev-1.13.0` at `https://api.typesafe.ai/v1/systemone`. OpenRouter gets `typesafe/jev-1.13` at `https://openrouter.ai/api/alpha/decisions` plus the app attribution headers pointing at this repository. Override the model with `--model`.
 
 ## Budget controls
 
 Every paid path goes through one gate, in this order:
 
 1. **Pre-approval.** `--max-spend-usd` defaults to zero. A paid provider with a zero cap refuses to start and says how to approve one.
-2. **Estimate before send.** Each request is priced from its byte length (four characters per token, rounded up, plus overhead) at `--price-input-per-million` and `--price-output-per-million`, which default to Jev's list price. If the estimate would cross a cap, the call is not sent.
+2. **Estimate before send.** Each request is priced from its byte length (two characters per token, the ratio measured against OpenRouter's billed count, rounded up, plus overhead) at `--price-input-per-million` and `--price-output-per-million`, which default to Jev's list price. If the estimate would cross a cap, the call is not sent.
 3. **Settle after return.** The provider's reported usage (and OpenRouter's reported cost) replaces the estimate in the running total.
-4. **Ledger on disk.** Every sent call, successful or not, lands in `.agents/spend/brain.json`. The total carries across runs. `--max-total-usd` caps that total; `--max-calls` caps the count regardless of price. `fragr-brain spend` prints it.
-5. **Fail open to rules.** A refused, failed, slow, or low-confidence decision hands the fighter to the local rules for that cycle. A cap refusal turns the brain off for the rest of the run, once, with a warning. The fighter never stops playing.
+4. **Ledger on disk.** Every sent call, successful or not, is appended as one JSON line to `.agents/spend/brain.jsonl` under a file lock, so several processes can share it and a crash mid-write costs at most the torn last line. The total carries across runs. `--max-total-usd` caps that total and re-reads the file before each call so other processes' charges count; `--max-calls` caps the count regardless of price. `fragr-brain spend` prints it.
+5. **Fail open to rules.** A refused, failed, slow, or low-confidence decision hands the fighter to the local rules for that cycle. A cap refusal, a bad key or model id (400, 401, 403, 404, 422), or three unreadable answers in a row turn the brain off for the rest of the run, once, with a warning, so a misconfiguration cannot bill a phantom charge every cycle. Dead fighters and fighters outside an active round are never asked. The fighter never stops playing.
+7. **Per-run ceiling.** `--max-spend-usd` above five dollars is refused outright; that ceiling is a constant in the code, so raising it is a reviewed change.
 6. **Provider-side backstop.** For OpenRouter, create a key with its own dollar limit in the dashboard; `fragr-brain --provider openrouter key` shows the limit and what remains, and warns when the key has none.
 
-A rough budget: a state is about 220 characters, the three questions about 900, so a call is roughly 300 input tokens. At three decisions per second that is under one tenth of a cent per minute, or about five cents an hour of continuous play. A five dollar cap is over a hundred hours.
+Measured on 2026-09-18 through OpenRouter: one call bills roughly 700 input tokens (the fixed question text dominates the small state) and costs about three hundredths of a cent. At three decisions per second that is about two cents a minute, or thirty-three cents an hour of continuous play. A five dollar cap is about fifteen hours. Trimming the criteria text is the cheapest lever. Latency and win rates are deliberately not published here: TypeSafe's customer agreement forbids publishing performance information about the service, so those stay in local ledgers and reports.
 
 ## What the brain is asked
 
-The state is four short lines, deterministic, lowest information that still decides the fight:
+The state is a small object of words, not numbers. TypeSafe's guidance for Jev is an object with descriptive names, comparisons done in code, and nothing unrelated to the questions, because Jev reads numbers as text and unrelated detail measurably lowers accuracy. So the bot buckets distances and health before asking:
 
-```
-SELF hp=75 armor=0 weapon=flechette under_fire=no recent_damage=0 score=0 top_rival=0
-ENEMY name=Probe-2 dist=12.3 hp=mid weapon=rail
-PADS health=8.1 armor=none weapon.scatter=2.0
-ROUND state=active time_left=90 fighters=2
+```json
+{
+  "self":  {"health": "high", "armor": "none", "weapon": "flechette", "taking_damage": false, "score": "behind"},
+  "enemy": {"present": true, "range": "mid", "health": "low", "weapon": "rail"},
+  "pads":  {"health": "near", "armor": "none"},
+  "clock": "ending_soon"
+}
 ```
 
-The questions are fixed so estimates stay honest and providers can cache:
+Range is close (under 10 units), mid (to 30), or far, matching the weapon ranges in the questions. A pad is near inside 12 units. The clock is ending_soon at 30 seconds. The human-readable four-line form still appears in logs and in the run summary.
+
+The questions are fixed so estimates stay honest, and written the way TypeSafe recommends: short and atomic, each choice option saying what it is for and what belongs to a neighbour, each score level describing a situation rather than a degree.
 
 - `stance`, a choice: `push_enemy`, `fall_back_heal`, `hold_angle`, `kite_distance`.
-- `weapon`, a choice: `scatter`, `flechette`, `rail`, with the ranges spelled out.
-- `danger`, a score: `safe`, `watchful`, `pressured`, `critical`, `dying`.
+- `weapon`, a choice: `scatter`, `flechette`, `rail`.
+- `danger`, a score over five situations from healthy and unbothered to low health under fire with no pad near. The bot takes the most likely level, never the interpolated expectation, because TypeSafe documents the score's numerical calibration as weak.
 
-Answers below `--confidence-floor` (default 0.65) do not change the stance. The controller then turns the stance into wire actions every 50 ms: aim at the nearest living fighter, fire inside the held weapon's range, close, hold and strafe, back off, or run to the nearest health pad.
+**Gating.** A choice is trusted when its top option leads the runner-up by at least `--margin-floor` (default 0.2), or when the provider's own `confidence` statistic reaches `--confidence-floor` (default 0.65). The margin is the primary test: on a four-way stance question the winning option often sits near 0.6 with a clear lead, and TypeSafe's own worked example calls a 0.60 versus 0.38 split "clear enough to act on" while reporting a confidence of 0.39. Rejected answers leave the stance to local rules for that cycle and count as `decisions_low_confidence` in the summary.
 
-Try one decision by hand, with or without sending:
+**Backoff.** Rate limits (429), overload (529), other server errors, and timeouts are never retried inside a cycle. Each one doubles the decision interval, up to sixteen times the base, and the first success restores it. The fighter plays on local rules in between. TypeSafe's published default limit is 1,200 requests per minute per key, which four to six brain fighters at three to five decisions per second would saturate, so keep the decision rate modest when fielding several.
+
+**Model pinning.** The gate was tuned against Jev 1.13, so the defaults pin it: `jev-1.13.0` natively and `typesafe/jev-1.13` through OpenRouter. TypeSafe advises pinning once thresholds are tuned rather than riding the `jev-latest` alias.
+
+Try one decision by hand, with or without sending. A JSON object is sent as an object; anything else goes as a plain string:
 
 ```bash
-cargo run -p fragr-brain -- --provider typesafe ask --dry-run --state "$(printf 'SELF hp=20 armor=0 weapon=flechette under_fire=yes recent_damage=40 score=1 top_rival=3\nENEMY name=Kragge dist=6.0 hp=high weapon=scatter\nPADS health=9.0 armor=none\nROUND state=active time_left=60 fighters=4\n')"
-cargo run -p fragr-brain -- --provider typesafe --max-spend-usd 0.01 ask --state "..."
+cargo run -p fragr-brain -- --provider openrouter ask --dry-run --state '{"self":{"health":"low","armor":"none","weapon":"flechette","taking_damage":true,"score":"even"},"enemy":{"present":true,"range":"close","health":"high","weapon":"scatter"},"pads":{"health":"near","armor":"none"},"clock":"plenty"}'
+cargo run -p fragr-brain -- --provider openrouter --max-spend-usd 0.01 ask --state '{...}'
 ```
 
 ## What it reports
 
-`play` prints a JSON summary when it leaves: snapshots seen, actions sent, decisions by source (remote, low confidence, failed, local, budget refusals), frags, deaths, dollars this run, dollars in the ledger, the last plan, and the last state string.
+`play` prints a JSON summary when it leaves: snapshots seen, actions sent, decisions by source (remote, low confidence, failed, local, budget refusals), backoffs, decision round-trip statistics, frags, deaths, dollars this run, dollars in the ledger, the last plan, and the last state string. The summary is for your eyes; keep it out of public write-ups.
 
 ## Known limits
 
-- Jev reads instructions literally, is weak at arithmetic and multi-step reasoning, and can be distracted by irrelevant state. The state is kept tiny and the questions are blunt on purpose.
+- Jev reads instructions literally, is weak at arithmetic and multi-step reasoning, and can be distracted by irrelevant state. The state is words only, kept tiny, and the questions are blunt on purpose.
+- One request evaluates one state. Several fighters could share a request through field paths, but that adds exactly the unrelated detail TypeSafe warns about, so each fighter asks alone.
 - TypeSafe's customer agreement forbids publishing benchmarks or performance figures about the service. Keep win rates out of the repository; the playtest harness reports stay under gitignored `.agents/`.
-- The OpenRouter alias `~typesafe/jev-latest` is not in its public catalog; the dated id is the default here.
+- OpenRouter accepts `typesafe/jev-1.13` (served as `typesafe/jev-1.13-20260917` on 2026-09-18) and the alias `~typesafe/jev-latest`; the plain `typesafe/jev-latest` does not exist there. The dated id is the default.
 - No A2A surface yet. Team play between brains is a roadmap item.

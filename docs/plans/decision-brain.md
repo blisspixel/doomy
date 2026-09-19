@@ -6,11 +6,11 @@
 
 ## Goal
 
-Give fragr a third agent tier next to the scripted bot and the playtest reflex agents: a fighter whose macro intent comes from a decision model at two to five decisions per second while a local controller plays every tick. The first brain is Jev, TypeSafe AI's decision model, reached natively or through OpenRouter. Any paid call sits behind one budget gate with a pre-approved cap, a pre-send estimate, a post-return settlement, and a ledger on disk.
+Give fragr a reference agent whose macro intent comes from a decision model at two to five decisions per second while a local controller plays every tick. It is another way to engage as an agent, not a new kind of participant: one agent may combine a language model, other ML, and a decision model, and the server sees one fighter. The first brain is Jev, TypeSafe AI's decision model, reached natively or through OpenRouter. Any paid call sits behind one budget gate with a pre-approved cap, a pre-send estimate, a post-return settlement, and a ledger on disk.
 
 ## Why a decision model and not a chat model
 
-The research (2026-09-18) is consistent: no published game agent runs a remote language model above about two decisions per second, and the ones that try inside the tick loop lose to a one-megabyte local policy. A Haiku-class model with a JSON schema needs about 1.4 seconds end to end for a sixty-token answer and costs about 13 dollars an hour at five decisions per second. Jev answers typed questions in 70 to 500 ms, returns a distribution instead of prose, and lists at 0.042 dollars per million input tokens with free output, which is about five cents an hour at three decisions per second on our state size. It cannot produce an invalid action because the options are ours.
+The research (2026-09-18) is consistent: no published game agent runs a remote language model above about two decisions per second, and the ones that try inside the tick loop lose to a one-megabyte local policy. A Haiku-class model with a JSON schema needs about 1.4 seconds end to end for a sixty-token answer and costs about 13 dollars an hour at five decisions per second. TypeSafe states an end-to-end response time of 70 to 500 ms; Jev returns a distribution instead of prose, and lists at 0.042 dollars per million input tokens with free output. Measured through OpenRouter on 2026-09-18: roughly 700 input tokens and three hundredths of a cent per call, which is about thirty-three cents an hour at three decisions per second. It cannot produce an invalid action because the options are ours.
 
 The two-tier split is the same one SIMA 2 and every working design uses: a slow brain sets intent, a fast local loop executes. Our fast loop is the existing reflex policy, extended with stances.
 
@@ -34,7 +34,7 @@ The two-tier split is the same one SIMA 2 and every working design uses: a slow 
 | | TypeSafe native | OpenRouter |
 |---|---|---|
 | Endpoint | `POST https://api.typesafe.ai/v1/systemone` | `POST https://openrouter.ai/api/alpha/decisions` |
-| Model | `jev-latest` (alias of `jev-1.13.0`) | `typesafe/jev-1.13` (the `~typesafe/jev-latest` alias is not in the catalog) |
+| Model | `jev-1.13.0` pinned (`jev-latest` and `jev-preview` alias it) | `typesafe/jev-1.13` (served as `jev-1.13-20260917`); `~typesafe/jev-latest` also accepted; plain `typesafe/jev-latest` returns 400 |
 | Auth | `Authorization: Bearer` | `Authorization: Bearer` plus `HTTP-Referer` and `X-OpenRouter-Title` for app attribution |
 | Body | `state`, `model`, `questions` map | same |
 | Answers | `answers.<name>.{choice,noul,score}` plus `confidence`, `probabilities` | same, plus `id`, `provider` |
@@ -43,14 +43,14 @@ The two-tier split is the same one SIMA 2 and every working design uses: a slow 
 | Key limits | none exposed | `GET /api/v1/key` reports `limit`, `limit_remaining`, `usage`; keys can be created with a hard dollar limit |
 | Key names | `TYPESAFE_API_KEY`, `typesafe` | `OPENROUTER_API_KEY`, `openrouter` |
 
-Question types are `choice` (named options with descriptions), `noul` (probability of yes; the name is TypeSafe's, short for Bernoulli), and `score` (ordered levels). Limits: 64k tokens per request, questions evaluated in parallel.
+Question types are `choice` (named options with descriptions), `noul` (probability of yes; the name is TypeSafe's, short for Bernoulli), and `score` (ordered levels; the answer is the expected zero-based index into the list, with probabilities keyed "0" upward). Limits: 64k tokens per request, questions evaluated in parallel.
 
 ## Budget gate
 
 1. `--max-spend-usd` defaults to zero; a paid provider with a zero cap refuses to start.
-2. Estimate before send: request bytes divided by four, rounded up, plus overhead, at the configured price. A call that would cross the run cap, the ledger cap (`--max-total-usd`), or the call cap (`--max-calls`) is not sent.
+2. Estimate before send: request bytes divided by two (the measured billing ratio), rounded up, plus overhead, at the configured price. A call that would cross the run cap, the ledger cap (`--max-total-usd`), or the call cap (`--max-calls`) is not sent.
 3. Settle after return: reported tokens (and OpenRouter's reported cost) replace the estimate.
-4. Ledger at `.agents/spend/brain.json` (gitignored) records every sent call, successful or not, and carries totals across runs. `fragr-brain spend` prints it.
+4. Ledger at `.agents/spend/brain.jsonl` (gitignored, one JSON line per call, appended under a file lock) records every sent call, successful or not, and carries totals across runs and processes. `fragr-brain spend` prints it. The per-run cap is refused above five dollars by a constant in the code.
 5. Provider backstop: an OpenRouter key with its own dollar limit; `fragr-brain key` shows it.
 
 ## Verification
@@ -61,16 +61,40 @@ Question types are `choice` (named options with descriptions), `noul` (probabili
 - Coverage stays above the unfiltered 80 percent floor.
 - A real call against each provider is a developer smoke with a key and a cap, recorded in the ledger, not in CI.
 
+## Research notes (2026-09-18) and what they changed
+
+Sources: TypeSafe's state, primitives, confidence, retries, and model-jaggedness pages; OpenRouter's decisions schema and limits pages; chess engine testing statistics for the experiment design. Full citations live in the session research; the repository keeps the conclusions.
+
+- **State as an object of words.** TypeSafe: use an object with descriptive names, include only what the questions need, do comparisons in code, and never rely on the model to compare numbers. Applied: `Telemetry::state_object` sends health tiers, range buckets (close, mid, far), pad nearness, a score edge, and a clock bucket. Names and raw distances are gone.
+- **Criteria that say what belongs and what belongs to a neighbour.** Each stance option now reads "For: ... Not for: ...". Score levels describe situations, not degrees, and the bot takes the most likely level rather than the expectation, which TypeSafe documents as weakly calibrated. Note: OpenRouter's schema types choice criteria as strings only, so structured criteria would need the native endpoint.
+- **Gate on margin, confidence as backup.** `confidence` is a statistic derived from the probabilities and its formula is unpublished; TypeSafe's worked example treats 0.60 versus 0.38 (confidence 0.39) as clear enough to act on. Default gate: margin at least 0.2, or confidence at least 0.65. Live sampling before this change showed the 0.65 confidence floor alone rejecting most stance answers.
+- **Backoff, never in-cycle retry.** 429, 529, other server errors, and timeouts double the decision interval up to sixteen times the base; a success resets it. TypeSafe's default limit is 1,200 requests per minute per key, so four to six brain fighters at three to five decisions per second would saturate it.
+- **Pin the version.** Thresholds are tuned against Jev 1.13; defaults are `jev-1.13.0` natively and `typesafe/jev-1.13` through OpenRouter. OpenRouter also accepts `~typesafe/jev-latest`; plain `typesafe/jev-latest` returns 400.
+- **One state per request.** Several fighters per request are possible through field paths but conflict with the distractor guidance; each fighter asks alone.
+- **Privacy.** TypeSafe does not train on inputs, and OpenRouter's provider feed marks the Jev endpoint as zero data retention. OpenRouter's own logging is off by default.
+- **What stays out of the public repo.** TypeSafe's customer agreement forbids publishing benchmarks or performance information about the service. Cost math from the public price page, the architecture, the state and question text, and the harness are fine to publish; latency figures, win rates, and accuracy plots attributed to Jev stay in gitignored ledgers and reports.
+
+## Validation design (rung 2)
+
+The question is whether a brain fighter beats a reflex fighter, and by how much, at a cost we can state up front.
+
+- **Unit of measurement:** a round pair on the same map seed and item timers with the brain and reflex fighters swapping spawn sides, scored as win, draw, or loss for the brain by frags. Pairs, not single rounds, so spawn luck cancels (the chess engine testing literature models paired games with a pentanomial distribution for this reason).
+- **Sample size:** to detect a ten point win-rate difference from even at 80 percent power with a two-sided test at the 5 percent level takes 194 rounds (one-sample test of a proportion against 0.5); 259 rounds at 90 percent power; 85 rounds for a fifteen point effect; 783 for five points. At 200 rounds the 95 percent interval half-width is about seven points. Draws count as half a win.
+- **More than two policies:** TrueSkill or Elo over the pool of reflex, planner, and brain fighters.
+- **Cost:** at measured token counts and three decisions per second, one brain fighter costs about 33 cents an hour, so 200 three-minute rounds cost about 3.30 dollars per brain fighter, or about 5.50 at five decisions per second. A mirror pair with two brain fighters doubles that. Worst case under 12 dollars.
+- **Harness:** a `brain` tier in `tools/playtest` fielding brain agents next to reflex agents under a cap, with decision-source counts and backoffs in the report, and a paired-round mode with fixed seeds.
+- **Reporting:** results go to gitignored `.agents/playtest/` and a private note, never to the repository, per the terms above.
+
 ## Rungs
 
-1. This plan: crate, budget gate, local and remote tiers, docs. Ships with the plan.
-2. Playtest tier `brain` so the harness can field brain agents next to reflex agents under a cap, with decision-source counts in the report.
+1. This plan: crate, budget gate, local and remote tiers, docs. Shipped.
+2. Playtest tier `brain` with the paired-round validation design above.
 3. Richer questions once the campaign lands: target choice among several enemies, objective intent, a `noul` for whether to speak a taunt.
 4. A team surface (A2A-style or a shared blackboard through the adapter) so brains can coordinate without touching the tick.
 
 ## Success criteria
 
-- [ ] Local provider plays a round on every PR at zero cost.
-- [ ] A paid provider refuses to start without a cap and stops at the cap, proven by tests.
-- [ ] A developer smoke against TypeSafe and OpenRouter recorded in the local ledger.
-- [ ] Playtest tier `brain`.
+- [x] Local provider plays in-process on every PR at zero cost (the three second `local_provider_plays_for_free` test); the thirty second smoke in AGENTS.md covers a round.
+- [x] A paid provider refuses to start without a cap and stops at the cap, proven by the budget and bot tests.
+- [x] A developer smoke against OpenRouter recorded in the local ledger (2026-09-18: three `ask` calls and a live `play` session under a 25 cent cap). TypeSafe native still needs a key (waitlist).
+- [ ] Playtest tier `brain` with paired rounds and a private results note.

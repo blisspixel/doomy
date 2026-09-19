@@ -4,11 +4,39 @@
 //! by irrelevant state, and every character is billed.
 
 use fragr_server::protocol::{GameEvent, Snapshot};
+use serde_json::{json, Value};
 use std::collections::{BTreeMap, VecDeque};
 use uuid::Uuid;
 
 /// Damage taken inside this many ticks counts as being under fire (two seconds).
 pub const UNDER_FIRE_TICKS: u64 = 40;
+/// Enemy range buckets, aligned with the weapon ranges the questions describe.
+pub const CLOSE_RANGE_UNITS: f32 = 10.0;
+pub const FAR_RANGE_UNITS: f32 = 30.0;
+/// A pad inside this distance is "near".
+pub const NEAR_PAD_UNITS: f32 = 12.0;
+/// A round clock at or under this is "ending_soon".
+pub const ENDING_SOON_SECONDS: u32 = 30;
+
+/// Enemy distance as a word. The brain is not a calculator; comparisons happen here.
+pub fn range_bucket(dist: f32) -> &'static str {
+    if dist < CLOSE_RANGE_UNITS {
+        "close"
+    } else if dist <= FAR_RANGE_UNITS {
+        "mid"
+    } else {
+        "far"
+    }
+}
+
+/// Pad distance as a word.
+pub fn pad_bucket(dist: Option<f32>) -> &'static str {
+    match dist {
+        None => "none",
+        Some(d) if d <= NEAR_PAD_UNITS => "near",
+        Some(_) => "far",
+    }
+}
 
 /// Hits landed on this fighter, stamped with the tick they were seen at.
 #[derive(Debug, Default, Clone)]
@@ -37,6 +65,8 @@ impl RecentHits {
         while matches!(self.hits.front(), Some((t, _)) if *t < floor) {
             self.hits.pop_front();
         }
+        // A hit stamped in the future means the server restarted its clock.
+        self.hits.retain(|(t, _)| *t <= tick);
         self.hits.iter().map(|(_, d)| *d).sum()
     }
 
@@ -104,6 +134,10 @@ pub fn observe(me: Uuid, snapshot: &Snapshot, hits: &mut RecentHits) -> Option<T
     let mut top_rival_score = 0;
     let mut fighters = 0;
     for other in &snapshot.players {
+        if other.id != me {
+            // A respawning leader is still the leader.
+            top_rival_score = top_rival_score.max(other.score);
+        }
         if other.hp <= 0 {
             continue;
         }
@@ -111,7 +145,6 @@ pub fn observe(me: Uuid, snapshot: &Snapshot, hits: &mut RecentHits) -> Option<T
         if other.id == me {
             continue;
         }
-        top_rival_score = top_rival_score.max(other.score);
         let dist = dist2d(mine.x, mine.z, other.x, other.z);
         if enemy.as_ref().is_none_or(|e| dist < e.dist) {
             enemy = Some(EnemyView {
@@ -184,8 +217,57 @@ fn dist_text(dist: Option<f32>) -> String {
 }
 
 impl Telemetry {
-    /// The state string sent to the brain. Stable field order, one line per group,
-    /// distances to a tenth, no timestamps beyond the round clock.
+    fn score_edge(&self) -> &'static str {
+        if self.score > self.top_rival_score {
+            "ahead"
+        } else if self.score < self.top_rival_score {
+            "behind"
+        } else {
+            "even"
+        }
+    }
+
+    fn clock_bucket(&self) -> &'static str {
+        match self.round_time_left {
+            None => "unknown",
+            Some(t) if t <= ENDING_SOON_SECONDS => "ending_soon",
+            Some(_) => "plenty",
+        }
+    }
+
+    /// The state object sent to the brain: named fields, words instead of
+    /// numbers, and only what the three questions use. TypeSafe's guidance is
+    /// an object with descriptive names, comparisons done in code, and nothing
+    /// unrelated to the questions (unrelated detail measurably hurts accuracy).
+    pub fn state_object(&self) -> Value {
+        let enemy = match &self.enemy {
+            Some(enemy) => json!({
+                "present": true,
+                "range": range_bucket(enemy.dist),
+                "health": hp_tier(enemy.hp),
+                "weapon": enemy.weapon,
+            }),
+            None => json!({ "present": false }),
+        };
+        json!({
+            "self": {
+                "health": hp_tier(self.hp),
+                "armor": if self.armor > 0 { "some" } else { "none" },
+                "weapon": self.weapon,
+                "taking_damage": self.under_fire,
+                "score": self.score_edge(),
+            },
+            "enemy": enemy,
+            "pads": {
+                "health": pad_bucket(self.health_pad),
+                "armor": pad_bucket(self.armor_pad),
+            },
+            "clock": self.clock_bucket(),
+        })
+    }
+
+    /// The human-readable state for logs and the `ask` command. Stable field
+    /// order, one line per group, distances to a tenth.
     pub fn render(&self) -> String {
         let mut out = String::new();
         out.push_str(&format!(
@@ -323,6 +405,13 @@ mod tests {
         assert_eq!(hits.damage_within(60, UNDER_FIRE_TICKS), 25);
         assert_eq!(hits.damage_within(200, UNDER_FIRE_TICKS), 0);
         assert!(hits.is_empty());
+        hits.ingest(me, 500, &on_me);
+        assert_eq!(
+            hits.damage_within(100, UNDER_FIRE_TICKS),
+            0,
+            "future hits drop"
+        );
+        assert!(hits.is_empty());
     }
 
     #[test]
@@ -357,7 +446,7 @@ mod tests {
         assert_eq!(enemy.name, "near");
         assert!((enemy.dist - 5.0).abs() < 1e-5);
         assert_eq!(enemy.weapon, "scatter");
-        assert_eq!(t.top_rival_score, 7, "dead rivals do not set the bar");
+        assert_eq!(t.top_rival_score, 9, "a respawning leader still leads");
         assert!((t.health_pad.unwrap() - 5.0).abs() < 1e-5);
         assert!((t.armor_pad.unwrap() - 8.0).abs() < 1e-5);
         assert_eq!(t.weapon_pads.len(), 1);
@@ -426,5 +515,66 @@ ROUND state=active time_left=90 fighters=2\n";
         assert_eq!(hp_tier(34), "low");
         assert_eq!(hp_tier(35), "mid");
         assert_eq!(hp_tier(70), "high");
+    }
+
+    #[test]
+    fn buckets_turn_numbers_into_words() {
+        assert_eq!(range_bucket(0.0), "close");
+        assert_eq!(range_bucket(9.9), "close");
+        assert_eq!(range_bucket(10.0), "mid");
+        assert_eq!(range_bucket(30.0), "mid");
+        assert_eq!(range_bucket(30.1), "far");
+        assert_eq!(pad_bucket(None), "none");
+        assert_eq!(pad_bucket(Some(12.0)), "near");
+        assert_eq!(pad_bucket(Some(12.1)), "far");
+    }
+
+    #[test]
+    fn state_object_is_words_only_and_minimal() {
+        let me = Uuid::new_v4();
+        let foe = Uuid::new_v4();
+        let mut snap = snapshot(
+            7,
+            vec![
+                player("me", me, 0.0, 0.0, 75, "Flechette"),
+                player("Probe-2", foe, 12.3, 0.0, 30, "Rail"),
+            ],
+            vec![
+                pad("health", "", 8.1, 0.0, true),
+                pad("weapon", "Scatter", 0.0, 2.0, true),
+            ],
+        );
+        snap.players[1].score = 3;
+        snap.round_time_left = Some(20);
+        let mut hits = RecentHits::default();
+        let t = observe(me, &snap, &mut hits).unwrap();
+        let state = t.state_object();
+        assert_eq!(
+            state,
+            serde_json::json!({
+                "self": {"health": "high", "armor": "none", "weapon": "flechette", "taking_damage": false, "score": "behind"},
+                "enemy": {"present": true, "range": "mid", "health": "low", "weapon": "rail"},
+                "pads": {"health": "near", "armor": "none"},
+                "clock": "ending_soon",
+            })
+        );
+        let text = state.to_string();
+        assert!(
+            !text.contains("12.3") && !text.contains("Probe-2"),
+            "no numbers, no names: {text}"
+        );
+        assert!(text.len() < 260, "{}", text.len());
+        let alone = snapshot(1, vec![player("me", me, 0.0, 0.0, 100, "rail")], vec![]);
+        let t = observe(me, &alone, &mut hits).unwrap();
+        let state = t.state_object();
+        assert_eq!(state["enemy"], serde_json::json!({"present": false}));
+        assert_eq!(state["self"]["score"], "even");
+        assert_eq!(state["clock"], "plenty");
+        let mut unknown = alone.clone();
+        unknown.round_time_left = None;
+        unknown.players[0].score = 2;
+        let t = observe(me, &unknown, &mut hits).unwrap();
+        assert_eq!(t.state_object()["clock"], "unknown");
+        assert_eq!(t.state_object()["self"]["score"], "ahead");
     }
 }
