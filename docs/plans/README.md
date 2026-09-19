@@ -35,6 +35,7 @@ Status words: **planned**, **in flight**, **shipped** (merged to `main`, PR numb
 | [`benchmark-and-stats.md`](./benchmark-and-stats.md) | **planned** | Benchmark mode with phase histograms and budget headroom, plus the deep analysis layer: distributions, intervals, TrueSkill, a nerd overlay, and a full export. |
 | [`massive-arenas.md`](./massive-arenas.md) | **planned** | Seeded sim, spatial grid, interest sets, delta snapshots, binary wire, tick budget, and the measured scale ladder to hundreds of fighters. |
 | [`visual-qa-tour.md`](./visual-qa-tour.md) | **rung 1 landed** | Manifest-driven tour of every player-facing state with stills, a contact sheet, and feel probes for the agent developer to critique. |
+| [`map-scale.md`](./map-scale.md) | **spec** | Maps that are maps: a size ladder from pit to field, height in the shared movement step, and the Doom, Unreal, Halo and 1942 references each tier answers to. |
 | [`hud-rebuild.md`](./hud-rebuild.md) | **spec** | Replace the HUD rather than trim it. Health, armour and ammo on screen, the broadcast strip out of gameplay, one font and one grid, judged against modern boomer shooters. |
 | [`hud-quiet.md`](./hud-quiet.md) | **in progress** | Get the words off the screen. Measured HUD coverage per state, clipped panels, duplicate badges, and nameplates that hide the fighter behind them. |
 | [`gunfeel.md`](./gunfeel.md) | **in flight** (aim defaults shipped) | What the weapons and the aim do: the parameter set from the classics, dispersion separated from aim assist, feedback timings, the dodge. |
