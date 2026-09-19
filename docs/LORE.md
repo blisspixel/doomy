@@ -165,6 +165,14 @@ How it shows up in-game: news bulletins and callers on the news station (`tools/
 
 Continuance never runs out of NODS. Some nights the Frequency runs the sweep with no exit: rounds climb, the Host counts them like a countdown that goes up, the points you scrap open the next section of the lot and pay the pads, and the only question is which round takes you. The scoreboard remembers the round, not the frags. Meatbags and clawbots fall the same way. Nobody wins a sweep. You just make the Forever Office wait longer.
 
+## How much of this is the radio (2026-09-19)
+
+Contested Frequency is a pirate signal broadcasting out of a scrap league. It is a thread through the world, not the world. The setting is the places the signal reaches and the people in them, and most of what happens in fragr happens to people who have the radio on in the background, if they have it on at all.
+
+This matters because the broadcast conceit had started to eat everything. It was on the HUD twice, in the playlist line, in the map chip, in the badges, and in the round bumper, and a player who had never heard of the station was being told about it four times a screen. A fraction of the world was taking up most of the frame.
+
+The rule going forward: the radio is a voice in the world, strongest in the spectator view where watching a broadcast is the point, and quiet where a person is playing. A map, a mode, or a weapon should make sense to someone who never tunes in. Anything that only makes sense because of the station belongs to the station.
+
 ## Hard Rules
 
 1. Lore is optional atmosphere. Skip it and the game still works.

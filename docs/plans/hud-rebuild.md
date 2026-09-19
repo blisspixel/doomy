@@ -30,6 +30,10 @@ Held against DUSK, Amid Evil, Prodeus, Cultic, Ultrakill and Selaco, here is wha
 
 Spectator and free-fly are worth having and worth making fun to watch, and the broadcast conceit belongs to them. But a person playing fragr is playing a first-person boomer shooter, in the Doom sense: they are behind the gun, the world fills the screen, and the chrome lives at the edges. Every decision below is made for that player. If an element exists to serve the spectator view, it belongs in the spectator view and not over a firefight.
 
+## How loud the broadcast gets
+
+The station is a thread through the world, not the world. It had been given the top of the screen, two badges, the playlist line, a map chip and a round bumper, so a player who had never heard of Contested Frequency was told about it four times a frame. The signal belongs where watching a broadcast is the point, which is the spectator view and the round bumper. A person behind a gun gets the world, not the network ident. Written up in `docs/LORE.md`.
+
 ## The target frame
 
 Everything a player needs, nothing else, in the corners:
