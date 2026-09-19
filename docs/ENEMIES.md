@@ -56,6 +56,7 @@ Two things were settled in the merge. The Compliance Drone stays the existing bo
 ## Related
 
 - `docs/MODES.md`: where you meet them.
+- `docs/ART-COLOR.md`: how a player tells one from another in a quarter of a second.
 - `docs/WEAPONS.md`: what you are answering them with.
 - `plans/campaign-continuance.md`: where they appear and in what order.
 - `docs/ART-ASSET-LIST.md`: the frames each one needs drawn.
